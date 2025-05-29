@@ -1,0 +1,8 @@
+29th of May - 
+    Socket setup with poll() (non-blocking I/O)
+    Multiple client handling
+    Reading HTTP requests from the socket
+    Parsing request line (method, path, version)
+    Routing needs to work better - will continue tomorrow to fix it. 
+
+

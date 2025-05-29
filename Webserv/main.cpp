@@ -8,7 +8,56 @@
 #include <fcntl.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <fstream>
+#include <sys/stat.h>
 
+bool file_exits(const std::string& path) {
+    struct stat buffer;
+    return (stat(path.c_str(), &buffer) == 0);
+}
+
+std::string resolve_path(const std::string& raw_path) {
+    std::string path = raw_path;
+
+    if (path =="/")
+        path = "/index.html";
+    else if (!path.empty() && path[path.size() - 1] == '/')
+        path += "index.html";
+    
+    std::string file_path = "./www" + path;
+    if (!file_exits(file_path)) {
+        if (path.find('.') == std::string::npos) {
+            file_path = "./www" + raw_path + ".html";
+            if (file_exits(file_path))
+                return (file_path);
+        }
+    }
+    return (file_path);
+}
+
+std::string get_mime_type(const std::string& path) {
+    size_t dot = path.rfind('.');
+    if (dot == std::string::npos)
+        return ("application/octet-stream");
+
+    std::string ext = path.substr(dot);
+
+    if (ext == ".html")
+        return "text/html";
+    if (ext == ".css")
+        return "text/css";        
+    if (ext == ".js")
+        return "application/javascript";
+    if (ext == ".txt")
+        return "text/plain";        
+    if (ext == ".jpg" || ext == ".jpeg")
+        return "image/jpeg";   
+    if (ext == ".png")
+        return "image/png";        
+    if (ext == ".gif")
+        return "image/gif";
+    return "application/octet-stream";
+}
 
 void    parse_http_request(const std::string& request, std::string& method, std::string& path, std::string& version) {
     std::istringstream stream(request);
@@ -18,7 +67,6 @@ void    parse_http_request(const std::string& request, std::string& method, std:
         throw std::runtime_error("Empty request");
     }
 
-    std::cout << "🧾 Raw request line: [" << request_line << "]\n";
     if (!request_line.empty() && request_line[request_line.size() - 1] == '\r') {
         request_line.erase(request_line.size() - 1);
     }
@@ -55,8 +103,8 @@ int setup_server_socket(int port) {
     addr.sin_port = htons(port);
     addr.sin_addr.s_addr = INADDR_ANY;
 
-    if (bind(server_fd, (struct sockaddr* )&addr, sizeof(addr)) < 0)
-        throw std:: runtime_error("Bind failed");
+    if (bind(server_fd, (struct sockaddr*) &addr, sizeof(addr)) < 0)
+        throw std::runtime_error("Bind failed");
     if (listen(server_fd, 10) < 0)
         throw std::runtime_error("Listen failed");
 
@@ -64,27 +112,31 @@ int setup_server_socket(int port) {
     return (server_fd);
 }
 
-void    send_dynamic_response(int client_fd, const std::string& path) {
-    std::string body;
-    int status_code = 200;
-    std::string status_text = "OK";
+void    send_dynamic_response(int client_fd, const std::string& raw_path) {
+    std::string file_path = resolve_path(raw_path);
 
-    if (path == "/") {
-        body = "<h1>Hello Mahdi</h1>";
-    } else if (path == "/about") {
-        body = "<h1>About Page</h1>";
-    } else if (path == "/contact") {
-        body = "<h1>Contact Page</h1>";
+    std::ifstream file(file_path.c_str());
+    std::string body;
+    int status_code;
+    std::string status_text;
+
+    if (file) {
+        std::ostringstream buffer;
+        buffer << file.rdbuf();
+        body = buffer.str();
+        status_code = 200;
+        status_text = "OK";
     } else {
         body = "<h1>404 Not Found</h1>";
         status_code = 404;
-        status_text = "Not found";
+        status_text = "Not Found";
     }
 
     std::ostringstream oss;
     oss << "HTTP/1.1 " << status_code << " " << status_text << "\r\n"
-        << "Content-Type: text/html\r\n"
-        "Content-Length: " << body.size() << "\r\n"
+        << "Content-Type: " << get_mime_type(file_path) << "\r\n"
+        << "Content-Length: " << body.size() << "\r\n"
+        << "Connection: close\r\n"
         << "\r\n" 
         << body;
 
