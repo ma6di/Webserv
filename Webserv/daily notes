@@ -6,3 +6,8 @@
     Routing needs to work better - will continue tomorrow to fix it. 
 
 
+30th of May -
+    Class logic have been adopted and the code fully updated. 
+    Config, CGIHanlder, and Route for Mahdi. Request and Response for Tayfun. 
+
+currently, the code can be tested: c++ -Wall -Wextra -Werror -std=c++98 main.cpp WebServer.cpp utils.cpp -o webserv
