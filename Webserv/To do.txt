@@ -1,0 +1,50 @@
+==============================
+📝 TEAM MEMBER B - TODO LIST
+==============================
+
+1. Improve and Harden the Config System
+----------------------------------------
+[ ] Validate `listen` is a valid number
+[ ] Validate root paths exist or fallback gracefully
+[ ] Support default values (e.g., default to `/index.html` if not set)
+[ ] Return `error_page` correctly (coordinate with Team A’s Response)
+
+2. Support `error_page` Directive
+----------------------------------
+[x] Parse and store `error_page` (Already Done ✅)
+[ ] Add helper method:
+        const std::string* Config::getErrorPage(int code) const
+[ ] Coordinate with Team A to serve error pages (404, 405, etc.)
+
+3. Support Uploads (BONUS Feature)
+-----------------------------------
+[ ] In CGI or POST handler, write request body into `upload_dir`
+[ ] Use `upload_dir` field from `LocationConfig` if defined
+      Example logic:
+        if (!upload_dir.empty()) {
+            std::ofstream out(upload_dir + "/file.txt");
+            out << request.getBody();
+        }
+
+4. Final Integration & Testing
+-------------------------------
+[ ] Provide headers so Team A can use:
+      - `Config` class
+      - `CGIHandler` class
+
+[ ] Test all integrated scenarios:
+    [ ] `/` returns static page
+    [ ] `/cgi-bin/test.py` runs correctly
+    [ ] `DELETE` or `PUT` returns 405 (method not allowed)
+    [ ] Non-existent path returns 404
+    [ ] CGI errors are handled and logged properly
+
+5. Write Documentation (README.txt)
+------------------------------------
+[ ] Document `Config` system:
+    - What it parses
+    - How to add new location blocks
+
+[ ] Document `CGIHandler`:
+    - How CGI execution works
+    - What environment variables are passed
