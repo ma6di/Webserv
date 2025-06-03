@@ -3,6 +3,8 @@
 
 #include <string>
 #include <map>
+#include <sstream>
+#include <iostream>
 
 class Request {
 public:
@@ -12,6 +14,8 @@ public:
     std::string getVersion() const;
     std::string getHeader (const std::string& key) const;
     std::string getBody() const;
+    void printHeaders() const;
+    void debugPrint() const;
 
 private:
     std::string method;

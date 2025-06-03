@@ -1,4 +1,6 @@
 #include "WebServer.hpp"
+#include "Request.hpp"
+#include "Response.hpp"
 #include "utils.hpp"
 
 WebServer::WebServer(int port) : port(port) {
@@ -35,7 +37,6 @@ void WebServer::setup_server_socket(int port) {
         throw std::runtime_error("Listen failed");
 
     make_socket_non_blocking(server_fd);   
-    //return (server_fd);
 }
 
 void    WebServer::make_socket_non_blocking(int fd) {
@@ -97,55 +98,47 @@ void    WebServer::handle_client_data(size_t i) {
         std::cout << "Client disconnected: FD= " << client_fd << "\n";
         close(client_fd);
         fds.erase(fds.begin() + i);
-    } else {
-        std::string request(buffer);
-        std::string method, path, version;
-
-        try {
-            parse_http_request(request, method, path, version);
-        } catch (const std::exception& e) {
-            std::cerr << "Failed to parse HTTP request: " << e.what() << "\n";
-            close(client_fd);
-            fds.erase(fds.begin() + i);
-            return;
-        }    
-
+        return;
+    } 
+    
+    try {
+        std::string raw_request(buffer);
+        Request req(raw_request);
+        req.debugPrint();
+        std::string path = req.getPath();
         send_response(client_fd, path);
-        close(client_fd);
+    } catch (const std::exception& e) {
+        std::cerr << "Failed to parse HTTP request: " << e.what() << "\n"; 
+    }
         fds.erase(fds.begin() + i);
-    }    
-}
+}    
 
 void    WebServer::send_response(int client_fd, const std::string& raw_path) {
     std::string file_path = resolve_path(raw_path);
-
     std::ifstream file(file_path.c_str());
-    std::string body;
-    int status_code;
-    std::string status_text;
+
+    Response res;
+
 
     if (file) {
         std::ostringstream buffer;
         buffer << file.rdbuf();
-        body = buffer.str();
-        status_code = 200;
-        status_text = "OK";
+        res.setStatus(200, "OK");
+        res.setBody(buffer.str());
+        res.setHeader("Content-Type", get_mime_type(file_path));
     } else {
-        body = "<h1>404 Not Found</h1>";
-        status_code = 404;
-        status_text = "Not Found";
+        res.setStatus(404, "Not Found");
+        res.setBody("<h1>404 Not Found </h1>");
+        res.setHeader("Content-Type", "text/html");
     }
 
-    std::ostringstream oss;
-    oss << "HTTP/1.1 " << status_code << " " << status_text << "\r\n"
-        << "Content-Type: " << get_mime_type(file_path) << "\r\n"
-        << "Content-Length: " << body.size() << "\r\n"
-        << "Connection: close\r\n"
-        << "\r\n" 
-        << body;
-
-    std::string response = oss.str();
-    write(client_fd, response.c_str(), response.size());
+    std::ostringstream content_length_ss;
+    content_length_ss << res.build().size();
+    res.setHeader("Connection", "close");
+    file.close();
+    
+    std::string full_response = res.build();
+    write(client_fd, full_response.c_str(), full_response.size());
 }
 
 std::string WebServer::resolve_path(const std::string& raw_path) {
