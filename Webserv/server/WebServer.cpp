@@ -109,6 +109,29 @@ void WebServer::handle_client_data(size_t i) {
         std::string uri = request.getPath();
 
         const LocationConfig* loc = match_location(g_config.getLocations(), uri);
+
+		std::string method = request.getMethod();
+		const std::vector<std::string>& allowed = loc->allowed_methods;
+
+		bool methodAllowed = false;
+		for (size_t j = 0; j < allowed.size(); ++j) {
+			if (allowed[j] == method) {
+				methodAllowed = true;
+				break;
+			}
+		}
+
+		if (!methodAllowed) {
+			Response res;
+			res.setStatus(405, "Method Not Allowed");
+			res.setBody("<h1>405 Method Not Allowed</h1>");
+			std::string raw = res.toString();
+			write(client_fd, raw.c_str(), raw.size());
+			close(client_fd);
+			fds.erase(fds.begin() + i);
+			return;
+		}
+
         if (loc && is_cgi_request(*loc, uri)) {
             std::string script_path = resolve_script_path(uri, *loc);
 

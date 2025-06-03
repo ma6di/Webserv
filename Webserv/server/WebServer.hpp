@@ -19,6 +19,7 @@
 #include "utils.hpp"
 #include "Config.hpp"
 #include "Request.hpp"
+#include "Response.hpp"
 #include <unistd.h>
 
 class WebServer {

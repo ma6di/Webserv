@@ -14,7 +14,8 @@ SRC_FILES   := main.cpp \
                cgi/CGIHandler.cpp \
 			   utils/utils.cpp \
 			   server/WebServer.cpp \
-			   http/Request.cpp
+			   http/Request.cpp \
+			   http/Response.cpp
 
 
 OBJS        := $(SRC_FILES:.cpp=.o)
