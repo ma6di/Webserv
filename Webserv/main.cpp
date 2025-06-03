@@ -1,5 +1,11 @@
 #include "WebServer.hpp"
+#include "config/Config.hpp"
+#include "cgi/CGIHandler.hpp"
+#include "http/Request.hpp"
+#include <iostream>
+#include <map>
 
+Config g_config("default.conf");
 
 int main() {
     try {

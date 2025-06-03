@@ -53,3 +53,31 @@ void    parse_http_request(const std::string& request, std::string& method, std:
         throw std::runtime_error("Invalid HTTP request line");
     }
 }
+
+const LocationConfig* match_location(const std::vector<LocationConfig>& locations, const std::string& path) {
+    const LocationConfig* bestMatch = NULL;
+    size_t bestLength = 0;
+
+    for (size_t i = 0; i < locations.size(); ++i) {
+        const std::string& locPath = locations[i].path;
+        if (path.find(locPath) == 0 && locPath.length() > bestLength) {
+            bestLength = locPath.length();
+            bestMatch = &locations[i];
+        }
+    }
+
+    return bestMatch;
+}
+
+bool is_cgi_request(const LocationConfig& loc, const std::string& uri) {
+    size_t dot = uri.rfind('.');
+    if (dot == std::string::npos)
+        return false;
+    std::string ext = uri.substr(dot);
+    return ext == loc.cgi_extension;
+}
+
+std::string resolve_script_path(const std::string& uri, const LocationConfig& loc) {
+    std::string root = loc.root.empty() ? "./www" : loc.root;
+    return root + uri.substr(loc.path.length());  // Trim location prefix from URI
+}

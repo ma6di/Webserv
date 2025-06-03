@@ -13,6 +13,13 @@
 #include <netinet/in.h>
 #include <fstream>
 #include <sys/stat.h>
+#include "WebServer.hpp"
+#include "utils.hpp"
+#include "CGIHandler.hpp"
+#include "utils.hpp"
+#include "Config.hpp"
+#include "Request.hpp"
+#include <unistd.h>
 
 class WebServer {
 public:

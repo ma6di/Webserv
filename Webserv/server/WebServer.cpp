@@ -1,5 +1,8 @@
 #include "WebServer.hpp"
-#include "utils.hpp"
+#include <string>
+
+
+extern Config g_config;
 
 WebServer::WebServer(int port) : port(port) {
     setup_server_socket(port);
@@ -87,7 +90,7 @@ void    WebServer::handle_new_connection() {
     std::cout << "New client connected: FD=" << client_fd << "\n"; 
 }
 
-void    WebServer::handle_client_data(size_t i) {
+void WebServer::handle_client_data(size_t i) {
     int client_fd = fds[i].fd;
     char buffer[1024];
     std::memset(buffer, 0, sizeof(buffer));
@@ -97,23 +100,42 @@ void    WebServer::handle_client_data(size_t i) {
         std::cout << "Client disconnected: FD= " << client_fd << "\n";
         close(client_fd);
         fds.erase(fds.begin() + i);
-    } else {
-        std::string request(buffer);
-        std::string method, path, version;
+        return;
+    }
 
-        try {
-            parse_http_request(request, method, path, version);
-        } catch (const std::exception& e) {
-            std::cerr << "Failed to parse HTTP request: " << e.what() << "\n";
-            close(client_fd);
-            fds.erase(fds.begin() + i);
-            return;
-        }    
+    std::string request_data(buffer);
+    try {
+        Request request(request_data);  // Parse the HTTP request line and headers
+        std::string uri = request.getPath();
 
-        send_response(client_fd, path);
-        close(client_fd);
-        fds.erase(fds.begin() + i);
-    }    
+        const LocationConfig* loc = match_location(g_config.getLocations(), uri);
+        if (loc && is_cgi_request(*loc, uri)) {
+            std::string script_path = resolve_script_path(uri, *loc);
+
+            std::map<std::string, std::string> env;
+            env["REQUEST_METHOD"] = request.getMethod();
+            env["SCRIPT_NAME"] = uri;
+            env["QUERY_STRING"] = "";  // Optionally parse it
+            std::ostringstream oss;
+			oss << request.getBody().size();
+			env["CONTENT_LENGTH"] = oss.str();
+
+            CGIHandler handler(script_path, env, request.getBody());
+            std::string cgi_output = handler.execute();
+
+            write(client_fd, cgi_output.c_str(), cgi_output.size());
+        } else {
+            // Serve static file (not CGI)
+            send_response(client_fd, uri);  // Your existing function
+        }
+
+    } catch (const std::exception& e) {
+        std::cerr << "Request parse error: " << e.what() << "\n";
+        write(client_fd, "HTTP/1.1 400 Bad Request\r\n\r\n", 28);
+    }
+
+    close(client_fd);
+    fds.erase(fds.begin() + i);
 }
 
 void    WebServer::send_response(int client_fd, const std::string& raw_path) {
