@@ -4,15 +4,15 @@
 
 1. Improve and Harden the Config System
 ----------------------------------------
-[ ] Validate `listen` is a valid number
-[ ] Validate root paths exist or fallback gracefully
-[ ] Support default values (e.g., default to `/index.html` if not set)
-[ ] Return `error_page` correctly (coordinate with Team A’s Response)
+[x] Validate `listen` is a valid number
+[x] Validate root paths exist or fallback gracefully
+[x] Support default values (e.g., default to `/index.html` if not set)
+[x] Return `error_page` correctly (coordinate with Team A’s Response)
 
 2. Support `error_page` Directive
 ----------------------------------
 [x] Parse and store `error_page` (Already Done ✅)
-[ ] Add helper method:
+[x] Add helper method:
         const std::string* Config::getErrorPage(int code) const
 [ ] Coordinate with Team A to serve error pages (404, 405, etc.)
 

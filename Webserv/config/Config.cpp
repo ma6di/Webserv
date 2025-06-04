@@ -16,11 +16,39 @@ const std::string& Config::getRoot() const { return root; }
 const std::vector<LocationConfig>& Config::getLocations() const { return locations; }
 const std::map<int, std::string>& Config::getErrorPages() const { return error_pages; }
 
+const std::string* Config::getErrorPage(int code) const {
+    std::map<int, std::string>::const_iterator it = error_pages.find(code);
+    if (it != error_pages.end())
+        return &it->second;
+    return NULL;
+}
+
 // Utility function to strip trailing semicolon
 static std::string stripSemicolon(const std::string& token) {
     if (!token.empty() && token[token.size() - 1] == ';')
         return token.substr(0, token.size() - 1);
     return token;
+}
+
+int Config::parseListenDirective(const std::string& token) {
+    std::string portStr = stripSemicolon(token);
+
+    // ✅ Check digits only
+    if (portStr.empty() || portStr.find_first_not_of("0123456789") != std::string::npos)
+        throw std::runtime_error("Invalid listen port: not a number");
+
+    int parsedPort = std::atoi(portStr.c_str());
+
+    // ✅ Check valid port range
+    if (parsedPort <= 0 || parsedPort > 65535)
+        throw std::runtime_error("Invalid listen port: must be between 1 and 65535");
+
+    return parsedPort;
+}
+
+bool Config::pathExists(const std::string& path) {
+    struct stat s;
+    return stat(path.c_str(), &s) == 0 && S_ISDIR(s.st_mode);
 }
 
 // Main config parser
@@ -48,18 +76,24 @@ void Config::parseConfigFile(const std::string& filename) {
 
 		//Parses listen 8080;
 		//Converts port string to int using atoi
-        if (keyword == "listen") {
-            std::string portStr;
-            iss >> portStr;
-            port = std::atoi(stripSemicolon(portStr).c_str());
-        }
+		if (keyword == "listen") {
+			std::string token;
+			iss >> token;
+			port = parseListenDirective(token);
+		}
 		//Parses root only if it's outside of a location block
 		//Saves it as the global server root
-        else if (keyword == "root" && !insideLocation) {
-            std::string r;
-            iss >> r;
-            root = stripSemicolon(r);
-        }
+		else if (keyword == "root" && !insideLocation) {
+			std::string r;
+			iss >> r;
+			r = stripSemicolon(r);
+			if (!pathExists(r))
+			{
+				std::cout << "[DEBUG] root value: [" << root << "]\n";
+				throw std::runtime_error("Invalid root path: " + r);
+			}
+			root = r;
+		}
 		//Parses directives like error_page 404 /404.html;
 		//Maps status code 404 to a file path /404.html
         else if (keyword == "error_page") {
@@ -84,16 +118,28 @@ void Config::parseConfigFile(const std::string& filename) {
 		//Pushes the filled LocationConfig into the locations vector.
         else if (keyword == "}") {
             if (insideLocation) {
+				// ✅ Apply defaults if not explicitly set
+				if (currentLocation.index.empty())
+				{
+					std::cout << "⚠️  No index set for " << currentLocation.path << " → using default: index.html\n";
+					currentLocation.index = "index.html";
+				}
+				if (currentLocation.allowed_methods.empty())
+					currentLocation.allowed_methods.push_back("GET");
                 locations.push_back(currentLocation);
                 insideLocation = false;
+				
             }
         }
         else if (insideLocation) {
-            if (keyword == "root") {
-                std::string r;
-                iss >> r;
-                currentLocation.root = stripSemicolon(r);
-            }
+			if (keyword == "root") {
+				std::string r;
+				iss >> r;
+				r = stripSemicolon(r);
+				if (!pathExists(r))
+					throw std::runtime_error("Invalid location root path: " + r);
+				currentLocation.root = r;
+			}
             else if (keyword == "index") {
                 std::string indexFile;
                 iss >> indexFile;

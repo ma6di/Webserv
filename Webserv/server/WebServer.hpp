@@ -43,6 +43,8 @@ private:
     void handle_client_data(size_t i);
     void send_response(int client_fd, const std::string& path);
     std::string resolve_path(const std::string& raw_path);
+	void send_error_response(int client_fd, int status_code, const std::string& status_text, size_t index);
+
 };
 
 

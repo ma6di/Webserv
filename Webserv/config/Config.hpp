@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <sys/stat.h>
 
 // The Config class represents a full server block.
 // It is responsible for loading a config file and storing all relevant settings.
@@ -25,6 +26,11 @@ public:
     const std::vector<LocationConfig>& getLocations() const;
 	//map of HTTP error codes to custom error page paths
     const std::map<int, std::string>& getErrorPages() const;
+	const std::string* getErrorPage(int code) const;
+
+    //Helper Validating functions
+	int parseListenDirective(const std::string& token);
+	bool pathExists(const std::string& path);
 
 private:
     int port;                                 // Port the server will listen on
