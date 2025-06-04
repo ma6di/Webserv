@@ -29,8 +29,11 @@ public:
     void run();
 
 private:
+	//server_fd: the file descriptor of the main server socket.
     int server_fd;
+	//fds: list of pollfd objects (one per client or server socket).
     std::vector<pollfd> fds;
+	//port: the port number the server listens on.
     int port; 
 
     void setup_server_socket(int port);

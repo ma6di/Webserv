@@ -18,13 +18,14 @@ std::string Request::getVersion() const {
     return version;
 }
 
+//Standard accessors for the HTTP request line components (GET, /index.html, HTTP/1.1)
 std::string Request::getHeader(const std::string& key) const {
     std::map<std::string, std::string>::const_iterator it = headers.find(key);
     if (it != headers.end())
         return it->second;
     return "";
 }
-
+//Fetches headers like "Content-Type" or "Host" (case-sensitive). Returns empty string if not found.
 std::string Request::getBody() const {
     return body;
 }
@@ -40,10 +41,12 @@ void Request::parseRequest(const std::string& raw_data) {
     request_line >> method >> path >> version;
 
     // Parse headers
+	//Headers go line-by-line until a blank line is reached (ends with \r\n\r\n).
     while (std::getline(stream, line)) {
         if (line == "\r" || line.empty())
             break;
 
+		//Splits the line into key: value
         size_t colon = line.find(':');
         if (colon != std::string::npos) {
             std::string key = line.substr(0, colon);
@@ -58,6 +61,7 @@ void Request::parseRequest(const std::string& raw_data) {
             if (!value.empty() && value[value.size() - 1] == '\r')
                 value.erase(value.size() - 1);
 
+			//Adds the header to the map
             headers[key] = value;
         }
     }

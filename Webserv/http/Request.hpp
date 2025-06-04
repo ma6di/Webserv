@@ -3,7 +3,7 @@
 
 #include <string>
 #include <map>
-
+//This file defines the Request class — it represents a parsed HTTP request from the client.
 class Request {
 public:
     Request(const std::string& raw_data);

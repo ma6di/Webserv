@@ -1,6 +1,9 @@
 #include "Response.hpp"
 #include <sstream>
 
+//Default response: 200 OK
+//Content-Type: tells browser it's HTML
+//Connection: close: connection won't be reused
 Response::Response() : status_code(200), status_message("OK") {
     headers["Content-Type"] = "text/html";
     headers["Connection"] = "close";

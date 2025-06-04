@@ -4,20 +4,27 @@
 
 extern Config g_config;
 
+//Initializes port, and calls the method to create and configure the server socket.
 WebServer::WebServer(int port) : port(port) {
     setup_server_socket(port);
 }
 
+//Cleans up all open sockets when the server object is destroyed.
 WebServer::~WebServer() {
     for (size_t i = 0; i < fds.size(); ++i)
         close(fds[i].fd);
 }
 
+//Start the Event Loop
 void    WebServer::run() {
     std::cout << "Server running on http://localhost:" << port << "\n";
     poll_loop();
 }
 
+//Setup Listening Socket
+//SOCK_STREAM means TCP
+	//bind() to INADDR_ANY makes it listen on all interfaces
+	//listen() enables incoming connections
 void WebServer::setup_server_socket(int port) {
     server_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (server_fd == -1)
@@ -36,7 +43,7 @@ void WebServer::setup_server_socket(int port) {
         throw std::runtime_error("Bind failed");
     if (listen(server_fd, 10) < 0)
         throw std::runtime_error("Listen failed");
-
+	//Ensures non-blocking I/O for poll-based async logic
     make_socket_non_blocking(server_fd);   
     //return (server_fd);
 }
@@ -46,6 +53,8 @@ void    WebServer::make_socket_non_blocking(int fd) {
         throw std::runtime_error("Failed to set O_NONBLOCK");
 }
 
+//Monitors multiple sockets (both server socket and clients)
+//If something becomes "readable", handle it
 void    WebServer::poll_loop() {
     fds.clear();
     struct pollfd pfd;
@@ -60,9 +69,12 @@ void    WebServer::poll_loop() {
             std::cerr << "Poll failed\n";
             break;
         }
+		//Check if the event was a read (data available)
         for (size_t i = 0; i < fds.size(); ++i) {
             if (!(fds[i].revents & POLLIN))
                 continue;
+			//If it's the server socket, accept new client
+			//Otherwise, process incoming client data
             if (fds[i].fd == server_fd)
                 handle_new_connection();
             else
@@ -71,6 +83,7 @@ void    WebServer::poll_loop() {
     }
 }
 
+//Accepts a new client connection
 void    WebServer::handle_new_connection() {
     sockaddr_in client_addr;
     socklen_t client_len = sizeof(client_addr);
@@ -79,8 +92,9 @@ void    WebServer::handle_new_connection() {
         std::cerr << "Accept failed\n";
         return;
     }
+	//Also sets client to non-blocking
     make_socket_non_blocking(client_fd);
-    
+    //Add to the list of monitored sockets
     struct pollfd pfd;
     pfd.fd = client_fd;
     pfd.events = POLLIN;
@@ -103,11 +117,13 @@ void WebServer::handle_client_data(size_t i) {
         return;
     }
 
+	//Use your Request class to parse the method, path, headers, etc.
     std::string request_data(buffer);
     try {
         Request request(request_data);  // Parse the HTTP request line and headers
         std::string uri = request.getPath();
 
+		//Find the matching location {} block for this URI.
         const LocationConfig* loc = match_location(g_config.getLocations(), uri);
 
 		std::string method = request.getMethod();
@@ -120,7 +136,7 @@ void WebServer::handle_client_data(size_t i) {
 				break;
 			}
 		}
-
+		//		//If the HTTP method is not allowed for this location → return 405.
 		if (!methodAllowed) {
 			Response res;
 			res.setStatus(405, "Method Not Allowed");
@@ -131,7 +147,7 @@ void WebServer::handle_client_data(size_t i) {
 			fds.erase(fds.begin() + i);
 			return;
 		}
-
+		//If it’s not CGI, serve as a static file.
         if (loc && is_cgi_request(*loc, uri)) {
             std::string script_path = resolve_script_path(uri, *loc);
 
@@ -162,13 +178,14 @@ void WebServer::handle_client_data(size_t i) {
 }
 
 void    WebServer::send_response(int client_fd, const std::string& raw_path) {
-    std::string file_path = resolve_path(raw_path);
+    //Convert /about or / to ./www/about.html, etc.
+	std::string file_path = resolve_path(raw_path);
 
     std::ifstream file(file_path.c_str());
     std::string body;
     int status_code;
     std::string status_text;
-
+	//Send 200 or 404 response depending on file existence
     if (file) {
         std::ostringstream buffer;
         buffer << file.rdbuf();
@@ -193,6 +210,8 @@ void    WebServer::send_response(int client_fd, const std::string& raw_path) {
     write(client_fd, response.c_str(), response.size());
 }
 
+//Converts requested path into full path like ./www/about.html
+//Also handles fallback like /blog → /blog.html
 std::string WebServer::resolve_path(const std::string& raw_path) {
     std::string path = raw_path;
 

@@ -19,6 +19,9 @@ std::string CGIHandler::execute() {
 std::string CGIHandler::runCGI() {
     int input_pipe[2];
     int output_pipe[2];
+	//Creates two pipes:
+		//One for sending input to the script (stdin)
+		//One for reading output from the script (stdout)
     if (pipe(input_pipe) < 0 || pipe(output_pipe) < 0)
         throw std::runtime_error("Pipe creation failed");
 

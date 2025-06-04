@@ -10,9 +10,12 @@
 class CGIHandler {
 public:
     // Constructor takes the path to the script, the environment variables, and optional POST data
-    CGIHandler(const std::string& scriptPath,
-               const std::map<std::string, std::string>& env,
-               const std::string& inputBody = "");
+    //scriptPath: full path to the script to execute (e.g., /www/cgi/test.py)
+	CGIHandler(const std::string& scriptPath,
+				//env: a map of environment variables
+            	const std::map<std::string, std::string>& env,
+				//inputBody: optional request body (for POST methods)
+            	const std::string& inputBody = "");
 
     // Executes the CGI program and returns its output (headers + body)
     std::string execute();

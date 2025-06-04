@@ -31,3 +31,30 @@
   * `std::string root`
   * `std::vector<LocationConfig>`
   * `std::map<int, std::string> error_pages`
+
+--------------------------------
+Key Concepts:
+In web server configuration (like in NGINX, which WebServ mimics), 
+a location block defines how to handle requests for a specific URI path.
+
+For example:
+
+	location / {
+		root /www/html;
+		index index.html;
+	}
+
+	location /cgi-bin {
+		root /www/cgi;
+		cgi_extension .py;
+	}
+
+The first block handles requests to /, /about, /index.html, etc.
+The second block handles requests to /cgi-bin/script.py, which are CGI scripts.
+
+Each location can:
+	Define a different file root
+	Set allowed HTTP methods (GET, POST, etc.)
+	Enable CGI
+	Turn on directory listing (autoindex)
+	Set upload folder

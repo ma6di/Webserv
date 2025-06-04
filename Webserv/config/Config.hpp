@@ -11,12 +11,19 @@
 class Config {
 public:
     // Constructor takes the path to a config file and immediately parses it.
-    Config(const std::string& filename);
+    //So when you write Config conf("default.conf"); it loads config on the spot
+	Config(const std::string& filename);
 
     // Accessor methods for the parsed configuration.
+	//All are marked const, meaning they don’t modify the object.
+
+	//returns port from listen 8080;
     int getPort() const;
+	//global root, used as fallback if location doesn’t define one
     const std::string& getRoot() const;
+	//list of all parsed location blocks
     const std::vector<LocationConfig>& getLocations() const;
+	//map of HTTP error codes to custom error page paths
     const std::map<int, std::string>& getErrorPages() const;
 
 private:

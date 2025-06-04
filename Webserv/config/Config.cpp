@@ -30,35 +30,48 @@ void Config::parseConfigFile(const std::string& filename) {
         throw std::runtime_error("Could not open config file: " + filename);
 
     std::string line;
+	// flag for tracking if you're parsing inside a location block
     bool insideLocation = false;
+	// temporary holder for values inside a location block
     LocationConfig currentLocation;
 
     while (std::getline(file, line)) {
-        // Remove leading spaces
+        // Remove leading spaces and Skips empty lines and comments (#).
         line.erase(0, line.find_first_not_of(" \t"));
         if (line.empty() || line[0] == '#')
             continue;
-
+		//Tokenizes the line.
         std::istringstream iss(line);
         std::string keyword;
+		//Extracts the first word (keyword), like listen, root, location, etc.
         iss >> keyword;
 
+		//Parses listen 8080;
+		//Converts port string to int using atoi
         if (keyword == "listen") {
             std::string portStr;
             iss >> portStr;
             port = std::atoi(stripSemicolon(portStr).c_str());
         }
+		//Parses root only if it's outside of a location block
+		//Saves it as the global server root
         else if (keyword == "root" && !insideLocation) {
             std::string r;
             iss >> r;
             root = stripSemicolon(r);
         }
+		//Parses directives like error_page 404 /404.html;
+		//Maps status code 404 to a file path /404.html
         else if (keyword == "error_page") {
             std::string codeStr, path;
             iss >> codeStr >> path;
             int code = std::atoi(stripSemicolon(codeStr).c_str());
             error_pages[code] = stripSemicolon(path);
         }
+		//Detects start of a location block.
+		//Resets the currentLocation object.
+		//Records the path (e.g., /cgi-bin, /upload)
+		//Sets insideLocation = true so further lines go into this object
         else if (keyword == "location") {
             std::string location_path;
             iss >> location_path;
@@ -67,6 +80,8 @@ void Config::parseConfigFile(const std::string& filename) {
             currentLocation.path = stripSemicolon(location_path);
             insideLocation = true;
         }
+		//Detects end of location block.
+		//Pushes the filled LocationConfig into the locations vector.
         else if (keyword == "}") {
             if (insideLocation) {
                 locations.push_back(currentLocation);
