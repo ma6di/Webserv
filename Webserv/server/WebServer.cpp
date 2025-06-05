@@ -4,6 +4,8 @@
 #include "CGIHandler.hpp"
 #include "utils.hpp"
 #include "Config.hpp"
+#include <ctime>
+
 
 #include <fstream>
 #include <sstream>
@@ -107,11 +109,41 @@ void WebServer::handle_new_connection() {
 
 void WebServer::handle_client_data(size_t i) {
     int client_fd = fds[i].fd;
-    char buffer[1024];
-    std::memset(buffer, 0, sizeof(buffer));
-    int bytes = read(client_fd, buffer, sizeof(buffer) - 1);
+    std::string request_data;
+    char buf[1024];
 
-    if (bytes <= 0) {
+    // 🔁 Step 1: Read loop until full headers + body (based on Content-Length)
+    while (true) {
+        std::memset(buf, 0, sizeof(buf));
+        int bytes = read(client_fd, buf, sizeof(buf) - 1);
+        if (bytes <= 0)
+            break;
+
+        request_data.append(buf, bytes);
+
+        // 🔍 Look for end of headers
+        size_t header_end = request_data.find("\r\n\r\n");
+        if (header_end != std::string::npos) {
+            std::string headers = request_data.substr(0, header_end);
+            size_t cl_pos = headers.find("Content-Length:");
+            if (cl_pos != std::string::npos) {
+                std::istringstream iss(headers.substr(cl_pos));
+                std::string cl;
+                int content_length = 0;
+                iss >> cl >> content_length;
+
+                size_t body_start = header_end + 4;
+                size_t body_len = request_data.size() - body_start;
+                if (body_len >= (size_t)content_length)
+                    break; // full body received
+            } else {
+                break; // No body expected, headers done
+            }
+        }
+    }
+
+    // 🧪 If we didn’t receive any useful data
+    if (request_data.empty()) {
         std::cout << "Client disconnected: FD=" << client_fd << "\n";
         close(client_fd);
         fds.erase(fds.begin() + i);
@@ -119,24 +151,26 @@ void WebServer::handle_client_data(size_t i) {
     }
 
     try {
-		Request request = Request(std::string(buffer));
+        Request request = Request(request_data);
         std::string uri = request.getPath();
         const LocationConfig* loc = match_location(g_config.getLocations(), uri);
+        std::string method = request.getMethod();
 
+        // 🔒 Method not allowed?
         if (loc) {
             const std::vector<std::string>& allowed = loc->allowed_methods;
-            std::string method = request.getMethod();
             if (std::find(allowed.begin(), allowed.end(), method) == allowed.end()) {
                 send_error_response(client_fd, 405, "Method Not Allowed", i);
                 return;
             }
         }
 
+        // 🧠 Handle CGI request
         if (loc && is_cgi_request(*loc, uri)) {
             std::string script_path = resolve_script_path(uri, *loc);
 
             std::map<std::string, std::string> env;
-            env["REQUEST_METHOD"] = request.getMethod();
+            env["REQUEST_METHOD"] = method;
             env["SCRIPT_NAME"] = uri;
             env["QUERY_STRING"] = "";
             std::ostringstream oss;
@@ -145,26 +179,40 @@ void WebServer::handle_client_data(size_t i) {
 
             CGIHandler handler(script_path, env, request.getBody());
             std::string cgi_output = handler.execute();
-
-            write(client_fd, cgi_output.c_str(), cgi_output.size());
-        } else {
-            if (!file_exists(resolve_path(uri))) {
-                send_error_response(client_fd, 404, "Not Found", i);
+			if (cgi_output == "__CGI_TIMEOUT__") {
+                send_error_response(client_fd, 504, "Gateway Timeout", i);
                 return;
             }
-            send_response(client_fd, uri);
+			if (cgi_output == "__CGI_MISSING_HEADER__") {
+				send_error_response(client_fd, 500, "Internal Server Error", i);
+				return;
+			}
+            write(client_fd, cgi_output.c_str(), cgi_output.size());
+            close(client_fd);
+            fds.erase(fds.begin() + i);
+            return;
         }
 
-    } catch (const std::exception& e) {
+        // 📝 Handle Upload
+        if (handle_upload(request, loc, client_fd, i))
+            return;
+
+        // 📄 Serve Static File
+        std::string path = resolve_path(uri);
+        if (!file_exists(path)) {
+            send_error_response(client_fd, 404, "Not Found", i);
+            return;
+        }
+
+        send_response(client_fd, uri);
+        close(client_fd);
+        fds.erase(fds.begin() + i);
+    }
+    catch (const std::exception& e) {
         std::cerr << "Request parse error: " << e.what() << "\n";
         send_error_response(client_fd, 400, "Bad Request", i);
-        return;
     }
-
-    close(client_fd);
-    fds.erase(fds.begin() + i);
 }
-
 
 // Serve a static file
 void WebServer::send_response(int client_fd, const std::string& raw_path) {
@@ -236,3 +284,115 @@ std::string WebServer::resolve_path(const std::string& raw_path) {
 
     return full_path;
 }
+
+std::string extract_filename(const std::string& header) {
+    size_t pos = header.find("filename=");
+    if (pos == std::string::npos)
+        return "upload";
+
+    size_t start = header.find('"', pos);
+    size_t end = header.find('"', start + 1);
+    if (start == std::string::npos || end == std::string::npos)
+        return "upload";
+
+    return header.substr(start + 1, end - start - 1);
+}
+
+std::string extract_file_from_multipart(const std::string& body, std::string& filename) {
+    std::istringstream stream(body);
+    std::string line;
+    bool in_headers = true;
+    bool in_content = false;
+    std::ostringstream file_content;
+
+    filename = "upload";  // default fallback
+
+    while (std::getline(stream, line)) {
+        // Remove \r from the end if present
+        if (!line.empty() && line[line.size() - 1] == '\r')
+            line.erase(line.size() - 1);
+
+        // Boundary or end
+        if (line.find("------") == 0) {
+            if (in_content) break;
+            continue;
+        }
+
+        // Extract filename
+        if (line.find("Content-Disposition:") != std::string::npos) {
+            size_t pos = line.find("filename=");
+            if (pos != std::string::npos) {
+                size_t start = line.find('"', pos);
+                size_t end = line.find('"', start + 1);
+                if (start != std::string::npos && end != std::string::npos) {
+                    filename = line.substr(start + 1, end - start - 1);
+                }
+            }
+        }
+
+        // Headers done, content starts after blank line
+        if (line.empty() && in_headers) {
+            in_headers = false;
+            in_content = true;
+            continue;
+        }
+
+        if (in_content)
+            file_content << line << "\n";
+    }
+
+    // Remove last newline
+    std::string content = file_content.str();
+    if (!content.empty() && content[content.size() - 1] == '\n')
+        content.erase(content.size() - 1);
+
+    return content;
+}
+
+std::string WebServer::timestamp() {
+    time_t now = time(NULL);
+    char buf[20];
+    strftime(buf, sizeof(buf), "%Y%m%d_%H%M%S", localtime(&now));
+    return std::string(buf);
+}
+bool WebServer::handle_upload(const Request& request, const LocationConfig* loc, int client_fd, size_t i) {
+    if (request.getMethod() != "POST" || !loc || loc->upload_dir.empty())
+        return false;
+
+	std::cout << "🔍 Raw multipart body:\n" << request.getBody() << "\n--- END ---\n";
+
+    std::string filename;
+    std::string content = extract_file_from_multipart(request.getBody(), filename);
+
+    // Clean filename (optional: strip path, extensions, etc.)
+    size_t slash = filename.find_last_of("/\\");
+    if (slash != std::string::npos)
+        filename = filename.substr(slash + 1);
+
+    // Append timestamp
+    std::string full_filename = filename + "_" + timestamp() + ".txt";
+    std::string full_path = loc->upload_dir + "/" + full_filename;
+
+    std::ofstream out(full_path.c_str(), std::ios::binary);
+    if (!out) {
+        std::cerr << "❌ Failed to open file: " << full_path << "\n";
+        send_error_response(client_fd, 500, "Failed to save upload", i);
+        return true;
+    }
+
+    out << content;
+    out.close();
+
+    Response res;
+    res.setStatus(200, "OK");
+    res.setBody("<h1>✅ File uploaded as " + full_filename + "</h1>");
+    std::string raw = res.toString();
+    write(client_fd, raw.c_str(), raw.size());
+
+    close(client_fd);
+    fds.erase(fds.begin() + i);
+    return true;
+}
+
+
+

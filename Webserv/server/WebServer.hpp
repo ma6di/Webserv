@@ -21,6 +21,8 @@
 #include "Request.hpp"
 #include "Response.hpp"
 #include <unistd.h>
+#include <ctime>
+
 
 class WebServer {
 public:
@@ -44,6 +46,8 @@ private:
     void send_response(int client_fd, const std::string& path);
     std::string resolve_path(const std::string& raw_path);
 	void send_error_response(int client_fd, int status_code, const std::string& status_text, size_t index);
+	bool handle_upload(const Request& request, const LocationConfig* loc, int client_fd, size_t i);
+	static std::string timestamp();
 
 };
 
