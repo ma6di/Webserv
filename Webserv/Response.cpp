@@ -32,4 +32,4 @@ std::string Response::build() const {
     response << body;
 
     return (response.str());
-}
+} 

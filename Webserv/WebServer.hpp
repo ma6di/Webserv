@@ -13,6 +13,7 @@
 #include <netinet/in.h>
 #include <fstream>
 #include <sys/stat.h>
+#include "Router.hpp"
 
 class WebServer {
 public:
@@ -25,6 +26,8 @@ private:
     std::vector<pollfd> fds;
     int port; 
 
+    Router router;
+    void setup_routes();
     void setup_server_socket(int port);
     void make_socket_non_blocking(int fd);
     void poll_loop();

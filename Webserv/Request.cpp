@@ -30,7 +30,6 @@ void    Request::parseRequest(const std::string& raw_data) {
         }
     }
 
-    //read body
     std::ostringstream body_stream;
     body_stream << stream.rdbuf();
     body = body_stream.str();

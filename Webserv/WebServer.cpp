@@ -1,10 +1,12 @@
 #include "WebServer.hpp"
 #include "Request.hpp"
 #include "Response.hpp"
+#include "Router.hpp"
 #include "utils.hpp"
 
 WebServer::WebServer(int port) : port(port) {
     setup_server_socket(port);
+    setup_routes();
 }
 
 WebServer::~WebServer() {
@@ -113,50 +115,86 @@ void    WebServer::handle_client_data(size_t i) {
         fds.erase(fds.begin() + i);
 }    
 
-void    WebServer::send_response(int client_fd, const std::string& raw_path) {
-    std::string file_path = resolve_path(raw_path);
-    std::ifstream file(file_path.c_str());
-
+void WebServer::send_response(int client_fd, const std::string& raw_path) {
     Response res;
+    const Route* route = router.matchRoute(raw_path);
+    std::string file_path;
 
+    if (route) {
+        std::string path = raw_path;
+        if (path.length() > 1 && path[path.length() - 1] == '/')
+            path = path.substr(0, path.length() - 1);
 
+        if (path == route->getPath()) {
+            file_path = route->getRoot() + "/" + route->getIndex();
+        } else {
+            file_path = route->getRoot() + raw_path;
+        }
+    } else {
+        file_path = resolve_path(raw_path);
+    }
+
+    std::cout << "Resolved file_path: " << file_path << "\n";
+
+    std::ifstream file(file_path.c_str());
+    std::string body;
     if (file) {
         std::ostringstream buffer;
         buffer << file.rdbuf();
+        body = buffer.str();
+
         res.setStatus(200, "OK");
-        res.setBody(buffer.str());
         res.setHeader("Content-Type", get_mime_type(file_path));
     } else {
+        body = "<h1>404 Not Found</h1>";
         res.setStatus(404, "Not Found");
-        res.setBody("<h1>404 Not Found </h1>");
         res.setHeader("Content-Type", "text/html");
     }
 
-    std::ostringstream content_length_ss;
-    content_length_ss << res.build().size();
+    std::ostringstream length_ss;
+    length_ss << body.size();
+    res.setHeader("Content-Length", length_ss.str());
     res.setHeader("Connection", "close");
-    file.close();
-    
+    res.setBody(body);
+
     std::string full_response = res.build();
+    std::cout << "=== Full Response ===\n" << full_response << "\n=== END ===\n";
+
     write(client_fd, full_response.c_str(), full_response.size());
 }
 
 std::string WebServer::resolve_path(const std::string& raw_path) {
-    std::string path = raw_path;
+    const Route* route = router.matchRoute(raw_path);
 
-    if (path =="/")
-        path = "/index.html";
-    else if (!path.empty() && path[path.size() - 1] == '/')
-        path += "index.html";
-    
-    std::string file_path = "./www" + path;
-    if (file_exists(file_path))
-        return (file_path);
-    
-    if (path.find('.') == std::string::npos) {
-        std::string html_fallback = "./www" + path + ".html";
-        if (file_exists(html_fallback))
-            return (html_fallback);
+    if (!route) {
+        return "./www" + raw_path;
     }
-    return (file_path);
+
+    std::string root = route->getRoot();
+    std::string index = route->getIndex();
+
+    if (raw_path == route->getPath())
+        return root + "/" + index;
+
+    return root + raw_path;
+}
+
+void    WebServer::setup_routes() {
+    Route root_route("/");
+    root_route.setRoot("./www");
+    root_route.setIndex("index.html");
+    std::vector<std::string> methods;
+    methods.push_back("GET");
+    methods.push_back("HEAD");
+    root_route.setAllowedMethods(methods);
+    router.addRoute(root_route);
+
+    Route contact_route("/contact");
+    contact_route.setRoot("./www");
+    contact_route.setIndex("contact.html");
+    std::vector<std::string> contact_methods;
+    contact_methods.push_back("GET");
+    contact_methods.push_back("HEAD");
+    contact_route.setAllowedMethods(contact_methods);
+    router.addRoute(contact_route);
 }
