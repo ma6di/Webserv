@@ -1,3 +1,13 @@
+/**
+ * WebServer.hpp
+ * -------------
+ * Declares the WebServer class, which manages:
+ * - Listening sockets
+ * - Client connections
+ * - HTTP request/response handling
+ * - Integration with CGI and configuration
+ */
+
 #ifndef WEBSERVER_HPP
 #define WEBSERVER_HPP
 
@@ -29,6 +39,8 @@ public:
     WebServer(int port);
     ~WebServer();
     void run();
+	void run_one_iteration();
+    void shutdown();
 
 private:
 	//server_fd: the file descriptor of the main server socket.

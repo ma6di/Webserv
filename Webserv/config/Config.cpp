@@ -170,4 +170,5 @@ void Config::parseConfigFile(const std::string& filename) {
     }
 
     file.close();
+	std::cout << "Loaded config file: " << filename << std::endl;
 }

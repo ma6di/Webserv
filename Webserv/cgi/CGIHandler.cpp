@@ -1,3 +1,13 @@
+/**
+ * CGIHandler.cpp
+ * --------------
+ * Implements the CGIHandler class.
+ * - Prepares environment and arguments for CGI scripts
+ * - Handles pipes for stdin, stdout, and stderr
+ * - Manages child process execution and timeout
+ * - Captures and validates CGI output
+ */
+
 #include "CGIHandler.hpp"
 #include <unistd.h>
 #include <fcntl.h>
@@ -17,7 +27,6 @@ std::string CGIHandler::execute() {
     return runCGI();
 }
 
-// ...existing code...
 std::string CGIHandler::runCGI() {
     int input_pipe[2];
     int output_pipe[2];
@@ -109,9 +118,8 @@ std::string CGIHandler::runCGI() {
 		return "__CGI_INTERNAL_ERROR__";
 	}
 
-    // Optionally, log or handle error_output as needed
+    std::cout << "Executing CGI: " << scriptPath << std::endl;
     if (!error_output.empty()) {
-        // For now, print to server's stderr
         std::cerr << "CGI script stderr: " << error_output << std::endl;
     }
 
@@ -142,4 +150,3 @@ std::string CGIHandler::runCGI() {
     }
     return output;
 }
-// ...existing code...

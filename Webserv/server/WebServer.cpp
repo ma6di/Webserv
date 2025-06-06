@@ -1,3 +1,13 @@
+/**
+ * WebServer.cpp
+ * -------------
+ * Implements the WebServer class.
+ * - Sets up listening sockets
+ * - Accepts and manages client connections
+ * - Handles HTTP requests, static files, uploads, and CGI
+ * - Provides logging and error handling
+ */
+
 #include "WebServer.hpp"
 #include "Request.hpp"
 #include "Response.hpp"
@@ -104,7 +114,34 @@ void WebServer::handle_new_connection() {
     client_pfd.revents = 0;
     fds.push_back(client_pfd);
 
-    std::cout << "New client connected: FD=" << client_fd << "\n";
+    std::cout << "New client connected: FD=" << client_fd << std::endl;
+}
+
+void WebServer::run_one_iteration() {
+    // Wait for events with a timeout (e.g., 1000 ms)
+    int ret = poll(fds.data(), fds.size(), 1000);
+    if (ret < 0) {
+        if (errno == EINTR) return; // Interrupted by signal, just return
+        throw std::runtime_error("poll() failed");
+    }
+    if (ret == 0) return; // Timeout, nothing to do
+
+    // Handle events (simplified, expand as needed)
+    for (size_t i = 0; i < fds.size(); ++i) {
+        if (fds[i].revents & POLLIN) {
+            handle_client_data(i);
+            break; // fds may be modified, so break and re-poll
+        }
+    }
+}
+
+void WebServer::shutdown() {
+    // Close all open sockets
+    for (size_t i = 0; i < fds.size(); ++i) {
+        close(fds[i].fd);
+    }
+    fds.clear();
+    std::cout << "WebServer: All sockets closed.\n";
 }
 
 void WebServer::handle_client_data(size_t i) {
@@ -144,7 +181,7 @@ void WebServer::handle_client_data(size_t i) {
 
     // 🧪 If we didn’t receive any useful data
     if (request_data.empty()) {
-        std::cout << "Client disconnected: FD=" << client_fd << "\n";
+        std::cout << "Client disconnected: FD=" << client_fd << std::endl;
         close(client_fd);
         fds.erase(fds.begin() + i);
         return;
@@ -155,6 +192,9 @@ void WebServer::handle_client_data(size_t i) {
         std::string uri = request.getPath();
         const LocationConfig* loc = match_location(g_config.getLocations(), uri);
         std::string method = request.getMethod();
+
+        // ✅ Log the request here, where method and uri are in scope
+        std::cout << "Request: " << method << " " << uri << " from FD=" << client_fd << std::endl;
 
         // 🔒 Method not allowed?
         if (loc) {
