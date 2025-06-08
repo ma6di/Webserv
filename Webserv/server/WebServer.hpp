@@ -1,13 +1,3 @@
-/**
- * WebServer.hpp
- * -------------
- * Declares the WebServer class, which manages:
- * - Listening sockets
- * - Client connections
- * - HTTP request/response handling
- * - Integration with CGI and configuration
- */
-
 #ifndef WEBSERVER_HPP
 #define WEBSERVER_HPP
 
@@ -32,6 +22,7 @@
 #include "Response.hpp"
 #include <unistd.h>
 #include <ctime>
+#include <map>
 
 
 class WebServer {
@@ -42,6 +33,10 @@ public:
 	void run_one_iteration();
     void shutdown();
 
+    std::string get_custom_error_page_path(int code);
+    std::string read_file(const std::string& path);
+    std::string get_default_error_page(int code);
+
 private:
 	//server_fd: the file descriptor of the main server socket.
     int server_fd;
@@ -49,17 +44,19 @@ private:
     std::vector<pollfd> fds;
 	//port: the port number the server listens on.
     int port; 
+    std::map<int, std::string> client_buffers; // Add this line
 
     void setup_server_socket(int port);
     void make_socket_non_blocking(int fd);
     void poll_loop();
     void handle_new_connection();
     void handle_client_data(size_t i);
-    void send_response(int client_fd, const std::string& path);
-    std::string resolve_path(const std::string& raw_path);
+	void send_response(int client_fd, const std::string& raw_path, const std::string& method);
+	std::string resolve_path(const std::string& raw_path, const std::string& method);
 	void send_error_response(int client_fd, int status_code, const std::string& status_text, size_t index);
 	bool handle_upload(const Request& request, const LocationConfig* loc, int client_fd, size_t i);
 	static std::string timestamp();
+	void cleanup_client(int fd, size_t i);
 
 };
 

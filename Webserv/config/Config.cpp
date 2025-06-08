@@ -6,7 +6,7 @@
 #include <cstdlib>
 
 // Constructor: read and parse the config file immediately
-Config::Config(const std::string& filename) {
+Config::Config(const std::string& filename) : max_body_size(1048576) { // 1MB default
     parseConfigFile(filename);
 }
 
@@ -14,7 +14,9 @@ Config::Config(const std::string& filename) {
 int Config::getPort() const { return port; }
 const std::string& Config::getRoot() const { return root; }
 const std::vector<LocationConfig>& Config::getLocations() const { return locations; }
-const std::map<int, std::string>& Config::getErrorPages() const { return error_pages; }
+const std::map<int, std::string>& Config::getErrorPages() const {
+    return error_pages;
+}
 
 const std::string* Config::getErrorPage(int code) const {
     std::map<int, std::string>::const_iterator it = error_pages.find(code);
@@ -114,6 +116,12 @@ void Config::parseConfigFile(const std::string& filename) {
             currentLocation.path = stripSemicolon(location_path);
             insideLocation = true;
         }
+		else if (keyword == "client_max_body_size") {
+			std::string sizeStr;
+			iss >> sizeStr;
+			sizeStr = stripSemicolon(sizeStr);
+			max_body_size = static_cast<size_t>(std::strtoull(sizeStr.c_str(), NULL, 10));
+		}
 		//Detects end of location block.
 		//Pushes the filled LocationConfig into the locations vector.
         else if (keyword == "}") {
@@ -171,4 +179,8 @@ void Config::parseConfigFile(const std::string& filename) {
 
     file.close();
 	std::cout << "Loaded config file: " << filename << std::endl;
+}
+
+size_t Config::getMaxBodySize() const {
+    return max_body_size; // Make sure you have a member variable for this
 }

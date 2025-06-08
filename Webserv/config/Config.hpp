@@ -6,6 +6,7 @@
 #include <vector>
 #include <map>
 #include <sys/stat.h>
+#include <set>
 
 // The Config class represents a full server block.
 // It is responsible for loading a config file and storing all relevant settings.
@@ -27,6 +28,8 @@ public:
 	//map of HTTP error codes to custom error page paths
     const std::map<int, std::string>& getErrorPages() const;
 	const std::string* getErrorPage(int code) const;
+	// Add this line to your public section
+    size_t getMaxBodySize() const;
 
     //Helper Validating functions
 	int parseListenDirective(const std::string& token);
@@ -37,7 +40,7 @@ private:
     std::string root;                         // Global root directory for the server
     std::vector<LocationConfig> locations;    // List of all location blocks (e.g. "/cgi-bin", "/upload")
     std::map<int, std::string> error_pages;   // Map of error codes to file paths (e.g., 404 → /404.html)
-
+	size_t max_body_size;
     // Internal method that performs the actual parsing logic
     void parseConfigFile(const std::string& filename);
 };
