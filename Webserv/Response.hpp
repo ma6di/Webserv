@@ -10,6 +10,7 @@ public:
     Response();
     void setStatus(int code, const std::string& message);
     void setBody(const std::string& body);
+    std::string getBody() const;
     void setHeader(const std::string& key, const std::string& value);
     std::string build() const;
 

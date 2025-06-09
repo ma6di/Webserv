@@ -13,7 +13,10 @@
 #include <netinet/in.h>
 #include <fstream>
 #include <sys/stat.h>
+#include <dirent.h>
 #include "Router.hpp"
+#include "Request.hpp"
+#include "Response.hpp"
 
 class WebServer {
 public:
@@ -33,9 +36,10 @@ private:
     void poll_loop();
     void handle_new_connection();
     void handle_client_data(size_t i);
-    void send_response(int client_fd, const std::string& path);
-    std::string resolve_path(const std::string& raw_path);
+    void send_response(int client_fd, const Request& path);
+    std::string join_methods(const std::vector<std::string>& methods) const;
+    void finalize_response_and_send(int client_fd, Response& res);
+    std::string resolve_final_path(const std::string& path, const Route* route);
 };
-
 
 #endif

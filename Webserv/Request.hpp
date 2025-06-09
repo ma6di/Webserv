@@ -5,6 +5,7 @@
 #include <map>
 #include <sstream>
 #include <iostream>
+#include <algorithm> 
 
 class Request {
 public:

@@ -15,4 +15,4 @@
     The code is a lot more moduler - no more hardcoding
 
 
-currently, the code can be tested: c++ -Wall -Wextra -Werror -std=c++98 main.cpp WebServer.cpp utils.cpp Request.cpp Response.cpp -o webserv
+currently, the code can be tested: c++ -Wall -Wextra -Werror -std=c++98 main.cpp WebServer.cpp utils.cpp Request.cpp Response.cpp Route.cpp Router.cpp -o webserv

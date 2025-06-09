@@ -33,3 +33,7 @@ std::string Response::build() const {
 
     return (response.str());
 } 
+
+std::string Response::getBody() const {
+    return body;
+}

@@ -1,6 +1,6 @@
 #include "Route.hpp"
 
-Route::Route(const std::string& path) : path(path) {}
+Route::Route(const std::string& path) : path(path), index ("index.html"), allowed_methods(1, "GET") {}
 
 const std::string& Route::getPath() const {
     return path;

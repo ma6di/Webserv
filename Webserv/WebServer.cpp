@@ -107,15 +107,15 @@ void    WebServer::handle_client_data(size_t i) {
         std::string raw_request(buffer);
         Request req(raw_request);
         req.debugPrint();
-        std::string path = req.getPath();
-        send_response(client_fd, path);
+        //std::string path = req.getPath();
+        send_response(client_fd, req);
     } catch (const std::exception& e) {
         std::cerr << "Failed to parse HTTP request: " << e.what() << "\n"; 
     }
         fds.erase(fds.begin() + i);
 }    
 
-void WebServer::send_response(int client_fd, const std::string& raw_path) {
+/*void WebServer::send_response(int client_fd, const std::string& raw_path) {
     Response res;
     const Route* route = router.matchRoute(raw_path);
     std::string file_path;
@@ -136,19 +136,27 @@ void WebServer::send_response(int client_fd, const std::string& raw_path) {
 
     std::cout << "Resolved file_path: " << file_path << "\n";
 
-    std::ifstream file(file_path.c_str());
+    struct stat path_stat;
     std::string body;
-    if (file) {
-        std::ostringstream buffer;
-        buffer << file.rdbuf();
-        body = buffer.str();
 
+    if (stat(file_path.c_str(), &path_stat) == 0 && S_ISDIR(path_stat.st_mode)) {
+        body = generate_directory_listing(file_path, raw_path);
         res.setStatus(200, "OK");
-        res.setHeader("Content-Type", get_mime_type(file_path));
+        res.setHeader("Content-Type", "text/html");    
     } else {
-        body = "<h1>404 Not Found</h1>";
-        res.setStatus(404, "Not Found");
-        res.setHeader("Content-Type", "text/html");
+        std::ifstream file(file_path.c_str());
+        if (file) {
+            std::ostringstream buffer;
+            buffer << file.rdbuf();
+            body = buffer.str();
+
+            res.setStatus(200, "OK");
+            res.setHeader("Content-Type", get_mime_type(file_path));
+        } else {
+            body = "<h1>404 Not Found</h1>";
+            res.setStatus(404, "Not Found");
+            res.setHeader("Content-Type", "text/html");
+        }
     }
 
     std::ostringstream length_ss;
@@ -161,23 +169,243 @@ void WebServer::send_response(int client_fd, const std::string& raw_path) {
     std::cout << "=== Full Response ===\n" << full_response << "\n=== END ===\n";
 
     write(client_fd, full_response.c_str(), full_response.size());
-}
+}*/
 
-std::string WebServer::resolve_path(const std::string& raw_path) {
+/*void WebServer::send_response(int client_fd, const std::string& raw_data) {
+    Request req(raw_data);
+    Response res;
+
+    const std::string& method = req.getMethod();
+    const std::string& raw_path = req.getPath();
+
     const Route* route = router.matchRoute(raw_path);
-
-    if (!route) {
-        return "./www" + raw_path;
+    if (route && !is_method_allowed(method, route->getAllowedMethods())) {
+        res.setStatus(405, "Method Not Allowed");
+        res.setBody("<h1>405 Method Not Allowed</h1>");
+        res.setHeader("Content-Type", "text/html");
+        res.setHeader("Allow", join_methods(route->getAllowedMethods()));
+        finalize_response_and_send(client_fd, res);
+        return;
     }
 
-    std::string root = route->getRoot();
-    std::string index = route->getIndex();
+    std::string file_path = resolve_final_path(raw_path, route);
+    std::cout << "Resolved file_path: " << file_path << "\n";
 
-    if (raw_path == route->getPath())
-        return root + "/" + index;
+    std::string body;
+    struct stat path_stat;
 
-    return root + raw_path;
+    if (file_path == "./nonexistent") {
+        res.setStatus(404, "Not Found");
+        res.setHeader("Content-Type", "text/html");
+        res.setBody("<h1>404 Not Found</h1>");
+        finalize_response_and_send(client_fd, res);
+        return;
+    }
+
+    if (file_path.empty()) {
+        res.setStatus(404, "Not Found");
+        res.setHeader("Content-Type", "text/html");
+        res.setBody("<h1>404 Not Found</h1>");
+        finalize_response_and_send(client_fd, res);
+        return;
+    }
+
+    if (stat(file_path.c_str(), &path_stat) == 0 && S_ISDIR(path_stat.st_mode)) {
+        body = generate_directory_listing(file_path, raw_path);
+        res.setStatus(200, "OK");
+        res.setHeader("Content-Type", "text/html");
+    } else {
+        std::ifstream file(file_path.c_str());
+        if (file) {
+            std::ostringstream buffer;
+            buffer << file.rdbuf();
+            body = buffer.str();
+            res.setStatus(200, "OK");
+            res.setHeader("Content-Type", get_mime_type(file_path));
+        } else {
+            body = "<h1>404 Not Found</h1>";
+            res.setStatus(404, "Not Found");
+            res.setHeader("Content-Type", "text/html");
+        }
+    }
+
+    res.setBody(body);
+    finalize_response_and_send(client_fd, res);
+}*/
+
+/*void WebServer::send_response(int client_fd, const std::string& raw_data) {
+    Request req(raw_data);
+    Response res;
+
+    const std::string& method = req.getMethod();
+    const std::string& raw_path = req.getPath();
+    std::cout << "Method: " << req.getMethod() << ", Path: " << req.getPath() << "\n";
+
+    const Route* route = router.matchRoute(raw_path);
+    if (route && !is_method_allowed(method, route->getAllowedMethods())) {
+        res.setStatus(405, "Method Not Allowed");
+        res.setBody("<h1>405 Method Not Allowed</h1>");
+        res.setHeader("Content-Type", "text/html");
+        res.setHeader("Allow", join_methods(route->getAllowedMethods()));
+        finalize_response_and_send(client_fd, res);
+        return;
+    }
+
+    std::string file_path = resolve_final_path(raw_path, route);
+    std::cout << "Resolved file_path: " << file_path << "\n";
+
+    struct stat path_stat;
+    std::string body;
+
+    if (stat(file_path.c_str(), &path_stat) == 0) {
+        if (S_ISREG(path_stat.st_mode)) {
+            std::ifstream file(file_path.c_str());
+            std::ostringstream buffer;
+            buffer << file.rdbuf();
+            body = buffer.str();
+            res.setStatus(200, "OK");
+            res.setHeader("Content-Type", get_mime_type(file_path));
+        } else if (S_ISDIR(path_stat.st_mode)) {
+            std::string index_path = file_path + "/index.html";
+            if (stat(index_path.c_str(), &path_stat) == 0 && S_ISREG(path_stat.st_mode)) {
+                std::ifstream file(index_path.c_str());
+                std::ostringstream buffer;
+                buffer << file.rdbuf();
+                body = buffer.str();
+                res.setStatus(200, "OK");
+                res.setHeader("Content-Type", "text/html");
+            } else {
+                body = generate_directory_listing(file_path, raw_path);
+                res.setStatus(200, "OK");
+                res.setHeader("Content-Type", "text/html");
+            }
+        } else {
+            res.setStatus(403, "Forbidden");
+            body = "<h1>403 Forbidden</h1>";
+            res.setHeader("Content-Type", "text/html");
+        }
+    } else {
+        res.setStatus(404, "Not Found");
+        body = "<h1>404 Not Found</h1>";
+        res.setHeader("Content-Type", "text/html");
+    }
+
+    res.setBody(body);
+    finalize_response_and_send(client_fd, res);
+}*/
+
+/*void WebServer::send_response(int client_fd, const std::string& raw_data) {
+    Request req(raw_data);
+    Response res;
+
+    const std::string& method = req.getMethod();
+    const std::string& raw_path = req.getPath();
+    std::cout << "[DEBUG] Raw path extracted: '" << raw_path << "'\n";
+    if (req.getMethod().empty() || req.getPath().empty()) {
+    std::cerr << "[ERROR] Invalid request. Skipping.\n";
+    return;
 }
+
+    const Route* route = router.matchRoute(raw_path);
+    if (route && !is_method_allowed(method, route->getAllowedMethods())) {
+        res.setStatus(405, "Method Not Allowed");
+        res.setBody("<h1>405 Method Not Allowed</h1>");
+        res.setHeader("Content-Type", "text/html");
+        res.setHeader("Allow", join_methods(route->getAllowedMethods()));
+        finalize_response_and_send(client_fd, res);
+        return;
+    }
+
+    std::string file_path = resolve_final_path(raw_path, route);
+    std::cout << "Resolved file_path: " << file_path << "\n";
+
+    struct stat path_stat;
+    std::string body;
+
+    if (file_path == "./nonexistent" || file_path.empty()) {
+        res.setStatus(404, "Not Found");
+        res.setHeader("Content-Type", "text/html");
+        res.setBody("<h1>404 Not Found</h1>");
+    } else if (stat(file_path.c_str(), &path_stat) == 0 && S_ISDIR(path_stat.st_mode)) {
+        body = generate_directory_listing(file_path, raw_path);
+        res.setStatus(200, "OK");
+        res.setHeader("Content-Type", "text/html");
+        res.setBody(body);
+    } else {
+        std::ifstream file(file_path.c_str());
+        if (file) {
+            std::ostringstream buffer;
+            buffer << file.rdbuf();
+            body = buffer.str();
+            res.setStatus(200, "OK");
+            res.setHeader("Content-Type", get_mime_type(file_path));
+            res.setBody(body);
+        } else {
+            res.setStatus(404, "Not Found");
+            res.setHeader("Content-Type", "text/html");
+            res.setBody("<h1>404 Not Found</h1>");
+        }
+    }
+
+    finalize_response_and_send(client_fd, res);
+}*/
+
+void WebServer::send_response(int client_fd, const Request& req) {
+    Response res;
+
+    const std::string& method = req.getMethod();
+    const std::string& raw_path = req.getPath();
+
+    const Route* route = router.matchRoute(raw_path);
+    if (route && !is_method_allowed(method, route->getAllowedMethods())) {
+        res.setStatus(405, "Method Not Allowed");
+        res.setBody("<h1>405 Method Not Allowed</h1>");
+        res.setHeader("Content-Type", "text/html");
+        res.setHeader("Allow", join_methods(route->getAllowedMethods()));
+        finalize_response_and_send(client_fd, res);
+        return;
+    }
+
+    std::string file_path = resolve_final_path(raw_path, route);
+    std::cout << "Resolved file_path: " << file_path << "\n";
+
+    struct stat path_stat;
+    std::string body;
+
+    if (file_path.empty() || file_path == "./nonexistent") {
+        res.setStatus(404, "Not Found");
+        res.setHeader("Content-Type", "text/html");
+        res.setBody("<h1>404 Not Found</h1>");
+        finalize_response_and_send(client_fd, res);
+        return;
+    }
+
+    if (stat(file_path.c_str(), &path_stat) == 0 && S_ISDIR(path_stat.st_mode)) {
+        body = generate_directory_listing(file_path, raw_path);
+        res.setStatus(200, "OK");
+        res.setHeader("Content-Type", "text/html");
+    } else {
+        std::ifstream file(file_path.c_str());
+        if (file) {
+            std::ostringstream buffer;
+            buffer << file.rdbuf();
+            body = buffer.str();
+            res.setStatus(200, "OK");
+            res.setHeader("Content-Type", get_mime_type(file_path));
+        } else {
+            res.setStatus(404, "Not Found");
+            res.setHeader("Content-Type", "text/html");
+            res.setBody("<h1>404 Not Found</h1>");
+            finalize_response_and_send(client_fd, res);
+            return;
+        }
+    }
+
+    res.setBody(body);
+    finalize_response_and_send(client_fd, res);
+}
+
+
 
 void    WebServer::setup_routes() {
     Route root_route("/");
@@ -197,4 +425,46 @@ void    WebServer::setup_routes() {
     contact_methods.push_back("HEAD");
     contact_route.setAllowedMethods(contact_methods);
     router.addRoute(contact_route);
+}
+
+std::string WebServer::resolve_final_path(const std::string& raw_path, const Route* route) {
+    if (!route)
+        return "./nonexistent";
+
+    std::string clean_path = raw_path;
+    if (clean_path.length() > 1 && clean_path[clean_path.size() - 1] == '/')
+        clean_path = clean_path.substr(0, clean_path.size() - 1);
+
+    if (clean_path == route->getPath())
+        return route->getRoot() + "/" + route->getIndex();
+
+    std::string relative_path = clean_path.substr(route->getPath().length());
+    if (!relative_path.empty() && relative_path[0] == '/')
+        relative_path = relative_path.substr(1);
+
+    return route->getRoot() + "/" + relative_path;
+}
+
+
+
+
+void WebServer::finalize_response_and_send(int client_fd, Response& res) {
+    std::ostringstream length_ss;
+    length_ss << res.getBody().size();
+    res.setHeader("Content-Length", length_ss.str());
+    res.setHeader("Connection", "close");
+
+    std::string full_response = res.build();
+    std::cout << "=== Full Response ===\n" << full_response << "\n=== END ===\n";
+    write(client_fd, full_response.c_str(), full_response.size());
+}
+
+std::string WebServer::join_methods(const std::vector<std::string>& methods) const {
+    std::string result;
+    for (size_t i = 0; i < methods.size(); ++i) {
+        result += methods[i];
+        if (i != methods.size() - 1)
+            result += ", ";
+    }
+    return result;
 }
