@@ -3,9 +3,6 @@
 
 --• You must be able to serve a fully static website.
 
---• You need at least the GET, POST, and DELETE methods.(test) (what are others)
-
-
 --------------
 In the configuration file, you should be able to:
 • Choose the port and host of each ’server’.

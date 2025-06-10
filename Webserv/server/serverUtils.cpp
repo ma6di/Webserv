@@ -17,7 +17,7 @@ std::string WebServer::resolve_path(const std::string& raw_path, const std::stri
         if (method == "POST" || method == "DELETE") {
             path = "/upload";
         } else {
-            path = "/html/index.html";
+            path = "/static/index.html";
         }
         std::cout << "[DEBUG] resolve_path: root path adjusted to \"" << path << "\"" << std::endl;
     }
