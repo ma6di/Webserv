@@ -27,6 +27,14 @@ private:
 
     // Internal method that handles process creation, piping, and reading output
     std::string runCGI(); 
+
+    std::string resolve_script_path() const;
+    bool create_pipes(int input_pipe[2], int output_pipe[2], int error_pipe[2]) const;
+    void setup_child_process(const std::string& absPath, int input_pipe[2], int output_pipe[2], int error_pipe[2]);
+    void send_input_to_cgi(int input_fd) const;
+    std::string read_from_pipe(int fd) const;
+    bool check_child_status(int status, const std::string& error_output) const;
+    bool validate_cgi_headers(const std::string& output) const;
 };
 
 #endif

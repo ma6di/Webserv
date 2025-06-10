@@ -57,7 +57,19 @@ private:
 	bool handle_upload(const Request& request, const LocationConfig* loc, int client_fd, size_t i);
 	static std::string timestamp();
 	void cleanup_client(int fd, size_t i);
-
+    bool is_valid_upload_request(const Request& request, const LocationConfig* loc);
+    void process_upload_content(const Request& request, std::string& filename, std::string& content);
+    std::string make_upload_filename(const std::string& filename);
+    bool write_upload_file(const std::string& full_path, const std::string& content);
+    void send_upload_success_response(int client_fd, const std::string& full_filename, size_t i);
+	private:
+    void handle_get(const Request& request, int client_fd, size_t i);
+    void handle_post(const Request& request, const LocationConfig* loc, int client_fd, size_t i);
+    void handle_delete(const Request& request, int client_fd, size_t i);
+    bool read_and_append_client_data(int client_fd, size_t i);
+    size_t find_header_end(const std::string& request_data);
+    int parse_content_length(const std::string& headers);
+	void handle_cgi(const LocationConfig* loc, const Request& request, int client_fd, size_t i);
 };
 
 

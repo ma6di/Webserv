@@ -51,3 +51,24 @@ Bonus part
 Here are some additional features you can implement:
 • Support cookies and session management (provide simple examples).
 • Handle multiple CGI.
+
+touch 1.txt www/upload
+curl -v -X POST http://localhost:8080/echo -d "hello=world&foo=bar"
+
+curl -v -X POST http://localhost:8080/upload -F "file=@test.txt"
+
+curl -v -X DELETE http://localhost:8080/delete/1.txt
+
+
+cgi:
+
+curl -v http://localhost:8080/cgi-bin/script.py
+
+curl -v -X POST http://localhost:8080/cgi-bin/script.py -d "name=test"
+
+
+
+
+curl -X DELETE http://localhost:8080/upload/1.txt
+curl -F "file=@test.txt" http://localhost:8080/upload
+curl http://localhost:8080/ 

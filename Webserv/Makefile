@@ -14,6 +14,9 @@ SRC_FILES   := main.cpp \
                cgi/CGIHandler.cpp \
 			   utils/utils.cpp \
 			   server/WebServer.cpp \
+			   server/sendResponse.cpp \
+			   server/serverUtils.cpp \
+			   server/methodHandlers.cpp \
 			   http/Request.cpp \
 			   http/Response.cpp
 

@@ -1,9 +1,5 @@
 #include "Config.hpp"
-#include <fstream>
-#include <sstream>
-#include <iostream>
-#include <stdexcept>
-#include <cstdlib>
+
 
 // Constructor: read and parse the config file immediately
 Config::Config(const std::string& filename) : max_body_size(1048576) { // 1MB default
@@ -60,125 +56,133 @@ void Config::parseConfigFile(const std::string& filename) {
         throw std::runtime_error("Could not open config file: " + filename);
 
     std::string line;
-	// flag for tracking if you're parsing inside a location block
     bool insideLocation = false;
-	// temporary holder for values inside a location block
     LocationConfig currentLocation;
 
     while (std::getline(file, line)) {
-        // Remove leading spaces and Skips empty lines and comments (#).
         line.erase(0, line.find_first_not_of(" \t"));
         if (line.empty() || line[0] == '#')
             continue;
-		//Tokenizes the line.
         std::istringstream iss(line);
         std::string keyword;
-		//Extracts the first word (keyword), like listen, root, location, etc.
         iss >> keyword;
 
-		//Parses listen 8080;
-		//Converts port string to int using atoi
-		if (keyword == "listen") {
-			std::string token;
-			iss >> token;
-			port = parseListenDirective(token);
-		}
-		//Parses root only if it's outside of a location block
-		//Saves it as the global server root
-		else if (keyword == "root" && !insideLocation) {
-			std::string r;
-			iss >> r;
-			r = stripSemicolon(r);
-			if (!pathExists(r))
-			{
-				std::cout << "[DEBUG] root value: [" << root << "]\n";
-				throw std::runtime_error("Invalid root path: " + r);
-			}
-			root = r;
-		}
-		//Parses directives like error_page 404 /404.html;
-		//Maps status code 404 to a file path /404.html
+        if (keyword == "listen") {
+            handleListenDirective(iss);
+        }
+        else if (keyword == "root" && !insideLocation) {
+            handleRootDirective(iss);
+        }
         else if (keyword == "error_page") {
-            std::string codeStr, path;
-            iss >> codeStr >> path;
-            int code = std::atoi(stripSemicolon(codeStr).c_str());
-            error_pages[code] = stripSemicolon(path);
+            handleErrorPageDirective(iss);
         }
-		//Detects start of a location block.
-		//Resets the currentLocation object.
-		//Records the path (e.g., /cgi-bin, /upload)
-		//Sets insideLocation = true so further lines go into this object
         else if (keyword == "location") {
-            std::string location_path;
-            iss >> location_path;
-
-            currentLocation = LocationConfig(); // Reset
-            currentLocation.path = stripSemicolon(location_path);
-            insideLocation = true;
+            handleLocationStart(iss, currentLocation, insideLocation);
         }
-		else if (keyword == "client_max_body_size") {
-			std::string sizeStr;
-			iss >> sizeStr;
-			sizeStr = stripSemicolon(sizeStr);
-			max_body_size = static_cast<size_t>(std::strtoull(sizeStr.c_str(), NULL, 10));
-		}
-		//Detects end of location block.
-		//Pushes the filled LocationConfig into the locations vector.
+        else if (keyword == "client_max_body_size") {
+            handleClientMaxBodySizeDirective(iss);
+        }
         else if (keyword == "}") {
-            if (insideLocation) {
-				// ✅ Apply defaults if not explicitly set
-				if (currentLocation.index.empty())
-				{
-					std::cout << "⚠️  No index set for " << currentLocation.path << " → using default: index.html\n";
-					currentLocation.index = "index.html";
-				}
-				if (currentLocation.allowed_methods.empty())
-					currentLocation.allowed_methods.push_back("GET");
-                locations.push_back(currentLocation);
-                insideLocation = false;
-				
-            }
+            handleLocationEnd(currentLocation, insideLocation);
         }
         else if (insideLocation) {
-			if (keyword == "root") {
-				std::string r;
-				iss >> r;
-				r = stripSemicolon(r);
-				if (!pathExists(r))
-					throw std::runtime_error("Invalid location root path: " + r);
-				currentLocation.root = r;
-			}
-            else if (keyword == "index") {
-                std::string indexFile;
-                iss >> indexFile;
-                currentLocation.index = stripSemicolon(indexFile);
-            }
-            else if (keyword == "methods") {
-                std::string method;
-                while (iss >> method)
-                    currentLocation.allowed_methods.push_back(stripSemicolon(method));
-            }
-            else if (keyword == "cgi_extension") {
-                std::string ext;
-                iss >> ext;
-                currentLocation.cgi_extension = stripSemicolon(ext);
-            }
-            else if (keyword == "upload_dir") {
-                std::string dir;
-                iss >> dir;
-                currentLocation.upload_dir = stripSemicolon(dir);
-            }
-            else if (keyword == "autoindex") {
-                std::string value;
-                iss >> value;
-                value = stripSemicolon(value);
-                currentLocation.autoindex = (value == "on");
-            }
+            handleLocationDirective(keyword, iss, currentLocation);
         }
     }
 
     file.close();
-	std::cout << "Loaded config file: " << filename << std::endl;
+    std::cout << "Loaded config file: " << filename << std::endl;
+}
+
+// --- Helper functions ---
+
+void Config::handleListenDirective(std::istringstream& iss) {
+    std::string token;
+    iss >> token;
+    port = parseListenDirective(token);
+}
+
+void Config::handleRootDirective(std::istringstream& iss) {
+    std::string r;
+    iss >> r;
+    r = stripSemicolon(r);
+    if (!pathExists(r)) {
+        std::cout << "[DEBUG] root value: [" << root << "]\n";
+        throw std::runtime_error("Invalid root path: " + r);
+    }
+    root = r;
+}
+
+void Config::handleErrorPageDirective(std::istringstream& iss) {
+    std::string codeStr, path;
+    iss >> codeStr >> path;
+    int code = std::atoi(stripSemicolon(codeStr).c_str());
+    error_pages[code] = stripSemicolon(path);
+}
+
+void Config::handleLocationStart(std::istringstream& iss, LocationConfig& currentLocation, bool& insideLocation) {
+    std::string location_path;
+    iss >> location_path;
+    currentLocation = LocationConfig();
+    currentLocation.path = stripSemicolon(location_path);
+    insideLocation = true;
+}
+
+void Config::handleClientMaxBodySizeDirective(std::istringstream& iss) {
+    std::string sizeStr;
+    iss >> sizeStr;
+    sizeStr = stripSemicolon(sizeStr);
+    max_body_size = static_cast<size_t>(std::strtoull(sizeStr.c_str(), NULL, 10));
+}
+
+void Config::handleLocationEnd(LocationConfig& currentLocation, bool& insideLocation) {
+    if (insideLocation) {
+        if (currentLocation.index.empty()) {
+            std::cout << "⚠️  No index set for " << currentLocation.path << " → using default: index.html\n";
+            currentLocation.index = "index.html";
+        }
+        if (currentLocation.allowed_methods.empty())
+            currentLocation.allowed_methods.push_back("GET");
+        locations.push_back(currentLocation);
+        insideLocation = false;
+    }
+}
+
+void Config::handleLocationDirective(const std::string& keyword, std::istringstream& iss, LocationConfig& currentLocation) {
+    if (keyword == "root") {
+        std::string r;
+        iss >> r;
+        r = stripSemicolon(r);
+        if (!pathExists(r))
+            throw std::runtime_error("Invalid location root path: " + r);
+        currentLocation.root = r;
+    }
+    else if (keyword == "index") {
+        std::string indexFile;
+        iss >> indexFile;
+        currentLocation.index = stripSemicolon(indexFile);
+    }
+    else if (keyword == "methods") {
+        std::string method;
+        while (iss >> method)
+            currentLocation.allowed_methods.push_back(stripSemicolon(method));
+    }
+    else if (keyword == "cgi_extension") {
+        std::string ext;
+        iss >> ext;
+        currentLocation.cgi_extension = stripSemicolon(ext);
+    }
+    else if (keyword == "upload_dir") {
+        std::string dir;
+        iss >> dir;
+        currentLocation.upload_dir = stripSemicolon(dir);
+    }
+    else if (keyword == "autoindex") {
+        std::string value;
+        iss >> value;
+        value = stripSemicolon(value);
+        currentLocation.autoindex = (value == "on");
+    }
 }
 
 size_t Config::getMaxBodySize() const {

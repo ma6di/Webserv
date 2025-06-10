@@ -74,6 +74,7 @@ bool is_cgi_request(const LocationConfig& loc, const std::string& uri) {
     if (dot == std::string::npos)
         return false;
     std::string ext = uri.substr(dot);
+	std::cout << "Checking if " << ext << " is CGI: " << (ext == loc.cgi_extension ? "Yes" : "No") << std::endl;
     return ext == loc.cgi_extension;
 }
 

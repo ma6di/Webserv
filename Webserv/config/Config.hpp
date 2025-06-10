@@ -7,6 +7,12 @@
 #include <map>
 #include <sys/stat.h>
 #include <set>
+#include <fstream>
+#include <sstream>
+#include <iostream>
+#include <stdexcept>
+#include <cstdlib>
+#include <cstdlib>
 
 // The Config class represents a full server block.
 // It is responsible for loading a config file and storing all relevant settings.
@@ -36,6 +42,14 @@ public:
 	bool pathExists(const std::string& path);
 
 private:
+    void handleListenDirective(std::istringstream& iss);
+    void handleRootDirective(std::istringstream& iss);
+    void handleErrorPageDirective(std::istringstream& iss);
+    void handleLocationStart(std::istringstream& iss, LocationConfig& currentLocation, bool& insideLocation);
+    void handleClientMaxBodySizeDirective(std::istringstream& iss);
+    void handleLocationEnd(LocationConfig& currentLocation, bool& insideLocation);
+    void handleLocationDirective(const std::string& keyword, std::istringstream& iss, LocationConfig& currentLocation);
+
     int port;                                 // Port the server will listen on
     std::string root;                         // Global root directory for the server
     std::vector<LocationConfig> locations;    // List of all location blocks (e.g. "/cgi-bin", "/upload")
