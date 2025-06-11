@@ -1,6 +1,31 @@
-body { font-family: Arial, sans-serif; background: #f8f8f8; color: #222; margin: 2em; }
+/* about.html classes */
+body { font-family: Arial, sans-serif; color: #222; margin: 2em; }
 h1 { color: #3366cc; }
 a { color: #3366cc; text-decoration: none; }
 a:hover { text-decoration: underline; }
 img { border-radius: 8px; }
 ul { margin-top: 1em; }
+
+/* about.html classes */
+.contact-list {
+  display: flex;
+  gap: 2em;
+  margin-top: 1em;
+  flex-wrap: wrap;
+}
+.contact-card {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+  background: #fff;
+  padding: 1em;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px #0001;
+}
+.avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #3366cc;
+}

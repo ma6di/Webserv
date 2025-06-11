@@ -7,7 +7,7 @@
 
 std::string WebServer::resolve_path(const std::string& raw_path, const std::string& method) {
     std::string path = raw_path;
-    std::string base_dir = "./www";
+    std::string base_dir;
     std::string resolved_path;
 
     std::cout << "[DEBUG] resolve_path: raw_path = \"" << raw_path << "\", method = " << method << std::endl;
@@ -26,6 +26,15 @@ std::string WebServer::resolve_path(const std::string& raw_path, const std::stri
     if (!path.empty() && path[path.size() - 1] == '/') {
         path += "html/index.html";
         std::cout << "[DEBUG] resolve_path: trailing slash - path set to \"" << path << "\"" << std::endl;
+    }
+
+    // Determine base directory based on path
+    if (path.find("/cgi-bin") == 0) {
+        base_dir = "./www/cgi-bin";
+    } else if (path.find("/upload") == 0) {
+        base_dir = "./www/upload";
+    } else {
+        base_dir = "./www"; // Use static root for all other requests
     }
 
     // Construct full path to file
