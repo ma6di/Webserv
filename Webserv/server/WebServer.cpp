@@ -195,7 +195,12 @@ void WebServer::handle_client_data(size_t i) {
 
         // 405 Method Not Allowed
         if (loc && std::find(loc->allowed_methods.begin(), loc->allowed_methods.end(), method) == loc->allowed_methods.end()) {
-            send_error_response(client_fd, 405, "Method Not Allowed", i);
+            std::cout << "method: "<<method <<"\n";
+			std::cout << "Allowed methods for this location: ";
+			for (size_t j = 0; j < loc->allowed_methods.size(); ++j)
+				std::cout << loc->allowed_methods[j] << " ";
+			std::cout << std::endl;
+			send_error_response(client_fd, 405, "Method Not Alloweddd", i);
             cleanup_client(client_fd, i);
             return;
         }
