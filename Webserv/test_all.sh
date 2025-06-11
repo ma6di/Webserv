@@ -51,7 +51,7 @@ curl -s -w "\n${YELLOW}HTTP %{http_code}${NC}\n" \
      -F "file=@test.txt" | tee result_upload.txt
 
 echo
-section "Test 3: DELETE /delete/1.txt"
+section "Test 3: DELETE /1.txt"
 curl -s -w "\n${YELLOW}HTTP %{http_code}${NC}\n" \
      -X DELETE http://localhost:8080/upload/1.txt | tee result_delete.txt
 

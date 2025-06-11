@@ -12,68 +12,54 @@ std::string WebServer::resolve_path(const std::string& raw_path, const std::stri
 
     std::cout << "[DEBUG] resolve_path: raw_path = \"" << raw_path << "\", method = " << method << std::endl;
 
-    // 1. CGI: If path is /cgi-bin or matches your CGI config
-    if (path.find("/cgi-bin") == 0) {
+    // 1. CGI
+    if (path.compare(0, 8, "/cgi-bin") == 0 && (path.size() == 8 || path[8] == '/')) {
         base_dir = "./www/cgi-bin";
-        resolved_path = base_dir + path.substr(8); // remove "/cgi-bin" prefix
+        resolved_path = base_dir + path.substr(8);
         if (resolved_path.empty() || resolved_path == "/")
-            resolved_path = base_dir + "/index.py"; // default CGI script
+            resolved_path = base_dir + "/index.py";
         std::cout << "[DEBUG] CGI path resolved: " << resolved_path << std::endl;
         return resolved_path;
     }
 
-    // 2. POST/DELETE/GET with no directory specified (e.g. "/")
+    // 2. Root
     if (path == "/" || path.empty()) {
-        if (method == "POST" || method == "DELETE") {
-            base_dir = "./www/upload";
-            resolved_path = base_dir; // Could be a directory or upload handler
-            std::cout << "[DEBUG] Root POST/DELETE, using upload dir: " << resolved_path << std::endl;
-            return resolved_path;
-        } else { // GET
-            base_dir = "./www/static";
-            resolved_path = base_dir + "/index.html";
-            std::cout << "[DEBUG] Root GET, serving static index: " << resolved_path << std::endl;
-            return resolved_path;
-        }
+        base_dir = "./www/static";
+        resolved_path = base_dir + "/index.html";
+        std::cout << "[DEBUG] Root GET, serving static index: " << resolved_path << std::endl;
+        return resolved_path;
     }
 
-    // 3. If path starts with /upload
-    if (path.find("/upload") == 0) {
+    // 3. Upload
+    if (path.compare(0, 7, "/upload") == 0 && (path.size() == 7 || path[7] == '/')) {
         base_dir = "./www/upload";
-        resolved_path = base_dir + path.substr(7); // remove "/upload" prefix
+        resolved_path = base_dir + path.substr(7);
         if (resolved_path == base_dir || resolved_path == base_dir + "/")
             resolved_path += "index.html";
         std::cout << "[DEBUG] Upload path resolved: " << resolved_path << std::endl;
         return resolved_path;
     }
 
-    // 4. If path starts with /static
-    if (path.find("/static") == 0) {
+    // 4. Static
+    if (path.compare(0, 7, "/static") == 0 && (path.size() == 7 || path[7] == '/')) {
         base_dir = "./www/static";
-        resolved_path = base_dir + path.substr(7); // remove "/static" prefix
+        resolved_path = base_dir + path.substr(7);
         if (resolved_path == base_dir || resolved_path == base_dir + "/")
             resolved_path += "index.html";
         std::cout << "[DEBUG] Static path resolved: " << resolved_path << std::endl;
         return resolved_path;
     }
 
-    // 5. DELETE/POST/GET with a directory specified (e.g. /somefolder/file.txt)
-    // Here you should check your config/location objects to see if the method is allowed.
-    // For now, assume static for GET, upload for POST/DELETE if not matched above.
-    if (method == "DELETE" || method == "POST") {
-        // If the path matches a directory with allowed DELETE/POST, use that dir
-        // (You may want to check your config here)
-        base_dir = "./www/upload";
-        resolved_path = base_dir + path;
-        std::cout << "[DEBUG] POST/DELETE fallback to upload: " << resolved_path << std::endl;
-        return resolved_path;
-    }
-
-    // 6. Default: treat as static file
+    // 5. Default: treat as static file
     base_dir = "./www/static";
     resolved_path = base_dir + path;
-	if (!file_exists(resolved_path) && !resolved_path.empty() && resolved_path[resolved_path.size() - 1] == '/')
-		resolved_path += "index.html";
+    if (!file_exists(resolved_path)) {
+        std::cout << "[DEBUG] File not found: " << resolved_path << std::endl;
+        // You should trigger a 404 response in your main handler, not here.
+        return ""; // or some special value to indicate not found
+    }
+    if (!resolved_path.empty() && resolved_path[resolved_path.size() - 1] == '/')
+        resolved_path += "index.html";
 
     std::cout << "[DEBUG] Default static path: " << resolved_path << std::endl;
     return resolved_path;
