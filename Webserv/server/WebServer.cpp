@@ -27,6 +27,7 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <algorithm> // 🔧 Needed for std::find
+#include <cctype> // for isxdigit
 
 extern Config g_config;
 
@@ -163,10 +164,11 @@ void WebServer::handle_client_data(size_t i) {
     try {
         Request request(request_data);
 
-		std::cout << "[DEBUG] max body size: "<< g_config.getMaxBodySize() << std::endl;
+        std::cout << "[DEBUG] max body size: "<< g_config.getMaxBodySize() << std::endl;
 
         // Check for chunked encoding and content length
-        bool is_chunked = request.getHeader("Transfer-Encoding") == "chunked";
+        std::string transfer_encoding = request.getHeader("Transfer-Encoding");
+        bool is_chunked = !transfer_encoding.empty() && transfer_encoding == "chunked";
         int content_length = parse_content_length(request_data.substr(0, header_end));
         size_t body_start = header_end + 4;
         size_t body_length_received = request_data.size() - body_start;
@@ -185,6 +187,10 @@ void WebServer::handle_client_data(size_t i) {
         std::string uri = request.getPath();
         const LocationConfig* loc = match_location(g_config.getLocations(), uri);
 
+		if (loc)
+    		std::cout << "[DEBUG] Matched location: " << loc->path << std::endl;
+		else
+			std::cout << "[DEBUG] No location matched!" << std::endl;
         // 501 Not Implemented
         if (method != "GET" && method != "POST" && method != "DELETE") {
             Response resp(501, "Not Implemented");
@@ -193,14 +199,22 @@ void WebServer::handle_client_data(size_t i) {
             return;
         }
 
-		std::cout << "[DEBUG] max body size: "<< g_config.getMaxBodySize() << std::endl;
-        // 413 Payload Too Large
-        if (request.getBody().size() > g_config.getMaxBodySize()) {
-            Response resp(413, "Payload Too Large");
-            write(client_fd, resp.toString().c_str(), resp.toString().size());
-            cleanup_client(client_fd, i);
-            return;
+        // --- DECODE CHUNKED BODY IF NEEDED ---
+        if (is_chunked) {
+            std::string decoded = decode_chunked_body(request.getBody());
+            request.setBody(decoded);
         }
+
+        std::cout << "[DEBUG] max body size: "<< g_config.getMaxBodySize() << std::endl;
+        // 413 Payload Too Large
+		if (request.getBody().size() > g_config.getMaxBodySize()) {
+			Response resp(413, "Payload Too Large");
+			//resp.setBody("<h1>413 Payload Too Large</h1>");
+			std::string raw = resp.toString();
+			write(client_fd, raw.c_str(), raw.size());
+			cleanup_client(client_fd, i);
+			return;
+		}
 
         // 405 Method Not Allowed
         if (loc && std::find(loc->allowed_methods.begin(), loc->allowed_methods.end(), method) == loc->allowed_methods.end()) {
@@ -210,21 +224,14 @@ void WebServer::handle_client_data(size_t i) {
             return;
         }
 
+		std::cout << "[DEBUG] is_cgi_request: " << is_cgi_request(*loc, request.getPath()) << std::endl;
         // Handle CGI
         if (loc && is_cgi_request(*loc, request.getPath())) {
-            std::string body = request.getBody();
-            if (is_chunked) {
-                body = decode_chunked_body(body);
-            }
-            Request cgi_request = request;
-            cgi_request.setBody(body);
-            handle_cgi(loc, cgi_request, client_fd, i);
+            handle_cgi(loc, request, client_fd, i);
             return;
         }
 
         // Static file/auth/permission checks (401/403/404)
-        // You should implement these checks in your handle_get/handle_post/handle_delete or send_response functions.
-        // Example for GET:
         if (method == "GET") {
             handle_get(request, client_fd, i);
         } else if (method == "POST") {

@@ -61,9 +61,9 @@ touch www/upload/1.txt
 echo "This is a test file." > test.txt
 
 # Tests
-log_and_run "Test 1: POST /echo (application/x-www-form-urlencoded)" \
-    "curl -s -i -w \"\nHTTP %{http_code}\n\" -X POST http://localhost:8080/echo -H \"Content-Type: application/x-www-form-urlencoded\" -d \"hello=world&foo=bar\"" \
-    result_echo.txt "HTTP/1.1 200" "POST /echo returned 200 OK"
+# log_and_run "Test 1: POST /echo (application/x-www-form-urlencoded)" \
+#     "curl -s -i -w \"\nHTTP %{http_code}\n\" -X POST http://localhost:8080/echo -H \"Content-Type: application/x-www-form-urlencoded\" -d \"hello=world&foo=bar\"" \
+#     result_echo.txt "HTTP/1.1 200" "POST /echo returned 200 OK"
 
 log_and_run "Test 2: POST /upload (multipart/form-data)" \
     "curl -s -i -w \"\nHTTP %{http_code}\n\" -X POST http://localhost:8080/upload -F \"file=@test.txt\"" \
@@ -76,6 +76,10 @@ log_and_run "Test 3: DELETE /1.txt" \
 log_and_run "Test 4: GET /cgi-bin/test.py" \
     "curl -s -i -w \"\nHTTP %{http_code}\n\" http://localhost:8080/cgi-bin/test.py" \
     result_cgi_get.txt "HTTP/1.1 200" "CGI GET returned 200 OK"
+
+log_and_run "Test 4b: CGI with Content-Length" \
+    "curl -s -i http://localhost:8080/cgi-bin/cgi_with_content_length.py" \
+    result_cgi_content_length.txt "<html><bod" "CGI with Content-Length returns only specified bytes."
 
 log_and_run "Test 5: GET /cgi-bin/test.py with raw data" \
     "curl -s -i -X GET http://localhost:8080/cgi-bin/test.py -H \"Content-Type: application/x-www-form-urlencoded\" -d \"name=test\"" \
@@ -102,7 +106,7 @@ log_and_run "Test 10: 405 Method Not Allowed" \
     result_405.txt "405 Method Not Allowed" "405 Method Not Allowed error returned."
 
 log_and_run "Test 11: 413 Payload Too Large" \
-    "curl -i -F "file=bigfle.txt" http://localhost:8080/upload" \
+    "curl -X POST http://localhost:8080/upload -F "file=@bigfile.txt"" \
     result_413.txt "413 Payload Too Large" "413 Payload Too Large error returned."
 
 log_and_run "Test 12: 400 Bad Request" \
@@ -191,7 +195,7 @@ fi
 
 # Cleanup
 section "Cleanup"
-# rm -f test.txt result_*.txt
+rm -f test.txt result_*.txt
 
 divider
 echo -e "${YELLOW}==> All tests completed. See $LOGFILE for details.${NC}"

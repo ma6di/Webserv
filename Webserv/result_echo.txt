@@ -1,6 +1,0 @@
-HTTP/1.1 405 Method Not Allowed
-Connection: close
-Content-Type: text/html
-
-
-HTTP 405

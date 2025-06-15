@@ -6,6 +6,8 @@
 #include "Config.hpp"
 #include <string>
 
+extern Config g_config;
+
 void WebServer::handle_get(const Request& request, int client_fd, size_t i) {
     std::string uri = request.getPath();
     std::string path = resolve_path(uri, "GET");
@@ -93,9 +95,10 @@ void WebServer::handle_cgi(const LocationConfig* loc, const Request& request, in
     env["SERVER_SOFTWARE"] = "Webserv/1.0";
     env["REDIRECT_STATUS"] = "200";
 
-    CGIHandler handler(script_path, env, request.getBody());
+    CGIHandler handler(script_path, env, request.getBody(), request.getPath());
     std::string cgi_output = handler.execute();
-
+	std::cout << "[DEBUG] cgi out put = " << cgi_output << std::endl;
+	
     if (cgi_output == "__CGI_TIMEOUT__") {
         Response resp(504, "Gateway Timeout");
         write(client_fd, resp.toString().c_str(), resp.toString().size());
@@ -109,23 +112,26 @@ void WebServer::handle_cgi(const LocationConfig* loc, const Request& request, in
     }
 
     // --- Parse CGI output headers and body ---
-    size_t header_end = cgi_output.find("\r\n\r\n");
-    if (header_end == std::string::npos)
-        header_end = cgi_output.find("\n\n");
-    if (header_end == std::string::npos) {
-        Response resp(500, "CGI Output Missing Header");
-        write(client_fd, resp.toString().c_str(), resp.toString().size());
-        cleanup_client(client_fd, i);
-        return;
-    }
+	size_t header_end = cgi_output.find("\r\n\r\n");
+	size_t sep_len = 4;
+	if (header_end == std::string::npos) {
+		header_end = cgi_output.find("\n\n");
+		sep_len = 2;
+	}
+	if (header_end == std::string::npos) {
+		Response resp(500, "Internal Server Error");
+		write(client_fd, resp.toString().c_str(), resp.toString().size());
+		cleanup_client(client_fd, i);
+		return;
+	}
 
-    std::string headers = cgi_output.substr(0, header_end);
-    std::string body = cgi_output.substr(header_end + ((cgi_output[header_end] == '\r') ? 4 : 2));
+	std::string headers = cgi_output.substr(0, header_end);
+	std::string body = cgi_output.substr(header_end + sep_len);
 
     Response resp;
     resp.setStatus(200, "OK");
 
-    // Parse and set CGI headers
+    // Parse and set CGI headers (case-insensitive for Content-Type)
     std::istringstream header_stream(headers);
     std::string line;
     bool has_content_type = false;
@@ -138,7 +144,10 @@ void WebServer::handle_cgi(const LocationConfig* loc, const Request& request, in
             std::string value = line.substr(colon + 1);
             // Remove whitespace
             while (!value.empty() && (value[0] == ' ' || value[0] == '\t')) value.erase(0, 1);
-            if (key == "Content-Type")
+            // Case-insensitive check for Content-Type
+            std::string key_lower = key;
+            std::transform(key_lower.begin(), key_lower.end(), key_lower.begin(), ::tolower);
+            if (key_lower == "content-type")
                 has_content_type = true;
             resp.setHeader(key, value);
         }
@@ -150,7 +159,8 @@ void WebServer::handle_cgi(const LocationConfig* loc, const Request& request, in
 
     resp.setBody(body);
 
-    write(client_fd, resp.toString().c_str(), resp.toString().size());
+    std::string raw = resp.toString();
+    write(client_fd, raw.c_str(), raw.size());
     cleanup_client(client_fd, i);
 }
 
@@ -160,6 +170,7 @@ void WebServer::handle_post(const Request& request, const LocationConfig* loc, i
     std::string path = resolve_path(uri, "POST");
     std::cout << "[DEBUG] handle_post: uri=" << uri << " path=" << path << std::endl;
 
+	std::cout << "[DEBUG] is_cgi_request: " << is_cgi_request(*loc, request.getPath()) << std::endl;
     // CGI handler
     if (loc && is_cgi_request(*loc, request.getPath())) {
         handle_cgi(loc, request, client_fd, i);

@@ -24,13 +24,14 @@
 #include <sys/time.h>
 #include <signal.h>
 
-// --- Signal handler for alarm (timeout) ---
-void cgi_alarm_handler(int) { /* do nothing */ }
+volatile sig_atomic_t g_cgi_alarm_fired = 0;
+void cgi_alarm_handler(int) { g_cgi_alarm_fired = 1; }
 
 CGIHandler::CGIHandler(const std::string& scriptPath,
                        const std::map<std::string, std::string>& env,
-                       const std::string& inputBody)
-    : scriptPath(scriptPath), environment(env), inputBody(inputBody) {}
+                       const std::string& inputBody,
+                       const std::string& requestedUri)
+    : scriptPath(scriptPath), environment(env), inputBody(inputBody), requestedUri(requestedUri) {}
 
 std::string CGIHandler::execute() {
     return runCGI();
@@ -67,20 +68,16 @@ std::string CGIHandler::runCGI() {
     close(input_pipe[1]);
 
     // --- Timeout logic ---
-    int timeout_seconds = 5; // Set your desired timeout here
+    int timeout_seconds = 5;
 
-    // Block SIGALRM so only this thread handles it
-    sigset_t mask, oldmask;
-    sigemptyset(&mask);
-    sigaddset(&mask, SIGALRM);
-    sigprocmask(SIG_BLOCK, &mask, &oldmask);
-
+    // Setup signal handler for alarm
     struct sigaction sa;
     sa.sa_handler = cgi_alarm_handler;
     sa.sa_flags = 0;
     sigemptyset(&sa.sa_mask);
     sigaction(SIGALRM, &sa, NULL);
 
+    g_cgi_alarm_fired = 0;
     alarm(timeout_seconds);
 
     int status = 0;
@@ -92,10 +89,7 @@ std::string CGIHandler::runCGI() {
         ret = waitpid(pid, &status, WNOHANG);
         if (ret == pid) break;
         if (ret == -1) break;
-        // Check if alarm fired
-        sigset_t pending;
-        sigpending(&pending);
-        if (sigismember(&pending, SIGALRM)) {
+        if (g_cgi_alarm_fired) {
             timed_out = true;
             break;
         }
@@ -103,7 +97,6 @@ std::string CGIHandler::runCGI() {
     }
 
     alarm(0); // Cancel alarm
-    sigprocmask(SIG_SETMASK, &oldmask, NULL);
 
     if (timed_out) {
         std::cerr << "[CGI] CGI script timed out, killing PID " << pid << std::endl;
@@ -187,6 +180,21 @@ void CGIHandler::setup_child_process(const std::string& absPath, int input_pipe[
     close(error_pipe[0]);
     close(error_pipe[1]);
 
+    // --- Change working directory to script's directory ---
+    size_t last_slash = absPath.find_last_of('/');
+    if (last_slash != std::string::npos) {
+        std::string script_dir = absPath.substr(0, last_slash);
+        if (chdir(script_dir.c_str()) != 0) {
+            perror("[CGI] chdir to script directory failed");
+            exit(1);
+        }
+    }
+	
+	std::string interpreter;
+	if (absPath.size() >= 4 && absPath.substr(absPath.size() - 4) == ".php") {
+		environment["SCRIPT_FILENAME"] = absPath;
+		interpreter = "/opt/homebrew/bin/php-cgi"; // Adjust path if needed (use `which php-cgi` to check)
+	}
     // Prepare envp
     std::vector<std::string> envStrings;
     for (std::map<std::string, std::string>::const_iterator it = environment.begin(); it != environment.end(); ++it)
@@ -197,17 +205,35 @@ void CGIHandler::setup_child_process(const std::string& absPath, int input_pipe[
         envp.push_back(const_cast<char*>(envStrings[i].c_str()));
     envp.push_back(NULL);
 
+    // --- PHP support: use php-cgi for .php scripts ---
+
     // Prepare argv
-    char* argv[] = { const_cast<char*>(absPath.c_str()), NULL };
+    char* argv[4];
+    if (!interpreter.empty()) {
+		argv[0] = const_cast<char*>(interpreter.c_str());
+		argv[1] = NULL;
+    } else {
+        argv[0] = const_cast<char*>(absPath.c_str());
+        argv[1] = const_cast<char*>(requestedUri.c_str());
+        argv[2] = NULL;
+    }
 
     // Debug: print envp
     std::cerr << "[CGI] Executing with environment variables:\n";
     for (size_t i = 0; i < envp.size() - 1; ++i) {
         std::cerr << "[CGI] " << envp[i] << std::endl;
     }
-    std::cerr << "[CGI] execve path: " << absPath << std::endl;
+    if (!interpreter.empty())
+        std::cerr << "[CGI] execve path: " << interpreter << " (PHP CGI)\n";
+    else
+        std::cerr << "[CGI] execve path: " << absPath << std::endl;
 
-    execve(absPath.c_str(), argv, envp.data());
+    // Use interpreter if needed
+    if (!interpreter.empty())
+        execve(interpreter.c_str(), argv, envp.data());
+    else
+        execve(absPath.c_str(), argv, envp.data());
+
     perror("[CGI] execve failed");
     fprintf(stderr, "[CGI] execve failed for script: %s\n", absPath.c_str());
     exit(127); // Standard for execve failure
@@ -269,7 +295,10 @@ bool CGIHandler::validate_cgi_headers(const std::string& output) const {
         // Remove trailing \r if present
         if (!line.empty() && line[line.size() - 1] == '\r')
             line.erase(line.size() - 1);
-        if (line.find("Content-Type:") == 0 || line.find("content-type:") == 0)
+        // Case-insensitive check for Content-Type
+        std::string lower_line = line;
+        std::transform(lower_line.begin(), lower_line.end(), lower_line.begin(), ::tolower);
+        if (lower_line.find("content-type:") == 0)
             return true;
     }
     return false;

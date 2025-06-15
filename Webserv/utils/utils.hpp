@@ -17,6 +17,6 @@ void parse_http_request(const std::string& request, std::string& method, std::st
 const LocationConfig* match_location(const std::vector<LocationConfig>& locations, const std::string& path);
 bool is_cgi_request(const LocationConfig& loc, const std::string& uri);
 std::string resolve_script_path(const std::string& uri, const LocationConfig& loc);
-std::string decode_chunked_body(const std::string& chunked);
+std::string decode_chunked_body(const std::string& body);
 
 #endif

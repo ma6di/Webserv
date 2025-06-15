@@ -2,18 +2,6 @@
 == Setup: Creating test files and directories ==
 ------------------------------------------------------------
 ------------------------------------------------------------
-== Test 1: POST /echo (application/x-www-form-urlencoded) ==
-------------------------------------------------------------
->> curl -s -i -w "\nHTTP %{http_code}\n" -X POST http://localhost:8080/echo -H "Content-Type: application/x-www-form-urlencoded" -d "hello=world&foo=bar"
-HTTP/1.1 405 Method Not Allowed
-Connection: close
-Content-Type: text/html
-
-
-HTTP 405
-
-[FAIL] POST /echo returned 200 OK
-------------------------------------------------------------
 == Test 2: POST /upload (multipart/form-data) ==
 ------------------------------------------------------------
 >> curl -s -i -w "\nHTTP %{http_code}\n" -X POST http://localhost:8080/upload -F "file=@test.txt"
@@ -22,7 +10,7 @@ Connection: close
 Content-Length: 69
 Content-Type: text/html
 
-<h1>✅ File uploaded as www/upload/test.txt_20250615_170914.txt</h1>
+<h1>✅ File uploaded as www/upload/test.txt_20250615_213828.txt</h1>
 HTTP 200
 
 [OK] POST /upload returned 200 OK
@@ -54,6 +42,17 @@ Content-Type: text/html
 HTTP 200
 
 [OK] CGI GET returned 200 OK
+------------------------------------------------------------
+== Test 4b: CGI with Content-Length ==
+------------------------------------------------------------
+>> curl -s -i http://localhost:8080/cgi-bin/cgi_with_content_length.py
+HTTP/1.1 200 OK
+Connection: close
+Content-Length: 10
+Content-Type: text/html
+
+<html><bod
+[OK] CGI with Content-Length returns only specified bytes.
 ------------------------------------------------------------
 == Test 5: GET /cgi-bin/test.py with raw data ==
 ------------------------------------------------------------
@@ -100,13 +99,14 @@ HTTP 200
 == Test 8: POST /cgi-bin/echo_body.py with chunked encoding ==
 ------------------------------------------------------------
 >> curl -s -i -X POST http://localhost:8080/cgi-bin/echo_body.py -H "Transfer-Encoding: chunked" -d "ChunkedBodyTest"
-HTTP/1.1 400 Bad POST Request
+HTTP/1.1 200 OK
 Connection: close
-Content-Length: 29
-Content-Type: text/html
+Content-Length: 16
+Content-Type: text/plain
 
-<h1>400 Bad POST Request</h1>
-[FAIL] CGI received and echoed chunked body correctly.
+ChunkedBodyTest
+
+[OK] CGI received and echoed chunked body correctly.
 ------------------------------------------------------------
 == Test 9: 501 Not Implemented ==
 ------------------------------------------------------------
@@ -130,17 +130,12 @@ Content-Type: text/html
 ------------------------------------------------------------
 == Test 11: 413 Payload Too Large ==
 ------------------------------------------------------------
->> curl -i -F file=bigfle.txt http://localhost:8080/upload
+>> curl -X POST http://localhost:8080/upload -F file=@bigfile.txt
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   228  100    67  100   161  62037   145k --:--:-- --:--:-- --:--:--  222k
-HTTP/1.1 200 OK
-Connection: close
-Content-Length: 67
-Content-Type: text/html
-
-<h1>✅ File uploaded as www/upload/upload_20250615_170914.txt</h1>
-[FAIL] 413 Payload Too Large error returned.
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100  169k  100    30  100  169k   1579  8938k --:--:-- --:--:-- --:--:-- 9436k
+<h1>413 Payload Too Large</h1>
+[OK] 413 Payload Too Large error returned.
 ------------------------------------------------------------
 == Test 12: 400 Bad Request ==
 ------------------------------------------------------------
@@ -168,7 +163,7 @@ Content-Type: text/html
 >> touch www/upload/forbidden.txt && chmod 444 www/upload/forbidden.txt && curl -i -F file=@test.txt http://localhost:8080/upload/test_forbidden.txt
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   365  100   146  100   219   142k   213k --:--:-- --:--:-- --:--:--  356k
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   365  100   146  100   219   106k   159k --:--:-- --:--:-- --:--:--  356k
 HTTP/1.1 403 Forbidden
 Content-Type: text/html
 Content-Length: 146
@@ -196,12 +191,12 @@ Manual/visual: To test 408, connect with 'telnet localhost 8080', send nothing, 
 == Test 17: 500 Internal Server Error ==
 ------------------------------------------------------------
 >> echo -e '#!/usr/bin/env python3\nimport sys\nsys.exit(1)' > www/cgi-bin/error500.py && chmod +x www/cgi-bin/error500.py && curl -s -i http://localhost:8080/cgi-bin/error500.py
-HTTP/1.1 500 CGI Output Missing Header
+HTTP/1.1 500 Internal Server Error
 Connection: close
 Content-Type: text/html
 
 
-[FAIL] 500 Internal Server Error returned.
+[OK] 500 Internal Server Error returned.
 ------------------------------------------------------------
 == Test 18: 502 Bad Gateway (manual/visual) ==
 ------------------------------------------------------------

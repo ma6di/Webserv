@@ -99,6 +99,8 @@ Check:
 
 Your test CGI script does not set Content-Length, so your server should handle EOF correctly.
 Action: Confirm your server reads until EOF from the CGI output.
+
+
 4. "Your program should call the CGI with the file requested as the first argument."
 Explanation:
 When executing the CGI script, the server should pass the requested file path as the first command-line argument to the script.

@@ -5,6 +5,8 @@
 #include "utils.hpp"
 #include "Config.hpp"
 
+extern Config g_config;
+
 std::string WebServer::resolve_path(const std::string& raw_path, const std::string& method) {
     std::string path = raw_path;
     std::string base_dir;
@@ -83,18 +85,30 @@ std::string WebServer::read_file(const std::string& path) {
 }
 
 bool WebServer::read_and_append_client_data(int client_fd, size_t i) {
-    char buf[1024];
-    std::string& request_data = client_buffers[client_fd];
-    int bytes = read(client_fd, buf, sizeof(buf) - 1);
+    char buffer[8192];
+    ssize_t bytes_read = recv(client_fd, buffer, sizeof(buffer), 0);
+    if (bytes_read <= 0) {
+        // Client disconnected or error
+        cleanup_client(client_fd, i);
+        return false;
+    }
+    client_buffers[client_fd].append(buffer, bytes_read);
 
-    if (bytes <= 0) {
-        std::cout << "[DEBUG] Client disconnected or read error on FD=" << client_fd << std::endl;
+    // Check if buffer is too large (AFTER appending)
+    if (client_buffers[client_fd].size() > g_config.getMaxBodySize()) {
+        Response resp(413, "Payload Too Large");
+        resp.setBody("<h1>413 Payload Too Large</h1>");
+        std::string raw = resp.toString();
+        // Send the response
+        write(client_fd, raw.c_str(), raw.size());
+        // Shutdown reading, but allow client to read the response
+        // shutdown(client_fd, SHUT_RD);
+        // Give the client a moment to read the response
+        usleep(100000); // 100ms
         cleanup_client(client_fd, i);
         return false;
     }
 
-    request_data.append(buf, bytes);
-    std::cout << "[DEBUG] request_data size after append: " << request_data.size() << std::endl;
     return true;
 }
 

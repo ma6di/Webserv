@@ -15,7 +15,8 @@ public:
 				//env: a map of environment variables
             	const std::map<std::string, std::string>& env,
 				//inputBody: optional request body (for POST methods)
-            	const std::string& inputBody = "");
+            	const std::string& inputBody = "",
+			    const std::string& requestedUri = "");
 
     // Executes the CGI program and returns its output (headers + body)
     std::string execute();
@@ -23,7 +24,9 @@ public:
 private:
     std::string scriptPath;                     // Path to the CGI script (e.g., ./cgi-bin/test.py)
     std::map<std::string, std::string> environment; // Environment variables for the CGI execution
-    std::string inputBody;                      // Input body for POST requests (sent to stdin)
+    std::string inputBody;   
+	std::string requestedUri;
+                   // Input body for POST requests (sent to stdin)
 
     // Internal method that handles process creation, piping, and reading output
     std::string runCGI(); 

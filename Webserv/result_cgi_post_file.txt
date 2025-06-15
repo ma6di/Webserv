@@ -1,6 +1,0 @@
-HTTP/1.1 200 OK
-Connection: close
-Content-Length: 114
-Content-Type: text/html
-
-<h1>File 'test.cpp' uploaded successfully to /Users/mahdicheraghali/Desktop/WEB/Webserv/www/upload/test.cpp!</h1>

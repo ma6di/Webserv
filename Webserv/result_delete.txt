@@ -1,7 +1,0 @@
-HTTP/1.1 200 OK
-Connection: close
-Content-Length: 62
-Content-Type: text/html
-
-<html><body><h1>File deleted: /upload/1.txt</h1></body></html>
-HTTP 200
