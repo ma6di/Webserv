@@ -1,0 +1,7 @@
+HTTP/1.1 200 OK
+Connection: close
+Content-Length: 69
+Content-Type: text/html
+
+<h1>✅ File uploaded as www/upload/test.txt_20250615_170914.txt</h1>
+HTTP 200

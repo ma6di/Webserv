@@ -53,14 +53,8 @@ std::string WebServer::resolve_path(const std::string& raw_path, const std::stri
     // 5. Default: treat as static file
     base_dir = "./www/static";
     resolved_path = base_dir + path;
-    if (!file_exists(resolved_path)) {
-        std::cout << "[DEBUG] File not found: " << resolved_path << std::endl;
-        // You should trigger a 404 response in your main handler, not here.
-        return ""; // or some special value to indicate not found
-    }
     if (!resolved_path.empty() && resolved_path[resolved_path.size() - 1] == '/')
         resolved_path += "index.html";
-
     std::cout << "[DEBUG] Default static path: " << resolved_path << std::endl;
     return resolved_path;
 }

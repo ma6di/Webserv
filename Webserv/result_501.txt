@@ -1,0 +1,4 @@
+HTTP/1.1 501 Not Implemented
+Connection: close
+Content-Type: text/html
+

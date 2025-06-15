@@ -9,6 +9,12 @@ Response::Response() : status_code(200), status_message("OK") {
     headers["Connection"] = "close";
 }
 
+Response::Response(int code, const std::string& message)
+    : status_code(code), status_message(message) {
+    headers["Content-Type"] = "text/html";
+    headers["Connection"] = "close";
+}
+
 void Response::setStatus(int code, const std::string& message) {
     status_code = code;
     status_message = message;
@@ -20,9 +26,11 @@ void Response::setHeader(const std::string& key, const std::string& value) {
 
 void Response::setBody(const std::string& b) {
     body = b;
-    std::ostringstream oss;
-    oss << body.size();
-    headers["Content-Length"] = oss.str();
+    if (headers.find("Content-Length") == headers.end()) {
+        std::ostringstream oss;
+        oss << body.size();
+        headers["Content-Length"] = oss.str();
+    }
 }
 
 std::string Response::toString() const {

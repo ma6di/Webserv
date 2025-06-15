@@ -7,6 +7,7 @@
 class Response {
 public:
     Response();
+    Response(int code, const std::string& message); // <-- Add this line
 
     void setStatus(int code, const std::string& message);
     void setHeader(const std::string& key, const std::string& value);

@@ -1,0 +1,4 @@
+HTTP/1.1 500 CGI Output Missing Header
+Connection: close
+Content-Type: text/html
+

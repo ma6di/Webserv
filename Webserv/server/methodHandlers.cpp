@@ -7,32 +7,78 @@
 #include <string>
 
 void WebServer::handle_get(const Request& request, int client_fd, size_t i) {
-	std::string uri = request.getPath();
+    std::string uri = request.getPath();
     std::string path = resolve_path(uri, "GET");
+    std::cout << "[DEBUG] handle_get: uri=" << uri << " path=" << path << std::endl;
+    Response resp;
     if (!file_exists(path)) {
-        send_error_response(client_fd, 404, "Not Found", i);
+        std::cout << "[DEBUG] 404: file does not exist: " << path << std::endl;
+        resp.setStatus(404, "Not Found");
+        resp.setBody("<h1>404 Not Found</h1>");
     } else if (access(path.c_str(), R_OK) != 0) {
-        send_error_response(client_fd, 403, "Forbidden", i);
+        std::cout << "[DEBUG] 403: file not readable: " << path << std::endl;
+        resp.setStatus(403, "Forbidden");
+        resp.setBody("<h1>403 Forbidden</h1>");
     } else {
-        send_response(client_fd, uri, "GET");
+        std::ifstream file(path.c_str(), std::ios::binary);
+        std::ostringstream buffer;
+        buffer << file.rdbuf();
+        resp.setStatus(200, "OK");
+        resp.setHeader("Content-Type", get_mime_type(path));
+        resp.setBody(buffer.str());
     }
+    std::string raw = resp.toString();
+    write(client_fd, raw.c_str(), raw.size());
+    cleanup_client(client_fd, i);
 }
 
 void WebServer::handle_cgi(const LocationConfig* loc, const Request& request, int client_fd, size_t i) {
-    std::string uri = request.getPath();
+    std::string uri = request.getPath();         // e.g. /cgi-bin/test.py/foo/bar
     std::string method = request.getMethod();
-    std::string script_path = resolve_script_path(uri, *loc);
+    std::string cgi_root = loc->root;            // e.g. /.../www/cgi-bin/
+    std::string cgi_uri = loc->path;             // e.g. /cgi-bin/
+    std::string script_path, script_name, path_info;
+    size_t match_len = 0;
+
+    // Remove the location prefix from the URI to get the relative path
+    if (uri.find(cgi_uri) != 0) {
+        send_error_response(client_fd, 404, "CGI Script Not Found", i);
+        return;
+    }
+    std::string rel_uri = uri.substr(cgi_uri.length()); // e.g. test.py/foo/bar
+
+    // Find the longest matching script file in cgi_root
+    for (size_t pos = rel_uri.size(); pos > 0; --pos) {
+        if (rel_uri[pos - 1] == '/')
+            continue; // Don't split in the middle of a segment
+        std::string candidate = rel_uri.substr(0, pos); // e.g. test.py
+        std::string abs_candidate = cgi_root + candidate; // e.g. .../www/cgi-bin/test.py
+        if (file_exists(abs_candidate) && access(abs_candidate.c_str(), X_OK) == 0) {
+            script_path = abs_candidate;
+            script_name = cgi_uri + candidate; // e.g. /cgi-bin/test.py
+            match_len = pos;
+            break;
+        }
+    }
+
+    if (script_path.empty()) {
+        send_error_response(client_fd, 404, "CGI Script Not Found", i);
+        return;
+    }
+
+    // Set PATH_INFO to the rest of the URI after the script_name
+    path_info = rel_uri.substr(match_len); // e.g. /foo/bar or ""
 
     // Prepare CGI environment variables
     std::map<std::string, std::string> env;
     env["REQUEST_METHOD"] = method;
 
     size_t q = uri.find('?');
-    std::string script_name = q == std::string::npos ? uri : uri.substr(0, q);
     std::string query_string = q == std::string::npos ? "" : uri.substr(q + 1);
 
     env["SCRIPT_NAME"] = script_name;
     env["QUERY_STRING"] = query_string;
+    env["PATH_INFO"] = path_info;
 
     if (method == "POST") {
         std::ostringstream oss;
@@ -51,77 +97,130 @@ void WebServer::handle_cgi(const LocationConfig* loc, const Request& request, in
     std::string cgi_output = handler.execute();
 
     if (cgi_output == "__CGI_TIMEOUT__") {
-        send_error_response(client_fd, 504, "Gateway Timeout", i);
+        Response resp(504, "Gateway Timeout");
+        write(client_fd, resp.toString().c_str(), resp.toString().size());
+        cleanup_client(client_fd, i);
+        return;
     } else if (cgi_output == "__CGI_MISSING_HEADER__") {
-        send_error_response(client_fd, 500, "Internal Server Error", i);
-    } else {
-        size_t header_end = cgi_output.find("\r\n\r\n");
-        if (header_end == std::string::npos)
-            header_end = cgi_output.find("\n\n");
-        if (header_end == std::string::npos) {
-            send_error_response(client_fd, 500, "CGI Output Missing Header", i);
-            cleanup_client(client_fd, i);
-            return;
-        }
-
-        std::string headers = cgi_output.substr(0, header_end);
-        std::string body = cgi_output.substr(header_end + ((cgi_output[header_end] == '\r') ? 4 : 2));
-
-        if (headers.find("Content-Type:") == std::string::npos) {
-            send_error_response(client_fd, 500, "CGI Output Missing Content-Type", i);
-            cleanup_client(client_fd, i);
-            return;
-        }
-
-        std::ostringstream oss;
-        oss << "HTTP/1.1 200 OK\r\n"
-            << headers << "\r\n"
-            << "Content-Length: " << body.size() << "\r\n"
-            << "Connection: close\r\n\r\n"
-            << body;
-
-        std::string response = oss.str();
-        write(client_fd, response.c_str(), response.size());
+        Response resp(500, "Internal Server Error");
+        write(client_fd, resp.toString().c_str(), resp.toString().size());
+        cleanup_client(client_fd, i);
+        return;
     }
 
+    // --- Parse CGI output headers and body ---
+    size_t header_end = cgi_output.find("\r\n\r\n");
+    if (header_end == std::string::npos)
+        header_end = cgi_output.find("\n\n");
+    if (header_end == std::string::npos) {
+        Response resp(500, "CGI Output Missing Header");
+        write(client_fd, resp.toString().c_str(), resp.toString().size());
+        cleanup_client(client_fd, i);
+        return;
+    }
+
+    std::string headers = cgi_output.substr(0, header_end);
+    std::string body = cgi_output.substr(header_end + ((cgi_output[header_end] == '\r') ? 4 : 2));
+
+    Response resp;
+    resp.setStatus(200, "OK");
+
+    // Parse and set CGI headers
+    std::istringstream header_stream(headers);
+    std::string line;
+    bool has_content_type = false;
+    while (std::getline(header_stream, line)) {
+        if (line.empty() || line == "\r")
+            continue;
+        size_t colon = line.find(':');
+        if (colon != std::string::npos) {
+            std::string key = line.substr(0, colon);
+            std::string value = line.substr(colon + 1);
+            // Remove whitespace
+            while (!value.empty() && (value[0] == ' ' || value[0] == '\t')) value.erase(0, 1);
+            if (key == "Content-Type")
+                has_content_type = true;
+            resp.setHeader(key, value);
+        }
+    }
+
+    if (!has_content_type) {
+        resp.setHeader("Content-Type", "text/html");
+    }
+
+    resp.setBody(body);
+
+    write(client_fd, resp.toString().c_str(), resp.toString().size());
     cleanup_client(client_fd, i);
 }
 
 
 void WebServer::handle_post(const Request& request, const LocationConfig* loc, int client_fd, size_t i) {
-    // Handle CGI if needed
+    std::string uri = request.getPath();
+    std::string path = resolve_path(uri, "POST");
+    std::cout << "[DEBUG] handle_post: uri=" << uri << " path=" << path << std::endl;
+
+    // CGI handler
     if (loc && is_cgi_request(*loc, request.getPath())) {
-		std::cout << "🔍 Handling CGI for POST request\n";
         handle_cgi(loc, request, client_fd, i);
         return;
     }
-    // Handle upload
+
+    // Upload handler
     if (handle_upload(request, loc, client_fd, i)) {
         return;
     }
-    // If not upload or CGI, you can send a default response or error
-    send_error_response(client_fd, 400, "Bad POST Request", i);
+
+    // If you want to allow POST to existing files (e.g. update/replace)
+    if (file_exists(path)) {
+        if (access(path.c_str(), W_OK) != 0) {
+            std::cout << "[DEBUG] 403: file not writable: " << path << std::endl;
+            Response resp(403, "Forbidden");
+            resp.setBody("<h1>403 Forbidden</h1>");
+            std::string raw = resp.toString();
+            write(client_fd, raw.c_str(), raw.size());
+            cleanup_client(client_fd, i);
+            return;
+        }
+        // Optionally: handle file update logic here
+    } else {
+        std::cout << "[DEBUG] 404: file does not exist: " << path << std::endl;
+        Response resp(404, "Not Found");
+        resp.setBody("<h1>404 Not Found</h1>");
+        std::string raw = resp.toString();
+        write(client_fd, raw.c_str(), raw.size());
+        cleanup_client(client_fd, i);
+        return;
+    }
+
+    // If not upload, CGI, or valid file update, treat as bad request
+    Response resp(400, "Bad POST Request");
+    resp.setBody("<h1>400 Bad POST Request</h1>");
+    std::string raw = resp.toString();
+    write(client_fd, raw.c_str(), raw.size());
+    cleanup_client(client_fd, i);
 }
 
 void WebServer::handle_delete(const Request& request, int client_fd, size_t i) {
     std::string uri = request.getPath();
     std::string path = resolve_path(uri, "DELETE");
+    Response resp;
     if (!file_exists(path)) {
-        send_error_response(client_fd, 404, "Not Found", i);
+        resp.setStatus(404, "Not Found");
+        resp.setBody("<h1>404 Not Found</h1>");
     } else if (access(path.c_str(), W_OK) != 0) {
-        send_error_response(client_fd, 403, "Forbidden", i);
+        resp.setStatus(403, "Forbidden");
+        resp.setBody("<h1>403 Forbidden</h1>");
     } else if (remove(path.c_str()) == 0) {
-        std::string body = "<html><body><h1>File deleted: " + uri + "</h1></body></html>";
-        std::ostringstream oss;
-        oss << "HTTP/1.1 200 OK\r\n"
-            << "Content-Type: text/html\r\n"
-            << "Content-Length: " << body.size() << "\r\n"
-            << "Connection: close\r\n\r\n"
-            << body;
-        write(client_fd, oss.str().c_str(), oss.str().size());
+        resp.setStatus(200, "OK");
+        resp.setBody("<html><body><h1>File deleted: " + uri + "</h1></body></html>");
     } else {
-        send_error_response(client_fd, 500, "Internal Server Error", i);
+        resp.setStatus(500, "Internal Server Error");
+        resp.setBody("<h1>500 Internal Server Error</h1>");
     }
+    std::string raw = resp.toString();
+    write(client_fd, raw.c_str(), raw.size());
+    cleanup_client(client_fd, i);
 }
 
 std::string extract_file_from_multipart(const std::string& body, std::string& filename) {
@@ -184,16 +283,37 @@ bool WebServer::handle_upload(const Request& request, const LocationConfig* loc,
     std::string filename, content;
     process_upload_content(request, filename, content);
 
-    std::string full_filename = make_upload_filename(filename);
-    std::string full_path = loc->upload_dir + "/" + full_filename;
+    // --- NEW: Use URI filename if present ---
+    std::string uri = request.getPath(); // e.g. /upload/test_forbidden.txt
+    std::string upload_dir = loc->upload_dir;
+    std::string target_path;
 
-    if (!write_upload_file(full_path, content)) {
-        std::cerr << "❌ Failed to open file: " << full_path << "\n";
+    if (uri.length() > loc->path.length()) {
+        // /upload/filename
+        std::string uri_filename = uri.substr(loc->path.length());
+        // Remove leading slash if present
+        if (!uri_filename.empty() && uri_filename[0] == '/')
+            uri_filename = uri_filename.substr(1);
+        target_path = upload_dir + "/" + uri_filename;
+    } else {
+        // POST to /upload, use generated filename
+        target_path = upload_dir + "/" + make_upload_filename(filename);
+    }
+
+    // --- Check if file exists and is writable ---
+    if (file_exists(target_path) && access(target_path.c_str(), W_OK) != 0) {
+        std::cerr << "❌ Forbidden: cannot write to " << target_path << "\n";
+        send_error_response(client_fd, 403, "Forbidden", i);
+        return true;
+    }
+
+    if (!write_upload_file(target_path, content)) {
+        std::cerr << "❌ Failed to open file: " << target_path << "\n";
         send_error_response(client_fd, 500, "Failed to save upload", i);
         return true;
     }
 
-    send_upload_success_response(client_fd, full_filename, i);
+    send_upload_success_response(client_fd, target_path, i);
     return true;
 }
 

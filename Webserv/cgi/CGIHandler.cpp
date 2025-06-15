@@ -112,7 +112,13 @@ std::string CGIHandler::runCGI() {
         return "__CGI_TIMEOUT__";
     }
 
-    std::string output = read_from_pipe(output_pipe[0]);
+    // Read CGI output until EOF
+    std::string output;
+    char buffer[4096];
+    ssize_t n;
+    while ((n = read(output_pipe[0], buffer, sizeof(buffer))) > 0) {
+        output.append(buffer, n);
+    }
     close(output_pipe[0]);
 
     std::string error_output = read_from_pipe(error_pipe[0]);

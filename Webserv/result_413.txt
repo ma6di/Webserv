@@ -1,0 +1,9 @@
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   228  100    67  100   161  62037   145k --:--:-- --:--:-- --:--:--  222k
+HTTP/1.1 200 OK
+Connection: close
+Content-Length: 67
+Content-Type: text/html
+
+<h1>✅ File uploaded as www/upload/upload_20250615_170914.txt</h1>

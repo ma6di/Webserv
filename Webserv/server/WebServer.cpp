@@ -160,57 +160,71 @@ void WebServer::handle_client_data(size_t i) {
         return;
     }
 
-    std::string headers = request_data.substr(0, header_end);
-    size_t body_start = header_end + 4;
-    size_t body_length_received = request_data.size() - body_start;
-
-    int content_length = parse_content_length(headers);
-
-    if (content_length > 0 && body_length_received < static_cast<size_t>(content_length)) {
-        std::cout << "[DEBUG] Incomplete body. Waiting for more data..." << std::endl;
-        return;
-    }
-
-    std::cout << "[DEBUG] Full request received. Parsing and processing..." << std::endl;
-
     try {
         Request request(request_data);
+
+		std::cout << "[DEBUG] max body size: "<< g_config.getMaxBodySize() << std::endl;
+
+        // Check for chunked encoding and content length
+        bool is_chunked = request.getHeader("Transfer-Encoding") == "chunked";
+        int content_length = parse_content_length(request_data.substr(0, header_end));
+        size_t body_start = header_end + 4;
+        size_t body_length_received = request_data.size() - body_start;
+
+        // Wait for more data if needed
+        if (!is_chunked && content_length > 0 && body_length_received < static_cast<size_t>(content_length)) {
+            return;
+        }
+        if (is_chunked && request.getBody().empty()) {
+            return;
+        }
+
+        std::cout << "[DEBUG] Full request received. Parsing and processing..." << std::endl;
+
         std::string method = request.getMethod();
         std::string uri = request.getPath();
         const LocationConfig* loc = match_location(g_config.getLocations(), uri);
 
         // 501 Not Implemented
         if (method != "GET" && method != "POST" && method != "DELETE") {
-            send_error_response(client_fd, 501, "Not Implemented", i);
+            Response resp(501, "Not Implemented");
+            write(client_fd, resp.toString().c_str(), resp.toString().size());
             cleanup_client(client_fd, i);
             return;
         }
 
+		std::cout << "[DEBUG] max body size: "<< g_config.getMaxBodySize() << std::endl;
         // 413 Payload Too Large
         if (request.getBody().size() > g_config.getMaxBodySize()) {
-            send_error_response(client_fd, 413, "Payload Too Large", i);
+            Response resp(413, "Payload Too Large");
+            write(client_fd, resp.toString().c_str(), resp.toString().size());
             cleanup_client(client_fd, i);
             return;
         }
 
         // 405 Method Not Allowed
         if (loc && std::find(loc->allowed_methods.begin(), loc->allowed_methods.end(), method) == loc->allowed_methods.end()) {
-            std::cout << "method: "<<method <<"\n";
-			std::cout << "Allowed methods for this location: ";
-			for (size_t j = 0; j < loc->allowed_methods.size(); ++j)
-				std::cout << loc->allowed_methods[j] << " ";
-			std::cout << std::endl;
-			send_error_response(client_fd, 405, "Method Not Alloweddd", i);
+            Response resp(405, "Method Not Allowed");
+            write(client_fd, resp.toString().c_str(), resp.toString().size());
             cleanup_client(client_fd, i);
             return;
         }
 
-		if (loc && is_cgi_request(*loc, request.getPath())) {
-			std::cout << "🔍 Handling CGI for POST request\n";
-			handle_cgi(loc, request, client_fd, i);
-        return;
-    }
-        // Dispatch to method handlers
+        // Handle CGI
+        if (loc && is_cgi_request(*loc, request.getPath())) {
+            std::string body = request.getBody();
+            if (is_chunked) {
+                body = decode_chunked_body(body);
+            }
+            Request cgi_request = request;
+            cgi_request.setBody(body);
+            handle_cgi(loc, cgi_request, client_fd, i);
+            return;
+        }
+
+        // Static file/auth/permission checks (401/403/404)
+        // You should implement these checks in your handle_get/handle_post/handle_delete or send_response functions.
+        // Example for GET:
         if (method == "GET") {
             handle_get(request, client_fd, i);
         } else if (method == "POST") {
@@ -223,7 +237,8 @@ void WebServer::handle_client_data(size_t i) {
     }
     catch (const std::exception& e) {
         std::cerr << "[ERROR] Request parsing failed: " << e.what() << std::endl;
-        send_error_response(client_fd, 400, "Bad Request", i);
+        Response resp(400, "Bad Request");
+        write(client_fd, resp.toString().c_str(), resp.toString().size());
         cleanup_client(client_fd, i);
     }
 

@@ -37,33 +37,38 @@ void Request::parseRequest(const std::string& raw_data) {
     // Parse request line: "GET /path HTTP/1.1"
     if (!std::getline(stream, line))
         throw std::runtime_error("Empty request line");
+
     std::istringstream request_line(line);
     request_line >> method >> path >> version;
 
+    // Check for malformed request line
+    if (method.empty() || path.empty() || version.empty())
+        throw std::runtime_error("Malformed request line");
+
+    // Optionally, check for valid HTTP version
+    if (version.compare(0, 5, "HTTP/") != 0)
+        throw std::runtime_error("Missing or invalid HTTP version");
+
     // Parse headers
-	//Headers go line-by-line until a blank line is reached (ends with \r\n\r\n).
     while (std::getline(stream, line)) {
         if (line == "\r" || line.empty())
             break;
 
-		//Splits the line into key: value
         size_t colon = line.find(':');
-        if (colon != std::string::npos) {
-            std::string key = line.substr(0, colon);
-            std::string value = line.substr(colon + 1);
+        if (colon == std::string::npos)
+            throw std::runtime_error("Malformed header line (missing colon)");
 
-            // Trim leading spaces
-            size_t start = value.find_first_not_of(" \t");
-            if (start != std::string::npos)
-                value = value.substr(start);
+        std::string key = line.substr(0, colon);
+        std::string value = line.substr(colon + 1);
 
-            // Remove trailing \r
-            if (!value.empty() && value[value.size() - 1] == '\r')
-                value.erase(value.size() - 1);
+        size_t start = value.find_first_not_of(" \t");
+        if (start != std::string::npos)
+            value = value.substr(start);
 
-			//Adds the header to the map
-            headers[key] = value;
-        }
+        if (!value.empty() && value[value.size() - 1] == '\r')
+            value.erase(value.size() - 1);
+
+        headers[key] = value;
     }
 
     // Read body (if any)
@@ -74,4 +79,8 @@ void Request::parseRequest(const std::string& raw_data) {
     body = body_stream.str();
     if (!body.empty() && body[body.size() - 1] == '\n')
         body.erase(body.size() - 1);
+}
+
+void Request::setBody(const std::string& newBody) {
+    this->body = newBody;
 }

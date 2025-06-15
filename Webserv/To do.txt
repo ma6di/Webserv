@@ -69,3 +69,57 @@ curl -v -X POST http://localhost:8080/cgi-bin/script.py -d "name=test"
 curl -X DELETE http://localhost:8080/upload/1.txt
 curl -F "file=@test.txt" http://localhost:8080/upload
 curl http://localhost:8080/ 
+
+
+------
+1. "Because you won’t call the CGI directly, use the full path as PATH_INFO."
+Explanation:
+When your server executes a CGI script, it should set the PATH_INFO environment variable to the full path of the requested resource (e.g., /cgi-bin/test.py). This allows the CGI script to know what resource was requested.
+
+Check:
+
+Your test script uses URLs like /cgi-bin/test.py, but whether PATH_INFO is set correctly depends on your server implementation, not the test script.
+Action: Check your server code to ensure it sets PATH_INFO in the CGI environment.
+
+
+2. "For chunked requests, your server needs to unchunk them, the CGI will expect EOF as the end of the body."
+Explanation:
+If a client sends a request with Transfer-Encoding: chunked, your server must decode (unchunk) the body before passing it to the CGI script. The CGI script expects the body to end with EOF, not with chunked encoding.
+
+Check:
+
+Your test script does not send chunked requests, so this is not tested.
+Action: Ensure your server decodes chunked bodies before passing them to CGI. Add a test for chunked uploads if you want to verify this.
+
+3. "The same applies to the output of the CGI. If no content_length is returned from the CGI, EOF will mark the end of the returned data."
+Explanation:
+When your server reads the CGI script's output, if the CGI does not specify a Content-Length header, your server should treat EOF as the end of the response.
+
+Check:
+
+Your test CGI script does not set Content-Length, so your server should handle EOF correctly.
+Action: Confirm your server reads until EOF from the CGI output.
+4. "Your program should call the CGI with the file requested as the first argument."
+Explanation:
+When executing the CGI script, the server should pass the requested file path as the first command-line argument to the script.
+
+Check:
+
+Your test script does not check this; it depends on your server implementation.
+Action: Check your server code to ensure it passes the file path as argv[1] to the CGI script.
+
+5. "The CGI should be run in the correct directory for relative path file access."
+Explanation:
+The server should set the working directory for the CGI process so that relative file paths in the script work as expected (usually the directory containing the script).
+
+Check:
+
+Not tested by your script.
+Action: Ensure your server sets the working directory before running the CGI.
+6. "Your server should support at least one CGI (php-CGI, Python, and so forth)."
+Explanation:
+Your server must be able to execute at least one type of CGI script.
+
+Check:
+
+Your test script runs Python CGI scripts, so this is covered.

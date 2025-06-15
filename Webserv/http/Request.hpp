@@ -12,6 +12,8 @@ public:
     std::string getVersion() const;
     std::string getHeader (const std::string& key) const;
     std::string getBody() const;
+	void setBody(const std::string& newBody);
+
 
 private:
     std::string method;
