@@ -127,3 +127,35 @@ std::string decode_chunked_body(const std::string& body) {
     }
     return decoded;
 }
+
+bool is_directory(const std::string& path) {
+    struct stat statbuf;
+    return stat(path.c_str(), &statbuf) == 0 && S_ISDIR(statbuf.st_mode);
+}
+
+#include <dirent.h>
+#include <sstream>
+
+std::string generate_directory_listing(const std::string& dir_path, const std::string& uri_path) {
+    DIR* dir = opendir(dir_path.c_str());
+    if (!dir)
+        return "<html><body><h1>403 Forbidden</h1></body></html>";
+
+    std::ostringstream html;
+    html << "<html><head><title>Index of " << uri_path << "</title></head><body>";
+    html << "<h1>Index of " << uri_path << "</h1><ul>";
+
+    struct dirent* entry;
+    while ((entry = readdir(dir)) != NULL) {
+        std::string name = entry->d_name;
+        if (name == ".") continue;
+
+        html << "<li><a href=\"" << uri_path;
+        if (!uri_path.empty() && uri_path[uri_path.length() - 1] != '/') html << "/";
+        html << name << "\">" << name << "</a></li>";
+    }
+
+    html << "</ul></body></html>";
+    closedir(dir);
+    return html.str();
+}

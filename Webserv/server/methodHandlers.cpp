@@ -13,6 +13,22 @@ void WebServer::handle_get(const Request& request, int client_fd, size_t i) {
     std::string path = resolve_path(uri, "GET");
     std::cout << "[DEBUG] handle_get: uri=" << uri << " path=" << path << std::endl;
     Response resp;
+    if (is_directory(path)) {
+        std::string index_path = path + "/index.html";
+        if (file_exists(index_path)) {
+            path = index_path;  // fall through to existing logic
+        } else {
+            std::cout << "[DEBUG]: Listing should come: " << path << std::endl;
+            std::string html = generate_directory_listing(path, uri);
+            resp.setStatus(200, "OK");
+            resp.setHeader("Content-Type", "text/html");
+            resp.setBody(html);
+            std::string raw = resp.toString();
+            write(client_fd, raw.c_str(), raw.size());
+            cleanup_client(client_fd, i);
+            return;
+        }
+    }
     if (!file_exists(path)) {
         std::cout << "[DEBUG] 404: file does not exist: " << path << std::endl;
         resp.setStatus(404, "Not Found");
@@ -146,7 +162,8 @@ void WebServer::handle_cgi(const LocationConfig* loc, const Request& request, in
             while (!value.empty() && (value[0] == ' ' || value[0] == '\t')) value.erase(0, 1);
             // Case-insensitive check for Content-Type
             std::string key_lower = key;
-            std::transform(key_lower.begin(), key_lower.end(), key_lower.begin(), ::tolower);
+            for (size_t i = 0; i < key_lower.length(); ++i)
+                key_lower[i] = std::tolower(static_cast<unsigned char>(key_lower[i]));
             if (key_lower == "content-type")
                 has_content_type = true;
             resp.setHeader(key, value);

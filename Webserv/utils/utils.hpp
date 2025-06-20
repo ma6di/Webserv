@@ -18,5 +18,8 @@ const LocationConfig* match_location(const std::vector<LocationConfig>& location
 bool is_cgi_request(const LocationConfig& loc, const std::string& uri);
 std::string resolve_script_path(const std::string& uri, const LocationConfig& loc);
 std::string decode_chunked_body(const std::string& body);
+bool is_directory(const std::string& path);
+std::string generate_directory_listing(const std::string& dir_path, const std::string& uri_path);
+
 
 #endif
