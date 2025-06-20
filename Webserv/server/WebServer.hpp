@@ -63,7 +63,7 @@ private:
     bool write_upload_file(const std::string& full_path, const std::string& content);
     void send_upload_success_response(int client_fd, const std::string& full_filename, size_t i);
 	private:
-    void handle_get(const Request& request, int client_fd, size_t i);
+    void handle_get(const Request& request, const LocationConfig* loc, int client_fd, size_t i);
     void handle_post(const Request& request, const LocationConfig* loc, int client_fd, size_t i);
     void handle_delete(const Request& request, int client_fd, size_t i);
     bool read_and_append_client_data(int client_fd, size_t i);

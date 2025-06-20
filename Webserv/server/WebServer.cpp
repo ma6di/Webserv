@@ -233,7 +233,7 @@ void WebServer::handle_client_data(size_t i) {
 
         // Static file/auth/permission checks (401/403/404)
         if (method == "GET") {
-            handle_get(request, client_fd, i);
+            handle_get(request, loc, client_fd, i);
         } else if (method == "POST") {
             handle_post(request, loc, client_fd, i);
         } else if (method == "DELETE") {

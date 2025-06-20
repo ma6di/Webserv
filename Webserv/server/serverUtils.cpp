@@ -47,7 +47,7 @@ std::string WebServer::resolve_path(const std::string& raw_path, const std::stri
         base_dir = "./www/static";
         resolved_path = base_dir + path.substr(7);
         if (resolved_path == base_dir || resolved_path == base_dir + "/")
-            resolved_path += "index.html";
+            resolved_path += "/index.html";
         std::cout << "[DEBUG] Static path resolved: " << resolved_path << std::endl;
         return resolved_path;
     }

@@ -8,16 +8,17 @@
 
 extern Config g_config;
 
-void WebServer::handle_get(const Request& request, int client_fd, size_t i) {
+/*void WebServer::handle_get(const Request& request, const LocationConfig* loc, int client_fd, size_t i) {
     std::string uri = request.getPath();
     std::string path = resolve_path(uri, "GET");
     std::cout << "[DEBUG] handle_get: uri=" << uri << " path=" << path << std::endl;
     Response resp;
+
     if (is_directory(path)) {
         std::string index_path = path + "/index.html";
         if (file_exists(index_path)) {
             path = index_path;  // fall through to existing logic
-        } else {
+        } else if (loc->autoindex) {
             std::cout << "[DEBUG]: Listing should come: " << path << std::endl;
             std::string html = generate_directory_listing(path, uri);
             resp.setStatus(200, "OK");
@@ -47,6 +48,63 @@ void WebServer::handle_get(const Request& request, int client_fd, size_t i) {
     }
     std::string raw = resp.toString();
     write(client_fd, raw.c_str(), raw.size());
+    cleanup_client(client_fd, i);
+}*/
+
+void WebServer::handle_get(const Request& request, const LocationConfig* loc, int client_fd, size_t i) {
+    std::string uri = request.getPath();
+    std::string path = resolve_path(uri, "GET");
+    std::cout << "[DEBUG] handle_get: uri=" << uri << " path=" << path << std::endl;
+
+    Response resp;
+
+    // Handle directory case
+    if (is_directory(path)) {
+        std::string index_path = path + "/index.html";
+        if (file_exists(index_path)) {
+            path = index_path;  // serve index.html instead
+        } else if (loc && loc->autoindex) {
+            std::cout << "[DEBUG]: Listing should come: " << path << std::endl;
+            std::string html = generate_directory_listing(path, uri);
+            resp.setStatus(200, "OK");
+            resp.setHeader("Content-Type", "text/html");
+            resp.setBody(html);
+            write(client_fd, resp.toString().c_str(), resp.toString().size());
+            cleanup_client(client_fd, i);
+            return;
+        } else {
+            std::cout << "[DEBUG] Directory listing forbidden for: " << path << std::endl;
+            resp.setStatus(403, "Forbidden");
+            resp.setHeader("Content-Type", "text/html");
+            resp.setBody("<h1>403 Forbidden</h1>");
+            write(client_fd, resp.toString().c_str(), resp.toString().size());
+            cleanup_client(client_fd, i);
+            return;
+        }
+    }
+
+    // Handle non-directory file cases
+    if (!file_exists(path)) {
+        std::cout << "[DEBUG] 404: file does not exist: " << path << std::endl;
+        resp.setStatus(404, "Not Found");
+        resp.setHeader("Content-Type", "text/html");
+        resp.setBody("<h1>404 Not Found</h1>");
+    } else if (access(path.c_str(), R_OK) != 0) {
+        std::cout << "[DEBUG] 403: file not readable: " << path << std::endl;
+        resp.setStatus(403, "Forbidden");
+        resp.setHeader("Content-Type", "text/html");
+        resp.setBody("<h1>403 Forbidden</h1>");
+    } else {
+        std::ifstream file(path.c_str(), std::ios::binary);
+        std::ostringstream buffer;
+        buffer << file.rdbuf();
+        resp.setStatus(200, "OK");
+        resp.setHeader("Content-Type", get_mime_type(path));
+        resp.setBody(buffer.str());
+    }
+
+    // Final write and cleanup
+    write(client_fd, resp.toString().c_str(), resp.toString().size());
     cleanup_client(client_fd, i);
 }
 
