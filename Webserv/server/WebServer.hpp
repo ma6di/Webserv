@@ -27,7 +27,8 @@
 
 class WebServer {
 public:
-    WebServer(int port);
+    WebServer(const std::vector<int>& ports);
+    std::vector<int> listening_sockets;
     ~WebServer();
     void run();
 	void run_one_iteration();
@@ -49,7 +50,7 @@ private:
     void setup_server_socket(int port);
     void make_socket_non_blocking(int fd);
     void poll_loop();
-    void handle_new_connection();
+    void handle_new_connection(int listen_fd);
     void handle_client_data(size_t i);
 	void send_response(int client_fd, const std::string& raw_path, const std::string& method);
 	std::string resolve_path(const std::string& raw_path, const std::string& method);

@@ -26,7 +26,9 @@ public:
 	//All are marked const, meaning they don’t modify the object.
 
 	//returns port from listen 8080;
-    int getPort() const;
+    //updated to keep a list of ports
+    std::vector<int> ports;
+    const std::vector<int>& getPorts() const;
 	//global root, used as fallback if location doesn’t define one
     const std::string& getRoot() const;
 	//list of all parsed location blocks

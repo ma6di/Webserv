@@ -31,9 +31,46 @@
 
 extern Config g_config;
 
-WebServer::WebServer(int port) : port(port) {
+/*WebServer::WebServer(int port) : port(port) {
     setup_server_socket(port);
+}*/
+
+WebServer::WebServer(const std::vector<int>& ports) {
+    for (size_t i = 0; i < ports.size(); ++i) {
+        int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+        if (sockfd < 0) {
+            perror("socket");
+            continue;
+        }
+
+        fcntl(sockfd, F_SETFL, O_NONBLOCK);  // Make non-blocking
+
+        int opt = 1;
+        setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+
+        sockaddr_in addr;
+        std::memset(&addr, 0, sizeof(addr));
+        addr.sin_family = AF_INET;
+        addr.sin_addr.s_addr = INADDR_ANY;
+        addr.sin_port = htons(ports[i]);
+
+        if (bind(sockfd, (sockaddr*)&addr, sizeof(addr)) < 0) {
+            perror("bind");
+            close(sockfd);
+            continue;
+        }
+
+        if (listen(sockfd, SOMAXCONN) < 0) {
+            perror("listen");
+            close(sockfd);
+            continue;
+        }
+
+        std::cout << "Server running on http://localhost:" << ports[i] << std::endl;
+        listening_sockets.push_back(sockfd);
+    }
 }
+
 
 WebServer::~WebServer() {
     for (size_t i = 0; i < fds.size(); ++i)
@@ -76,13 +113,18 @@ void WebServer::poll_loop() {
 	std::cout << "[DEBUG] poll_loop running, fds.size() = " << fds.size() << std::endl;
 	fds.clear();
 
-	pollfd pfd;
-	pfd.fd = server_fd;
-	pfd.events = POLLIN;
-	pfd.revents = 0;
-	fds.push_back(pfd);
+    for (size_t i = 0; i < listening_sockets.size(); ++i) {
+	    pollfd pfd;
+	    pfd.fd = listening_sockets[i];
+	    pfd.events = POLLIN;
+	    pfd.revents = 0;
+	    fds.push_back(pfd);
+    }
 
-	while (true) {
+    size_t listener_count = listening_sockets.size();
+    std::cout << "[DEBUG] Listening sockets count: " << listener_count << std::endl;
+	
+    while (true) {
 		int count = poll(&fds[0], fds.size(), -1);
 		if (count < 0) {
 			std::cerr << "[ERROR] Poll failed\n";
@@ -90,18 +132,18 @@ void WebServer::poll_loop() {
 		}
 
 		for (size_t i = 0; i < fds.size(); ++i) {
-			if (!(fds[i].revents & POLLIN))
-				continue;
-
-			if (fds[i].fd == server_fd)
-				handle_new_connection();
-			else
-				handle_client_data(i--);
-		}
+	        if (!(fds[i].revents & POLLIN))
+		        continue;
+	        if (i < listener_count) {
+    		    handle_new_connection(fds[i].fd);  // pass the correct listener FD
+	        } else {
+		        handle_client_data(i--);  // This may remove the client, so i-- is correct
+	        }
+        }
 	}
 }
 
-void WebServer::handle_new_connection() {
+/*void WebServer::handle_new_connection() {
 	sockaddr_in client_addr;
 	socklen_t client_len = sizeof(client_addr);
 
@@ -120,7 +162,29 @@ void WebServer::handle_new_connection() {
 	fds.push_back(client_pfd);
 
 	std::cout << "[INFO] New client connected: FD=" << client_fd << std::endl;
+}*/
+
+void WebServer::handle_new_connection(int listen_fd) {
+	sockaddr_in client_addr;
+	socklen_t addr_len = sizeof(client_addr);
+
+	int client_fd = accept(listen_fd, (sockaddr*)&client_addr, &addr_len);
+	if (client_fd < 0) {
+		perror("accept");
+		return;
+	}
+
+	fcntl(client_fd, F_SETFL, O_NONBLOCK);  // Optional but useful
+
+	pollfd pfd;
+	pfd.fd = client_fd;
+	pfd.events = POLLIN;
+	pfd.revents = 0;
+	fds.push_back(pfd);
+
+	std::cout << "[INFO] New client connected: FD=" << client_fd << std::endl;
 }
+
 
 void WebServer::cleanup_client(int fd, size_t i) {
     // Close the client socket file descriptor

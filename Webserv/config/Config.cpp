@@ -7,7 +7,7 @@ Config::Config(const std::string& filename) : max_body_size(1048576) { // 1MB de
 }
 
 // Simple getter methods
-int Config::getPort() const { return port; }
+//int Config::getPort() const { return port; }
 const std::string& Config::getRoot() const { return root; }
 const std::vector<LocationConfig>& Config::getLocations() const { return locations; }
 const std::map<int, std::string>& Config::getErrorPages() const {
@@ -99,7 +99,19 @@ void Config::parseConfigFile(const std::string& filename) {
 void Config::handleListenDirective(std::istringstream& iss) {
     std::string token;
     iss >> token;
-    port = parseListenDirective(token);
+    int parsed = parseListenDirective(token);
+    ports.push_back(parsed);
+    std::cout << "[DEBUG] listen port: " << parsed << std::endl;
+    if (port == 0) {
+        port = parsed; // Set the first parsed port as the default
+    } else if (port != parsed) {
+        std::cout << "[DEBUG] Multiple listen ports detected, using first: " << port << std::endl;
+    }
+    if (parsed < 1 || parsed > 65535) {
+        std::ostringstream oss;
+        oss << "Invalid listen port: " << parsed;
+        throw std::runtime_error(oss.str());
+    }
 }
 
 void Config::handleRootDirective(std::istringstream& iss) {
@@ -187,4 +199,8 @@ void Config::handleLocationDirective(const std::string& keyword, std::istringstr
 
 size_t Config::getMaxBodySize() const {
     return max_body_size; // Make sure you have a member variable for this
+}
+
+const std::vector<int>& Config::getPorts() const {
+    return ports;
 }

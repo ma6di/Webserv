@@ -48,7 +48,7 @@ int main(int argc, char** argv) {
         sigaction(SIGTERM, &sa_int, NULL);
 
         // Start the WebServer on the specified port
-        WebServer server(port);
+        WebServer server(g_config.getPorts());
         g_server = &server;
         std::cout << "WebServer starting on port " << port << " with config: " << config_file << std::endl;
 
