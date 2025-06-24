@@ -214,6 +214,102 @@ void WebServer::shutdown() {
 void WebServer::handle_client_data(size_t i) {
     int client_fd = fds[i].fd;
     std::cout << "[DEBUG] handle_client_data: FD=" << client_fd << std::endl;
+    if (!read_and_append_client_data(client_fd, i))
+        return;
+    std::string& request_data = client_buffers[client_fd];
+    size_t header_end = find_header_end(request_data);
+    if (header_end == std::string::npos) {
+        std::cout << "[DEBUG] Incomplete headers. Waiting for more data..." << std::endl;
+        return;
+    }
+    try {
+        Request request(request_data);
+        std::cout << "[DEBUG] max body size: "<< g_config.getMaxBodySize() << std::endl;
+        // Check for chunked encoding and content length
+        std::string transfer_encoding = request.getHeader("Transfer-Encoding");
+        bool is_chunked = !transfer_encoding.empty() && transfer_encoding == "chunked";
+        int content_length = parse_content_length(request_data.substr(0, header_end));
+        size_t body_start = header_end + 4;
+        size_t body_length_received = request_data.size() - body_start;
+        // Wait for more data if needed
+        if (!is_chunked && content_length > 0 && body_length_received < static_cast<size_t>(content_length)) {
+            return;
+        }
+        if (is_chunked && request.getBody().empty()) {
+            return;
+        }
+        std::cout << "[DEBUG] Full request received. Parsing and processing..." << std::endl;
+        std::string method = request.getMethod();
+        std::string uri = request.getPath();
+        const LocationConfig* loc = match_location(g_config.getLocations(), uri);
+        if (loc)
+            std::cout << "[DEBUG] Matched location: " << loc->path << std::endl;
+        else
+            std::cout << "[DEBUG] No location matched!" << std::endl;
+        // 501 Not Implemented
+        if (method != "GET" && method != "POST" && method != "DELETE") {
+            Response resp(501, "Not Implemented");
+            write(client_fd, resp.toString().c_str(), resp.toString().size());
+            cleanup_client(client_fd, i);
+            return;
+        }
+        // --- DECODE CHUNKED BODY IF NEEDED ---
+        if (is_chunked) {
+            std::string decoded = decode_chunked_body(request.getBody());
+            request.setBody(decoded);
+        }
+        std::cout << "[DEBUG] max body size: "<< g_config.getMaxBodySize() << std::endl;
+        // 413 Payload Too Large
+        if (request.getBody().size() > g_config.getMaxBodySize()) {
+            Response resp(413, "Payload Too Large");
+            //resp.setBody("<h1>413 Payload Too Large</h1>");
+            std::string raw = resp.toString();
+            write(client_fd, raw.c_str(), raw.size());
+            cleanup_client(client_fd, i);
+            return;
+        }
+        // 405 Method Not Allowed
+        if (loc && std::find(loc->allowed_methods.begin(), loc->allowed_methods.end(), method) == loc->allowed_methods.end()) {
+            Response resp(405, "Method Not Allowed");
+            write(client_fd, resp.toString().c_str(), resp.toString().size());
+            cleanup_client(client_fd, i);
+            return;
+        }
+        std::cout << "[DEBUG] is_cgi_request: " << is_cgi_request(*loc, request.getPath()) << std::endl;
+        // Handle CGI
+        if (loc && is_cgi_request(*loc, request.getPath())) {
+            handle_cgi(loc, request, client_fd, i);
+            return;
+        }
+        // Static file/auth/permission checks (401/403/404)
+        if (method == "GET") {
+            handle_get(request, loc, client_fd, i);
+        } else if (method == "POST") {
+            handle_post(request, loc, client_fd, i);
+        } else if (method == "DELETE") {
+            handle_delete(request, client_fd, i);
+        }
+        std::string connection_header = request.getHeader("Connection");
+        bool close_connection = false;
+        if (connection_header == "close" || request.getVersion() == "HTTP/1.0") {
+            close_connection = true;
+        }
+        if (close_connection) {
+            cleanup_client(client_fd, i);
+        }
+    }
+    catch (const std::exception& e) {
+        std::cerr << "[ERROR] Request parsing failed: " << e.what() << std::endl;
+        Response resp(400, "Bad Request");
+        write(client_fd, resp.toString().c_str(), resp.toString().size());
+        cleanup_client(client_fd, i);
+    }
+    client_buffers.erase(client_fd);
+}
+
+/*void WebServer::handle_client_data(size_t i) {
+    int client_fd = fds[i].fd;
+    std::cout << "[DEBUG] handle_client_data: FD=" << client_fd << std::endl;
 
     if (!read_and_append_client_data(client_fd, i))
         return;
@@ -314,4 +410,4 @@ void WebServer::handle_client_data(size_t i) {
     }
 
     client_buffers.erase(client_fd);
-}
+}*/

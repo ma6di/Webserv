@@ -243,6 +243,7 @@ void WebServer::handle_cgi(const LocationConfig* loc, const Request& request, in
 void WebServer::handle_post(const Request& request, const LocationConfig* loc, int client_fd, size_t i) {
     std::string uri = request.getPath();
     std::string path = resolve_path(uri, "POST");
+    std::cout << "[DEBUG] handle_post: method=" << request.getMethod() << ", path=" << request.getPath() << std::endl;
     std::cout << "[DEBUG] handle_post: uri=" << uri << " path=" << path << std::endl;
 
 	std::cout << "[DEBUG] is_cgi_request: " << is_cgi_request(*loc, request.getPath()) << std::endl;
@@ -437,10 +438,35 @@ bool WebServer::write_upload_file(const std::string& full_path, const std::strin
     return true;
 }
 
+/*void WebServer::send_upload_success_response(int client_fd, const std::string& full_filename, size_t i) {
+    Response res;
+    res.setStatus(200, "OK");
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.setBody("<h1>✅ File uploaded as " + full_filename + "</h1>");
+    std::string raw = res.toString();
+    write(client_fd, raw.c_str(), raw.size());
+    close(client_fd);
+    fds.erase(fds.begin() + i);
+}*/
+
 void WebServer::send_upload_success_response(int client_fd, const std::string& full_filename, size_t i) {
     Response res;
     res.setStatus(200, "OK");
-    res.setBody("<h1>✅ File uploaded as " + full_filename + "</h1>");
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+
+    std::ostringstream body;
+    body << "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\">"
+         << "<title>Upload Successful</title></head><body style=\"font-family:sans-serif;text-align:center;margin-top:50px;\">"
+         << "<h1>✅ File uploaded successfully!</h1>"
+         << "<p>Saved as: <code>" << full_filename << "</code></p>"
+         << "<br><br>"
+         << "<a href=\"/\" style=\"margin: 0 10px;\"><button>Home</button></a>"
+         << "<a href=\"/about.html\" style=\"margin: 0 10px;\"><button>About</button></a>"
+         << "<a href=\"/static/upload.html\" style=\"margin: 0 10px;\"><button>Upload Another</button></a>"
+         << "</body></html>";
+
+    res.setBody(body.str());
+
     std::string raw = res.toString();
     write(client_fd, raw.c_str(), raw.size());
     close(client_fd);
