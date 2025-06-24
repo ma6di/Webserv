@@ -36,18 +36,17 @@ std::string WebServer::resolve_path(const std::string& raw_path, const std::stri
     if (path.compare(0, 7, "/upload") == 0 && (path.size() == 7 || path[7] == '/')) {
         base_dir = "./www/upload";
         resolved_path = base_dir + path.substr(7);
-        if (resolved_path == base_dir || resolved_path == base_dir + "/")
-            resolved_path += "index.html";
         std::cout << "[DEBUG] Upload path resolved: " << resolved_path << std::endl;
         return resolved_path;
     }
-
     // 4. Static
     if (path.compare(0, 7, "/static") == 0 && (path.size() == 7 || path[7] == '/')) {
         base_dir = "./www/static";
         resolved_path = base_dir + path.substr(7);
-        if (resolved_path == base_dir || resolved_path == base_dir + "/")
+        if (resolved_path == base_dir)
             resolved_path += "/index.html";
+        if (resolved_path == base_dir + "/")
+            resolved_path += "index.html";
         std::cout << "[DEBUG] Static path resolved: " << resolved_path << std::endl;
         return resolved_path;
     }
@@ -56,7 +55,7 @@ std::string WebServer::resolve_path(const std::string& raw_path, const std::stri
     base_dir = "./www/static";
     resolved_path = base_dir + path;
     if (!resolved_path.empty() && resolved_path[resolved_path.size() - 1] == '/')
-        resolved_path += "index.html";
+        resolved_path += "/index.html";
     std::cout << "[DEBUG] Default static path: " << resolved_path << std::endl;
     return resolved_path;
 }
