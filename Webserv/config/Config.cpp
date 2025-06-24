@@ -195,6 +195,12 @@ void Config::handleLocationDirective(const std::string& keyword, std::istringstr
         value = stripSemicolon(value);
         currentLocation.autoindex = (value == "on");
     }
+    else if (keyword == "return") {
+    std::string code_str, url;
+    iss >> code_str >> url;
+    currentLocation.redirect_code = std::atoi(code_str.c_str());
+    currentLocation.redirect_url = stripSemicolon(url);
+    }
 }
 
 size_t Config::getMaxBodySize() const {

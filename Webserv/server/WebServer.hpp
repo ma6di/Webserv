@@ -71,6 +71,7 @@ private:
     size_t find_header_end(const std::string& request_data);
     int parse_content_length(const std::string& headers);
 	void handle_cgi(const LocationConfig* loc, const Request& request, int client_fd, size_t i);
+    void send_redirect_response(int client_fd, int code, const std::string& location, size_t i);
 };
 
 

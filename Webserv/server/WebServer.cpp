@@ -307,6 +307,27 @@ void WebServer::handle_client_data(size_t i) {
     client_buffers.erase(client_fd);
 }
 
+void WebServer::send_redirect_response(int client_fd, int code, const std::string& location, size_t i) {
+    std::ostringstream body;
+    body << "<html><head><title>" << code << " Redirect</title></head><body>"
+         << "<h1>" << code << " Redirect</h1>"
+         << "<p>Redirecting to <a href=\"" << location << "\">" << location << "</a></p>"
+         << "</body></html>";
+
+    std::ostringstream oss;
+    oss << "HTTP/1.1 " << code << " Redirect\r\n"
+        << "Location: " << location << "\r\n"
+        << "Content-Type: text/html\r\n"
+        << "Content-Length: " << body.str().size() << "\r\n"
+        << "Connection: close\r\n\r\n"
+        << body.str();
+
+    write(client_fd, oss.str().c_str(), oss.str().size());
+    close(client_fd);
+    fds.erase(fds.begin() + i);
+}
+
+
 /*void WebServer::handle_client_data(size_t i) {
     int client_fd = fds[i].fd;
     std::cout << "[DEBUG] handle_client_data: FD=" << client_fd << std::endl;

@@ -57,7 +57,10 @@ void WebServer::handle_get(const Request& request, const LocationConfig* loc, in
     std::cout << "[DEBUG] handle_get: uri=" << uri << " path=" << path << std::endl;
 
     Response resp;
-
+    if (loc && !loc->redirect_url.empty()) {
+        send_redirect_response(client_fd, loc->redirect_code, loc->redirect_url, i);
+        return;
+    }
     // Handle directory case
     if (is_directory(path)) {
         std::string index_path = path + "/index.html";

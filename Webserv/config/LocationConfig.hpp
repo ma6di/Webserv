@@ -21,7 +21,9 @@ struct LocationConfig {
 	//Only used if the request is a POST and this field is defined.
     std::string upload_dir;
 	//f set to true, and no index file is found, generate a listing of files in the directory.
-    bool autoindex;  // ✅ Remove "= false" (not allowed in C++98)
+	std::string redirect_url; // URL to redirect to if this location is accessed
+	int redirect_code; // HTTP status code for the redirect (e.g., 301, 302)
+	bool autoindex;  // ✅ Remove "= false" (not allowed in C++98)
 
     LocationConfig() : autoindex(false) {} // ✅ C++98-compatible initialization
 };
