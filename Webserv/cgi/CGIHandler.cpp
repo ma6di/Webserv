@@ -9,20 +9,6 @@
  */
 
 #include "CGIHandler.hpp"
-#include <unistd.h>
-#include <fcntl.h>
-#include <cstdlib>
-#include <sys/wait.h>
-#include <vector>
-#include <sstream>
-#include <stdexcept>
-#include <iostream>
-#include <cstdio>
-#include <algorithm>
-#include <cerrno>
-#include <cstring>
-#include <sys/time.h>
-#include <signal.h>
 
 volatile sig_atomic_t g_cgi_alarm_fired = 0;
 void cgi_alarm_handler(int) { g_cgi_alarm_fired = 1; }

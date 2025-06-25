@@ -1,127 +1,124 @@
 
---• Your server must be compatible with standard web browsers of your choice.
 
---• You must be able to serve a fully static website.
+## 3. **Repeated Logic**
+- **Current:** Directory listing, file serving, and error handling logic is repeated.
+- **Suggestion:**  
+  - Extract file serving and directory listing into dedicated methods.
+  - Extract CGI handling into a separate class or module if it grows.
 
---------------
-In the configuration file, you should be able to:
-• Choose the port and host of each ’server’.
-• Set up the server_names or not.
-• The first server for a host:port will be the default for this host:port (meaning it
-will respond to all requests that do not belong to another server).
-• Set up default error pages.
-• Set the maximum allowed size for client request bodies.
-• Set up routes with one or multiple of the following rules/configurations (routes
-won’t be using regexp):
-◦ Define a list of accepted HTTP methods for the route.
-◦ Define an HTTP redirect.
-◦ Define a directory or file where the requested file should be located (e.g.,
-if url /kapouet is rooted to /tmp/www, url /kapouet/pouic/toto/pouet is
-/tmp/www/pouic/toto/pouet).
-◦ Enable or disable directory listing.
-8
-Webserv This is when you finally understand why URLs start with HTTP
-◦ Set a default file to serve when the request is for a directory.
-◦ Execute CGI based on certain file extension (for example .php).
-◦ Make it work with POST and GET methods.
-◦ Allow the route to accept uploaded files and configure where they should be
-saved.
-∗ Do you wonder what a CGI is?
-∗ Because you won’t call the CGI directly, use the full path as PATH_INFO.
-∗ Just remember that, for chunked requests, your server needs to unchunk
-them, the CGI will expect EOF as the end of the body.
-∗ The same applies to the output of the CGI. If no content_length is
-returned from the CGI, EOF will mark the end of the returned data.
-∗ Your program should call the CGI with the file requested as the first
-argument.
-∗ The CGI should be run in the correct directory for relative path file access.
-∗ Your server should support at least one CGI (php-CGI, Python, and so
-forth).
-You must provide configuration files and default files to test and demonstrate that
-every feature works during the evaluation.
-----------------------
-Write your tests in a more
-suitable language, such as Python or Golang, among others, even
-in C or C++ if you prefer
------------------------
-Bonus part
-Here are some additional features you can implement:
-• Support cookies and session management (provide simple examples).
-• Handle multiple CGI.
+---
 
-touch 1.txt www/upload
-curl -v -X POST http://localhost:8080/echo -d "hello=world&foo=bar"
+## 4. **Configuration and Constants**
+- **Current:** Magic strings and numbers (e.g., `"text/html"`, `"<h1>404 Not Found</h1>"`) are scattered.
+- **Suggestion:**  
+  - Use constants or config for common status messages, content types, and error pages.
+  - Consider loading error pages from files if configured.
 
-curl -v -X POST http://localhost:8080/upload -F "file=@test.txt"
+---
 
-curl -v -X DELETE http://localhost:8080/delete/1.txt
+## 5. **Error Handling**
+- **Current:** Error handling is sometimes inline, sometimes via `Response`.
+- **Suggestion:**  
+  - Always use a consistent error handling path.
+  - Consider a macro or function for logging errors.
 
+---
 
-cgi:
+## 6. **Request Routing**
+- **Current:** Routing logic is procedural and spread out.
+- **Suggestion:**  
+  - Use a routing table or map for method/path to handler function.
+  - This makes adding new routes or methods easier.
 
-curl -v http://localhost:8080/cgi-bin/script.py
+---
 
-curl -v -X POST http://localhost:8080/cgi-bin/script.py -d "name=test"
+## 7. **CGI and Uploads**
+- **Current:** CGI and upload logic is mixed with main handlers.
+- **Suggestion:**  
+  - Move CGI and upload logic to their own classes or modules.
+  - This keeps the main server logic focused and easier to test.
 
+---
 
+## 8. **File and Path Utilities**
+- **Current:** File/path checks and manipulations are inline.
+- **Suggestion:**  
+  - Move all file/path utilities to a dedicated `utils.cpp`/`utils.hpp`.
+  - Use RAII for file streams where possible.
 
+---
 
-curl -X DELETE http://localhost:8080/upload/1.txt
-curl -F "file=@test.txt" http://localhost:8080/upload
-curl http://localhost:8080/ 
+## 9. **Logging**
+- **Current:** Logging is done with `std::cout` and `std::cerr`.
+- **Suggestion:**  
+  - Create a logging utility with levels (INFO, DEBUG, ERROR).
+  - This allows you to control verbosity and redirect logs easily.
 
+---
 
-------
-1. "Because you won’t call the CGI directly, use the full path as PATH_INFO."
-Explanation:
-When your server executes a CGI script, it should set the PATH_INFO environment variable to the full path of the requested resource (e.g., /cgi-bin/test.py). This allows the CGI script to know what resource was requested.
+## 10. **Configuration File Parsing**
+- **Current:** The config file is simple, but parsing may be ad-hoc.
+- **Suggestion:**  
+  - Use a dedicated parser class for configuration.
+  - Validate config values and provide helpful error messages.
 
-Check:
+---
 
-Your test script uses URLs like /cgi-bin/test.py, but whether PATH_INFO is set correctly depends on your server implementation, not the test script.
-Action: Check your server code to ensure it sets PATH_INFO in the CGI environment.
+## 11. **General C++ Best Practices**
+- Use `const` wherever possible.
+- Prefer range-based for loops for readability.
+- Use smart pointers if you manage dynamic memory.
+- Group related functions in namespaces or classes.
 
+---
 
-2. "For chunked requests, your server needs to unchunk them, the CGI will expect EOF as the end of the body."
-Explanation:
-If a client sends a request with Transfer-Encoding: chunked, your server must decode (unchunk) the body before passing it to the CGI script. The CGI script expects the body to end with EOF, not with chunked encoding.
+## 12. **Example: Modular Error Response**
+```cpp
+// In WebServer.hpp
+void send_error(int client_fd, int code, const std::string& msg, size_t i);
 
-Check:
+// In WebServer.cpp
+void WebServer::send_error(int client_fd, int code, const std::string& msg, size_t i) {
+    Response(client_fd, code, msg, "<h1>" + std::to_string(code) + " " + msg + "</h1>", single_header("Content-Type", "text/html"));
+    cleanup_client(client_fd, i);
+}
+```
+Now, everywhere you need an error:
+```cpp
+send_error(client_fd, 404, "Not Found", i);
+```
 
-Your test script does not send chunked requests, so this is not tested.
-Action: Ensure your server decodes chunked bodies before passing them to CGI. Add a test for chunked uploads if you want to verify this.
+---
 
-3. "The same applies to the output of the CGI. If no content_length is returned from the CGI, EOF will mark the end of the returned data."
-Explanation:
-When your server reads the CGI script's output, if the CGI does not specify a Content-Length header, your server should treat EOF as the end of the response.
+## 13. **Example: Utility for Content-Type**
+```cpp
+std::map<std::string, std::string> content_type(const std::string& type) {
+    return single_header("Content-Type", type);
+}
+```
+Usage:
+```cpp
+Response(client_fd, 200, "OK", body, content_type("application/json"));
+```
 
-Check:
+---
 
-Your test CGI script does not set Content-Length, so your server should handle EOF correctly.
-Action: Confirm your server reads until EOF from the CGI output.
+## 14. **Directory Structure**
+- Group related files (e.g., server, http, utils, cgi).
+- Keep headers and implementations together.
 
+---
 
-4. "Your program should call the CGI with the file requested as the first argument."
-Explanation:
-When executing the CGI script, the server should pass the requested file path as the first command-line argument to the script.
+## 15. **Documentation**
+- Add comments for all public methods and complex logic.
+- Consider Doxygen-style comments for classes and functions.
 
-Check:
+---
 
-Your test script does not check this; it depends on your server implementation.
-Action: Check your server code to ensure it passes the file path as argv[1] to the CGI script.
+**Summary:**  
+- Centralize repeated logic (responses, headers, file serving).
+- Use utility functions and classes for modularity.
+- Improve logging, error handling, and configuration.
+- Use C++ best practices for clarity and maintainability.
 
-5. "The CGI should be run in the correct directory for relative path file access."
-Explanation:
-The server should set the working directory for the CGI process so that relative file paths in the script work as expected (usually the directory containing the script).
-
-Check:
-
-Not tested by your script.
-Action: Ensure your server sets the working directory before running the CGI.
-6. "Your server should support at least one CGI (php-CGI, Python, and so forth)."
-Explanation:
-Your server must be able to execute at least one type of CGI script.
-
-Check:
-
-Your test script runs Python CGI scripts, so this is covered.
+If you want concrete refactoring examples for a specific file or function, let me know!

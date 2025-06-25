@@ -1,8 +1,7 @@
 #include "Request.hpp"
-#include <sstream>
-#include <iostream>
 
-Request::Request(const std::string& raw_data) {
+
+Request::Request(const std::string& raw_data) : content_length(0) { // <-- initialize
     parseRequest(raw_data);
 }
 
@@ -69,6 +68,12 @@ void Request::parseRequest(const std::string& raw_data) {
             value.erase(value.size() - 1);
 
         headers[key] = value;
+
+        // Parse Content-Length if present
+        if (key == "Content-Length") {
+            std::istringstream iss(value);
+            iss >> content_length;
+        }
     }
 
     // Read body (if any)
@@ -83,4 +88,13 @@ void Request::parseRequest(const std::string& raw_data) {
 
 void Request::setBody(const std::string& newBody) {
     this->body = newBody;
+}
+
+int Request::getContentLength() const {
+    return content_length;
+}
+
+bool Request::isChunked() const {
+    std::string te = getHeader("Transfer-Encoding");
+    return !te.empty() && te == "chunked";
 }

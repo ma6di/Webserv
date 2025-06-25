@@ -3,6 +3,9 @@
 
 #include <string>
 #include <map>
+#include <sstream>
+#include <iostream>
+
 //This file defines the Request class — it represents a parsed HTTP request from the client.
 class Request {
 public:
@@ -12,8 +15,10 @@ public:
     std::string getVersion() const;
     std::string getHeader (const std::string& key) const;
     std::string getBody() const;
-	void setBody(const std::string& newBody);
+    void setBody(const std::string& newBody);
+	bool isChunked() const;
 
+    int getContentLength() const; // <-- Add this
 
 private:
     std::string method;
@@ -21,6 +26,7 @@ private:
     std::string version;
     std::map<std::string, std::string> headers;
     std::string body;
+    int content_length; // <-- Add this
 
     void parseRequest(const std::string& raw_data);
 };

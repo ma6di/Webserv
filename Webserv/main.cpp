@@ -1,7 +1,7 @@
 #include "WebServer.hpp"
-#include "config/Config.hpp"
-#include "cgi/CGIHandler.hpp"
-#include "http/Request.hpp"
+#include "Config.hpp"
+#include "CGIHandler.hpp"
+#include "Request.hpp"
 #include <iostream>
 #include <map>
 #include <signal.h>
@@ -31,9 +31,9 @@ void sigint_handler(int) {
 int main(int argc, char** argv) {
     try {
         // Parse command-line arguments for port and config file
-        int port = 8080;
+        //int port = 8080;
         std::string config_file = "default.conf";
-        if (argc > 1) port = atoi(argv[1]);
+        //if (argc > 1) port = atoi(argv[1]);
         if (argc > 2) config_file = argv[2];
 
         // Update global config with the chosen config file
@@ -50,7 +50,7 @@ int main(int argc, char** argv) {
         // Start the WebServer on the specified port
         WebServer server(g_config.getPorts());
         g_server = &server;
-        std::cout << "WebServer starting on port " << port << " with config: " << config_file << std::endl;
+        //std::cout << "WebServer starting on port " << g_config.getPorts() << " with config: " << config_file << std::endl;
 
         // Main server loop: runs until interrupted
         while (g_running) {

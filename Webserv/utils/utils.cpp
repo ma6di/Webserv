@@ -30,30 +30,30 @@ std::string get_mime_type(const std::string& path) {
     return "application/octet-stream";
 }
 
-void    parse_http_request(const std::string& request, std::string& method, std::string& path, std::string& version) {
-    std::istringstream stream(request);
-    std::string request_line;
+// void    parse_http_request(const std::string& request, std::string& method, std::string& path, std::string& version) {
+//     std::istringstream stream(request);
+//     std::string request_line;
 
-    if (!std::getline(stream, request_line)) {
-        throw std::runtime_error("Empty request");
-    }
+//     if (!std::getline(stream, request_line)) {
+//         throw std::runtime_error("Empty request");
+//     }
 
-    if (!request_line.empty() && request_line[request_line.size() - 1] == '\r') {
-        request_line.erase(request_line.size() - 1);
-    }
+//     if (!request_line.empty() && request_line[request_line.size() - 1] == '\r') {
+//         request_line.erase(request_line.size() - 1);
+//     }
 
-    std::istringstream line_stream(request_line);
-    line_stream>> method >> path >> version;
+//     std::istringstream line_stream(request_line);
+//     line_stream>> method >> path >> version;
 
-    std::cout << "Parsed parts:\n";
-    std::cout << "  Method: [" << method << "]\n";
-    std::cout << "  Path: [" << path << "]\n";
-    std::cout << "  Version: [" << version << "]\n";
+//     std::cout << "Parsed parts:\n";
+//     std::cout << "  Method: [" << method << "]\n";
+//     std::cout << "  Path: [" << path << "]\n";
+//     std::cout << "  Version: [" << version << "]\n";
 
-    if (method.empty() || path.empty() || version.empty()) {
-        throw std::runtime_error("Invalid HTTP request line");
-    }
-}
+//     if (method.empty() || path.empty() || version.empty()) {
+//         throw std::runtime_error("Invalid HTTP request line");
+//     }
+// }
 
 const LocationConfig* match_location(const std::vector<LocationConfig>& locations, const std::string& path) {
     const LocationConfig* bestMatch = NULL;
@@ -98,10 +98,10 @@ bool is_cgi_request(const LocationConfig& loc, const std::string& uri) {
     return file_exists(abs_script) && access(abs_script.c_str(), X_OK) == 0;
 }
 
-std::string resolve_script_path(const std::string& uri, const LocationConfig& loc) {
-    std::string root = loc.root.empty() ? "./www" : loc.root;
-    return root + uri.substr(loc.path.length());  // Trim location prefix from URI
-}
+// std::string resolve_script_path(const std::string& uri, const LocationConfig& loc) {
+//     std::string root = loc.root.empty() ? "./www" : loc.root;
+//     return root + uri.substr(loc.path.length());  // Trim location prefix from URI
+// }
 
 std::string decode_chunked_body(const std::string& body) {
     std::istringstream in(body);

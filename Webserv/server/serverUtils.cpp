@@ -1,9 +1,4 @@
 #include "WebServer.hpp"
-#include "Request.hpp"
-#include "Response.hpp"
-#include "CGIHandler.hpp"
-#include "utils.hpp"
-#include "Config.hpp"
 
 extern Config g_config;
 
@@ -73,7 +68,6 @@ std::string extract_filename(const std::string& header) {
     return header.substr(start + 1, end - start - 1);
 }
 
-
 // Reads the entire contents of a file into a string
 std::string WebServer::read_file(const std::string& path) {
     std::ifstream file(path.c_str(), std::ios::in | std::ios::binary);
@@ -95,16 +89,12 @@ bool WebServer::read_and_append_client_data(int client_fd, size_t i) {
 
     // Check if buffer is too large (AFTER appending)
     if (client_buffers[client_fd].size() > g_config.getMaxBodySize()) {
-        Response resp(413, "Payload Too Large");
-        resp.setBody("<h1>413 Payload Too Large</h1>");
-        std::string raw = resp.toString();
-        // Send the response
-        write(client_fd, raw.c_str(), raw.size());
+        send_error_response(client_fd, 413, "Payload Too Large", i);
         // Shutdown reading, but allow client to read the response
         // shutdown(client_fd, SHUT_RD);
         // Give the client a moment to read the response
         usleep(100000); // 100ms
-        cleanup_client(client_fd, i);
+        // cleanup_client is already called in send_error_response
         return false;
     }
 

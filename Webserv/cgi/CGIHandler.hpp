@@ -3,6 +3,20 @@
 
 #include <string>
 #include <map>
+#include <vector>
+#include <stdexcept>
+#include <unistd.h>
+#include <fcntl.h>
+#include <cstdlib>
+#include <sys/wait.h>
+#include <signal.h>
+#include <cerrno>
+#include <cstring>
+#include <sys/time.h>
+#include <cstdio>
+#include <algorithm>
+#include <sstream>
+#include <iostream>
 
 // The CGIHandler class is responsible for executing CGI scripts like .py or .php files.
 // It passes environment variables and (optional) input data to the script,

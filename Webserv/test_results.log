@@ -7,10 +7,10 @@
 >> curl -s -i -w "\nHTTP %{http_code}\n" -X POST http://localhost:8080/upload -F "file=@test.txt"
 HTTP/1.1 200 OK
 Connection: close
-Content-Length: 69
-Content-Type: text/html
+Content-Length: 523
+Content-Type: text/html; charset=utf-8
 
-<h1>✅ File uploaded as www/upload/test.txt_20250615_213828.txt</h1>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Upload Successful</title></head><body style="font-family:sans-serif;text-align:center;margin-top:50px;"><h1>✅ File uploaded successfully!</h1><p>Saved as: <code>www/upload/test.txt_20250625_134720.txt</code></p><br><br><a href="/" style="margin: 0 10px;"><button>Home</button></a><a href="/about.html" style="margin: 0 10px;"><button>About</button></a><a href="/static/upload.html" style="margin: 0 10px;"><button>Upload Another</button></a></body></html>
 HTTP 200
 
 [OK] POST /upload returned 200 OK
@@ -72,10 +72,10 @@ Content-Type: text/html
 >> curl -s -i -X POST http://localhost:8080/cgi-bin/cgi_post.py -F "file=@test.cpp"
 HTTP/1.1 200 OK
 Connection: close
-Content-Length: 114
+Content-Length: 111
 Content-Type: text/html
 
-<h1>File 'test.cpp' uploaded successfully to /Users/mahdicheraghali/Desktop/WEB/Webserv/www/upload/test.cpp!</h1>
+<h1>File 'test.cpp' uploaded successfully to /home/mcheragh/Desktop/new_webb/Webserv/www/upload/test.cpp!</h1>
 
 [OK] CGI POST (file) returned 200 OK
 ------------------------------------------------------------
@@ -113,9 +113,10 @@ ChunkedBodyTest
 >> curl -s -i -X PATCH http://localhost:8080/
 HTTP/1.1 501 Not Implemented
 Connection: close
+Content-Length: 28
 Content-Type: text/html
 
-
+<h1>501 Not Implemented</h1>
 [OK] 501 Not Implemented error returned.
 ------------------------------------------------------------
 == Test 10: 405 Method Not Allowed ==
@@ -123,9 +124,10 @@ Content-Type: text/html
 >> curl -s -i -X DELETE http://localhost:8080/
 HTTP/1.1 405 Method Not Allowed
 Connection: close
+Content-Length: 31
 Content-Type: text/html
 
-
+<h1>405 Method Not Allowed</h1>
 [OK] 405 Method Not Allowed error returned.
 ------------------------------------------------------------
 == Test 11: 413 Payload Too Large ==
@@ -133,18 +135,20 @@ Content-Type: text/html
 >> curl -X POST http://localhost:8080/upload -F file=@bigfile.txt
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100  169k  100    30  100  169k   1579  8938k --:--:-- --:--:-- --:--:-- 9436k
-<h1>413 Payload Too Large</h1>
-[OK] 413 Payload Too Large error returned.
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0 37  169k    0     0   37 65536      0   143M --:--:-- --:--:-- --:--:-- 62.5M
+curl: (55) Send failure: Broken pipe
+
+[FAIL] 413 Payload Too Large error returned.
 ------------------------------------------------------------
 == Test 12: 400 Bad Request ==
 ------------------------------------------------------------
 >> printf "GET /missing_http_version\r\n\r\n" | nc localhost 8080
 HTTP/1.1 400 Bad Request
 Connection: close
+Content-Length: 24
 Content-Type: text/html
 
-
+<h1>400 Bad Request</h1>
 [OK] 400 Bad Request error returned.
 ------------------------------------------------------------
 == Test 13: 401 Unauthorized ==
@@ -163,14 +167,14 @@ Content-Type: text/html
 >> touch www/upload/forbidden.txt && chmod 444 www/upload/forbidden.txt && curl -i -F file=@test.txt http://localhost:8080/upload/test_forbidden.txt
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   365  100   146  100   219   106k   159k --:--:-- --:--:-- --:--:--  356k
-HTTP/1.1 403 Forbidden
-Content-Type: text/html
-Content-Length: 146
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   720  100   513  100   207  1070k   431k --:--:-- --:--:-- --:--:--  703k
+HTTP/1.1 200 OK
 Connection: close
+Content-Length: 513
+Content-Type: text/html; charset=utf-8
 
-<html><head><title>403 Forbidden</title></head><body><h1>403 Forbidden</h1><p>You don't have permission to access this resource.</p></body></html>
-[OK] 403 Forbidden error returned.
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Upload Successful</title></head><body style="font-family:sans-serif;text-align:center;margin-top:50px;"><h1>✅ File uploaded successfully!</h1><p>Saved as: <code>www/upload/test_forbidden.txt</code></p><br><br><a href="/" style="margin: 0 10px;"><button>Home</button></a><a href="/about.html" style="margin: 0 10px;"><button>About</button></a><a href="/static/upload.html" style="margin: 0 10px;"><button>Upload Another</button></a></body></html>
+[FAIL] 403 Forbidden error returned.
 ------------------------------------------------------------
 == Test 15: 404 Not Found ==
 ------------------------------------------------------------
@@ -193,9 +197,10 @@ Manual/visual: To test 408, connect with 'telnet localhost 8080', send nothing, 
 >> echo -e '#!/usr/bin/env python3\nimport sys\nsys.exit(1)' > www/cgi-bin/error500.py && chmod +x www/cgi-bin/error500.py && curl -s -i http://localhost:8080/cgi-bin/error500.py
 HTTP/1.1 500 Internal Server Error
 Connection: close
+Content-Length: 34
 Content-Type: text/html
 
-
+<h1>500 Internal Server Error</h1>
 [OK] 500 Internal Server Error returned.
 ------------------------------------------------------------
 == Test 18: 502 Bad Gateway (manual/visual) ==
@@ -212,13 +217,14 @@ Manual/visual: To test 503, simulate server overload or maintenance mode.
 ------------------------------------------------------------
 HTTP/1.1 504 Gateway Timeout
 Connection: close
+Content-Length: 28
 Content-Type: text/html
 
-[OK] 504 Gateway Timeout error returned for CGI timeout.
+<h1>504 Gateway Timeout</h1>[OK] 504 Gateway Timeout error returned for CGI timeout.
 ------------------------------------------------------------
 == Checking Results ==
 ------------------------------------------------------------
-[OK] File uploaded successfully as www/upload/test.txt_20250615_163258.txt.
+[OK] File uploaded successfully as www/upload/test.txt_20250615_163610.txt.
 [OK] File deleted successfully.
 [OK] CGI GET returned Content-Type header.
 [OK] CGI POST returned Content-Type header.

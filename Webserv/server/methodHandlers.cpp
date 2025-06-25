@@ -1,140 +1,78 @@
 #include "WebServer.hpp"
-#include "Request.hpp"
-#include "Response.hpp"
-#include "CGIHandler.hpp"
-#include "utils.hpp"
-#include "Config.hpp"
-#include <string>
 
 extern Config g_config;
 
-/*void WebServer::handle_get(const Request& request, const LocationConfig* loc, int client_fd, size_t i) {
-    std::string uri = request.getPath();
-    std::string path = resolve_path(uri, "GET");
-    std::cout << "[DEBUG] handle_get: uri=" << uri << " path=" << path << std::endl;
-    Response resp;
-
-    if (is_directory(path)) {
-        std::string index_path = path + "/index.html";
-        if (file_exists(index_path)) {
-            path = index_path;  // fall through to existing logic
-        } else if (loc->autoindex) {
-            std::cout << "[DEBUG]: Listing should come: " << path << std::endl;
-            std::string html = generate_directory_listing(path, uri);
-            resp.setStatus(200, "OK");
-            resp.setHeader("Content-Type", "text/html");
-            resp.setBody(html);
-            std::string raw = resp.toString();
-            write(client_fd, raw.c_str(), raw.size());
-            cleanup_client(client_fd, i);
-            return;
-        }
-    }
-    if (!file_exists(path)) {
-        std::cout << "[DEBUG] 404: file does not exist: " << path << std::endl;
-        resp.setStatus(404, "Not Found");
-        resp.setBody("<h1>404 Not Found</h1>");
-    } else if (access(path.c_str(), R_OK) != 0) {
-        std::cout << "[DEBUG] 403: file not readable: " << path << std::endl;
-        resp.setStatus(403, "Forbidden");
-        resp.setBody("<h1>403 Forbidden</h1>");
-    } else {
-        std::ifstream file(path.c_str(), std::ios::binary);
-        std::ostringstream buffer;
-        buffer << file.rdbuf();
-        resp.setStatus(200, "OK");
-        resp.setHeader("Content-Type", get_mime_type(path));
-        resp.setBody(buffer.str());
-    }
-    std::string raw = resp.toString();
-    write(client_fd, raw.c_str(), raw.size());
-    cleanup_client(client_fd, i);
-}*/
-
+// --- GET Handler ---
 void WebServer::handle_get(const Request& request, const LocationConfig* loc, int client_fd, size_t i) {
     std::string uri = request.getPath();
     std::string path = resolve_path(uri, "GET");
     std::cout << "[DEBUG] handle_get: uri=" << uri << " path=" << path << std::endl;
 
-    Response resp;
     if (loc && !loc->redirect_url.empty()) {
         send_redirect_response(client_fd, loc->redirect_code, loc->redirect_url, i);
         return;
     }
-    // Handle directory case
+
     if (is_directory(path)) {
-        std::string index_path = path + "/index.html";
-        if (file_exists(index_path)) {
-            path = index_path;  // serve index.html instead
-        } else if (loc && loc->autoindex) {
-            std::cout << "[DEBUG]: Listing should come: " << path << std::endl;
-            std::string html = generate_directory_listing(path, uri);
-            resp.setStatus(200, "OK");
-            resp.setHeader("Content-Type", "text/html");
-            resp.setBody(html);
-            write(client_fd, resp.toString().c_str(), resp.toString().size());
-            cleanup_client(client_fd, i);
-            return;
-        } else {
-            std::cout << "[DEBUG] Directory listing forbidden for: " << path << std::endl;
-            resp.setStatus(403, "Forbidden");
-            resp.setHeader("Content-Type", "text/html");
-            resp.setBody("<h1>403 Forbidden</h1>");
-            write(client_fd, resp.toString().c_str(), resp.toString().size());
-            cleanup_client(client_fd, i);
-            return;
-        }
+        handle_directory_request(path, uri, loc, client_fd, i);
+        return;
     }
 
-    // Handle non-directory file cases
-    if (!file_exists(path)) {
-        std::cout << "[DEBUG] 404: file does not exist: " << path << std::endl;
-        resp.setStatus(404, "Not Found");
-        resp.setHeader("Content-Type", "text/html");
-        resp.setBody("<h1>404 Not Found</h1>");
-    } else if (access(path.c_str(), R_OK) != 0) {
-        std::cout << "[DEBUG] 403: file not readable: " << path << std::endl;
-        resp.setStatus(403, "Forbidden");
-        resp.setHeader("Content-Type", "text/html");
-        resp.setBody("<h1>403 Forbidden</h1>");
-    } else {
-        std::ifstream file(path.c_str(), std::ios::binary);
-        std::ostringstream buffer;
-        buffer << file.rdbuf();
-        resp.setStatus(200, "OK");
-        resp.setHeader("Content-Type", get_mime_type(path));
-        resp.setBody(buffer.str());
-    }
-
-    // Final write and cleanup
-    write(client_fd, resp.toString().c_str(), resp.toString().size());
-    cleanup_client(client_fd, i);
+    handle_file_request(path, client_fd, i);
 }
 
+// --- Directory Handler ---
+void WebServer::handle_directory_request(const std::string& path, const std::string& uri, const LocationConfig* loc, int client_fd, size_t i) {
+    std::string index_path = path + "/index.html";
+    if (file_exists(index_path)) {
+        send_file_response(client_fd, index_path, i);
+        return;
+    }
+    if (loc && loc->autoindex) {
+        std::string html = generate_directory_listing(path, uri);
+        send_ok_response(client_fd, html, content_type_html(), i);
+        return;
+    }
+    send_error_response(client_fd, 403, "Forbidden", i);
+}
+
+// --- File Handler ---
+void WebServer::handle_file_request(const std::string& path, int client_fd, size_t i) {
+    if (!file_exists(path)) {
+        send_error_response(client_fd, 404, "Not Found", i);
+        return;
+    }
+    if (access(path.c_str(), R_OK) != 0) {
+        send_error_response(client_fd, 403, "Forbidden", i);
+        return;
+    }
+    send_file_response(client_fd, path, i);
+}
+
+// --- CGI Handler ---
 void WebServer::handle_cgi(const LocationConfig* loc, const Request& request, int client_fd, size_t i) {
-    std::string uri = request.getPath();         // e.g. /cgi-bin/test.py/foo/bar
+    std::string uri = request.getPath();
     std::string method = request.getMethod();
-    std::string cgi_root = loc->root;            // e.g. /.../www/cgi-bin/
-    std::string cgi_uri = loc->path;             // e.g. /cgi-bin/
+    std::string cgi_root = loc->root;
+    std::string cgi_uri = loc->path;
     std::string script_path, script_name, path_info;
     size_t match_len = 0;
 
-    // Remove the location prefix from the URI to get the relative path
     if (uri.find(cgi_uri) != 0) {
         send_error_response(client_fd, 404, "CGI Script Not Found", i);
         return;
     }
-    std::string rel_uri = uri.substr(cgi_uri.length()); // e.g. test.py/foo/bar
+    std::string rel_uri = uri.substr(cgi_uri.length());
 
     // Find the longest matching script file in cgi_root
     for (size_t pos = rel_uri.size(); pos > 0; --pos) {
         if (rel_uri[pos - 1] == '/')
-            continue; // Don't split in the middle of a segment
-        std::string candidate = rel_uri.substr(0, pos); // e.g. test.py
-        std::string abs_candidate = cgi_root + candidate; // e.g. .../www/cgi-bin/test.py
+            continue;
+        std::string candidate = rel_uri.substr(0, pos);
+        std::string abs_candidate = cgi_root + candidate;
         if (file_exists(abs_candidate) && access(abs_candidate.c_str(), X_OK) == 0) {
             script_path = abs_candidate;
-            script_name = cgi_uri + candidate; // e.g. /cgi-bin/test.py
+            script_name = cgi_uri + candidate;
             match_len = pos;
             break;
         }
@@ -145,28 +83,21 @@ void WebServer::handle_cgi(const LocationConfig* loc, const Request& request, in
         return;
     }
 
-    // Set PATH_INFO to the rest of the URI after the script_name
-    path_info = rel_uri.substr(match_len); // e.g. /foo/bar or ""
+    path_info = rel_uri.substr(match_len);
 
-    // Prepare CGI environment variables
     std::map<std::string, std::string> env;
     env["REQUEST_METHOD"] = method;
-
     size_t q = uri.find('?');
     std::string query_string = q == std::string::npos ? "" : uri.substr(q + 1);
-
     env["SCRIPT_NAME"] = script_name;
     env["QUERY_STRING"] = query_string;
     env["PATH_INFO"] = path_info;
-
     if (method == "POST") {
         std::ostringstream oss;
         oss << request.getBody().size();
         env["CONTENT_LENGTH"] = oss.str();
         env["CONTENT_TYPE"] = request.getHeader("Content-Type");
     }
-
-    // Standard CGI variables
     env["GATEWAY_INTERFACE"] = "CGI/1.1";
     env["SERVER_PROTOCOL"] = "HTTP/1.1";
     env["SERVER_SOFTWARE"] = "Webserv/1.0";
@@ -174,41 +105,30 @@ void WebServer::handle_cgi(const LocationConfig* loc, const Request& request, in
 
     CGIHandler handler(script_path, env, request.getBody(), request.getPath());
     std::string cgi_output = handler.execute();
-	std::cout << "[DEBUG] cgi out put = " << cgi_output << std::endl;
-	
+
     if (cgi_output == "__CGI_TIMEOUT__") {
-        Response resp(504, "Gateway Timeout");
-        write(client_fd, resp.toString().c_str(), resp.toString().size());
-        cleanup_client(client_fd, i);
+        send_error_response(client_fd, 504, "Gateway Timeout", i);
         return;
     } else if (cgi_output == "__CGI_MISSING_HEADER__") {
-        Response resp(500, "Internal Server Error");
-        write(client_fd, resp.toString().c_str(), resp.toString().size());
-        cleanup_client(client_fd, i);
+        send_error_response(client_fd, 500, "Internal Server Error", i);
         return;
     }
 
-    // --- Parse CGI output headers and body ---
-	size_t header_end = cgi_output.find("\r\n\r\n");
-	size_t sep_len = 4;
-	if (header_end == std::string::npos) {
-		header_end = cgi_output.find("\n\n");
-		sep_len = 2;
-	}
-	if (header_end == std::string::npos) {
-		Response resp(500, "Internal Server Error");
-		write(client_fd, resp.toString().c_str(), resp.toString().size());
-		cleanup_client(client_fd, i);
-		return;
-	}
+    size_t header_end = cgi_output.find("\r\n\r\n");
+    size_t sep_len = 4;
+    if (header_end == std::string::npos) {
+        header_end = cgi_output.find("\n\n");
+        sep_len = 2;
+    }
+    if (header_end == std::string::npos) {
+        send_error_response(client_fd, 500, "Internal Server Error", i);
+        return;
+    }
 
-	std::string headers = cgi_output.substr(0, header_end);
-	std::string body = cgi_output.substr(header_end + sep_len);
+    std::string headers = cgi_output.substr(0, header_end);
+    std::string body = cgi_output.substr(header_end + sep_len);
 
-    Response resp;
-    resp.setStatus(200, "OK");
-
-    // Parse and set CGI headers (case-insensitive for Content-Type)
+    std::map<std::string, std::string> cgi_headers;
     std::istringstream header_stream(headers);
     std::string line;
     bool has_content_type = false;
@@ -219,100 +139,68 @@ void WebServer::handle_cgi(const LocationConfig* loc, const Request& request, in
         if (colon != std::string::npos) {
             std::string key = line.substr(0, colon);
             std::string value = line.substr(colon + 1);
-            // Remove whitespace
             while (!value.empty() && (value[0] == ' ' || value[0] == '\t')) value.erase(0, 1);
-            // Case-insensitive check for Content-Type
             std::string key_lower = key;
             for (size_t i = 0; i < key_lower.length(); ++i)
                 key_lower[i] = std::tolower(static_cast<unsigned char>(key_lower[i]));
             if (key_lower == "content-type")
                 has_content_type = true;
-            resp.setHeader(key, value);
+            cgi_headers[key] = value;
         }
     }
-
     if (!has_content_type) {
-        resp.setHeader("Content-Type", "text/html");
+        cgi_headers["Content-Type"] = "text/html";
     }
 
-    resp.setBody(body);
-
-    std::string raw = resp.toString();
-    write(client_fd, raw.c_str(), raw.size());
-    cleanup_client(client_fd, i);
+    send_ok_response(client_fd, body, cgi_headers, i);
 }
 
-
+// --- POST Handler ---
 void WebServer::handle_post(const Request& request, const LocationConfig* loc, int client_fd, size_t i) {
     std::string uri = request.getPath();
     std::string path = resolve_path(uri, "POST");
     std::cout << "[DEBUG] handle_post: method=" << request.getMethod() << ", path=" << request.getPath() << std::endl;
     std::cout << "[DEBUG] handle_post: uri=" << uri << " path=" << path << std::endl;
 
-	std::cout << "[DEBUG] is_cgi_request: " << is_cgi_request(*loc, request.getPath()) << std::endl;
-    // CGI handler
     if (loc && is_cgi_request(*loc, request.getPath())) {
         handle_cgi(loc, request, client_fd, i);
         return;
     }
 
-    // Upload handler
     if (handle_upload(request, loc, client_fd, i)) {
         return;
     }
 
-    // If you want to allow POST to existing files (e.g. update/replace)
     if (file_exists(path)) {
         if (access(path.c_str(), W_OK) != 0) {
-            std::cout << "[DEBUG] 403: file not writable: " << path << std::endl;
-            Response resp(403, "Forbidden");
-            resp.setBody("<h1>403 Forbidden</h1>");
-            std::string raw = resp.toString();
-            write(client_fd, raw.c_str(), raw.size());
-            cleanup_client(client_fd, i);
+            send_error_response(client_fd, 403, "Forbidden", i);
             return;
         }
         // Optionally: handle file update logic here
     } else {
-        std::cout << "[DEBUG] 404: file does not exist: " << path << std::endl;
-        Response resp(404, "Not Found");
-        resp.setBody("<h1>404 Not Found</h1>");
-        std::string raw = resp.toString();
-        write(client_fd, raw.c_str(), raw.size());
-        cleanup_client(client_fd, i);
+        send_error_response(client_fd, 404, "Not Found", i);
         return;
     }
 
-    // If not upload, CGI, or valid file update, treat as bad request
-    Response resp(400, "Bad POST Request");
-    resp.setBody("<h1>400 Bad POST Request</h1>");
-    std::string raw = resp.toString();
-    write(client_fd, raw.c_str(), raw.size());
-    cleanup_client(client_fd, i);
+    send_error_response(client_fd, 400, "Bad POST Request", i);
 }
 
+// --- DELETE Handler ---
 void WebServer::handle_delete(const Request& request, int client_fd, size_t i) {
     std::string uri = request.getPath();
     std::string path = resolve_path(uri, "DELETE");
-    Response resp;
     if (!file_exists(path)) {
-        resp.setStatus(404, "Not Found");
-        resp.setBody("<h1>404 Not Found</h1>");
+        send_error_response(client_fd, 404, "Not Found", i);
     } else if (access(path.c_str(), W_OK) != 0) {
-        resp.setStatus(403, "Forbidden");
-        resp.setBody("<h1>403 Forbidden</h1>");
+        send_error_response(client_fd, 403, "Forbidden", i);
     } else if (remove(path.c_str()) == 0) {
-        resp.setStatus(200, "OK");
-        resp.setBody("<html><body><h1>File deleted: " + uri + "</h1></body></html>");
+        send_ok_response(client_fd, "<html><body><h1>File deleted: " + uri + "</h1></body></html>", content_type_html(), i);
     } else {
-        resp.setStatus(500, "Internal Server Error");
-        resp.setBody("<h1>500 Internal Server Error</h1>");
+        send_error_response(client_fd, 500, "Internal Server Error", i);
     }
-    std::string raw = resp.toString();
-    write(client_fd, raw.c_str(), raw.size());
-    cleanup_client(client_fd, i);
 }
 
+// --- UPLOAD Helpers (unchanged, but could be moved to upload.cpp) ---
 std::string extract_file_from_multipart(const std::string& body, std::string& filename) {
     std::istringstream stream(body);
     std::string line;
@@ -441,40 +329,7 @@ bool WebServer::write_upload_file(const std::string& full_path, const std::strin
     return true;
 }
 
-/*void WebServer::send_upload_success_response(int client_fd, const std::string& full_filename, size_t i) {
-    Response res;
-    res.setStatus(200, "OK");
-    res.setHeader("Content-Type", "text/html; charset=utf-8");
-    res.setBody("<h1>✅ File uploaded as " + full_filename + "</h1>");
-    std::string raw = res.toString();
-    write(client_fd, raw.c_str(), raw.size());
-    close(client_fd);
-    fds.erase(fds.begin() + i);
-}*/
 
-void WebServer::send_upload_success_response(int client_fd, const std::string& full_filename, size_t i) {
-    Response res;
-    res.setStatus(200, "OK");
-    res.setHeader("Content-Type", "text/html; charset=utf-8");
-
-    std::ostringstream body;
-    body << "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\">"
-         << "<title>Upload Successful</title></head><body style=\"font-family:sans-serif;text-align:center;margin-top:50px;\">"
-         << "<h1>✅ File uploaded successfully!</h1>"
-         << "<p>Saved as: <code>" << full_filename << "</code></p>"
-         << "<br><br>"
-         << "<a href=\"/\" style=\"margin: 0 10px;\"><button>Home</button></a>"
-         << "<a href=\"/about.html\" style=\"margin: 0 10px;\"><button>About</button></a>"
-         << "<a href=\"/static/upload.html\" style=\"margin: 0 10px;\"><button>Upload Another</button></a>"
-         << "</body></html>";
-
-    res.setBody(body.str());
-
-    std::string raw = res.toString();
-    write(client_fd, raw.c_str(), raw.size());
-    close(client_fd);
-    fds.erase(fds.begin() + i);
-}
 
 std::string WebServer::timestamp() {
     time_t now = time(NULL);

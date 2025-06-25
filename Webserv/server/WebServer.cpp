@@ -16,7 +16,6 @@
 #include "Config.hpp"
 #include <ctime>
 
-
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -26,14 +25,10 @@
 #include <poll.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
-#include <algorithm> // 🔧 Needed for std::find
-#include <cctype> // for isxdigit
+#include <algorithm>
+#include <cctype>
 
 extern Config g_config;
-
-/*WebServer::WebServer(int port) : port(port) {
-    setup_server_socket(port);
-}*/
 
 WebServer::WebServer(const std::vector<int>& ports) {
     for (size_t i = 0; i < ports.size(); ++i) {
@@ -43,7 +38,7 @@ WebServer::WebServer(const std::vector<int>& ports) {
             continue;
         }
 
-        fcntl(sockfd, F_SETFL, O_NONBLOCK);  // Make non-blocking
+        fcntl(sockfd, F_SETFL, O_NONBLOCK);
 
         int opt = 1;
         setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
@@ -71,14 +66,12 @@ WebServer::WebServer(const std::vector<int>& ports) {
     }
 }
 
-
 WebServer::~WebServer() {
     for (size_t i = 0; i < fds.size(); ++i)
         close(fds[i].fd);
 }
 
 void WebServer::run() {
-    std::cout << "Server running on http://localhost:" << port << "\n";
     poll_loop();
 }
 
@@ -110,100 +103,70 @@ void WebServer::make_socket_non_blocking(int fd) {
 }
 
 void WebServer::poll_loop() {
-	std::cout << "[DEBUG] poll_loop running, fds.size() = " << fds.size() << std::endl;
-	fds.clear();
+    std::cout << "[DEBUG] poll_loop running, fds.size() = " << fds.size() << std::endl;
+    fds.clear();
 
     for (size_t i = 0; i < listening_sockets.size(); ++i) {
-	    pollfd pfd;
-	    pfd.fd = listening_sockets[i];
-	    pfd.events = POLLIN;
-	    pfd.revents = 0;
-	    fds.push_back(pfd);
+        pollfd pfd;
+        pfd.fd = listening_sockets[i];
+        pfd.events = POLLIN;
+        pfd.revents = 0;
+        fds.push_back(pfd);
     }
 
     size_t listener_count = listening_sockets.size();
     std::cout << "[DEBUG] Listening sockets count: " << listener_count << std::endl;
-	
+
     while (true) {
-		int count = poll(&fds[0], fds.size(), -1);
-		if (count < 0) {
-			std::cerr << "[ERROR] Poll failed\n";
-			break;
-		}
-
-		for (size_t i = 0; i < fds.size(); ++i) {
-	        if (!(fds[i].revents & POLLIN))
-		        continue;
-	        if (i < listener_count) {
-    		    handle_new_connection(fds[i].fd);  // pass the correct listener FD
-	        } else {
-		        handle_client_data(i--);  // This may remove the client, so i-- is correct
-	        }
+        int count = poll(&fds[0], fds.size(), -1);
+        if (count < 0) {
+            std::cerr << "[ERROR] Poll failed\n";
+            break;
         }
-	}
+
+        for (size_t i = 0; i < fds.size(); ++i) {
+            if (!(fds[i].revents & POLLIN))
+                continue;
+            if (i < listener_count) {
+                handle_new_connection(fds[i].fd);
+            } else {
+                handle_client_data(i--);
+            }
+        }
+    }
 }
-
-/*void WebServer::handle_new_connection() {
-	sockaddr_in client_addr;
-	socklen_t client_len = sizeof(client_addr);
-
-	int client_fd = accept(server_fd, (struct sockaddr*)&client_addr, &client_len);
-	if (client_fd < 0) {
-		std::cerr << "[ERROR] Accept failed\n";
-		return;
-	}
-
-	make_socket_non_blocking(client_fd);
-
-	pollfd client_pfd;
-	client_pfd.fd = client_fd;
-	client_pfd.events = POLLIN;
-	client_pfd.revents = 0;
-	fds.push_back(client_pfd);
-
-	std::cout << "[INFO] New client connected: FD=" << client_fd << std::endl;
-}*/
 
 void WebServer::handle_new_connection(int listen_fd) {
-	sockaddr_in client_addr;
-	socklen_t addr_len = sizeof(client_addr);
+    sockaddr_in client_addr;
+    socklen_t addr_len = sizeof(client_addr);
 
-	int client_fd = accept(listen_fd, (sockaddr*)&client_addr, &addr_len);
-	if (client_fd < 0) {
-		perror("accept");
-		return;
-	}
+    int client_fd = accept(listen_fd, (sockaddr*)&client_addr, &addr_len);
+    if (client_fd < 0) {
+        perror("accept");
+        return;
+    }
 
-	fcntl(client_fd, F_SETFL, O_NONBLOCK);  // Optional but useful
+    fcntl(client_fd, F_SETFL, O_NONBLOCK);
 
-	pollfd pfd;
-	pfd.fd = client_fd;
-	pfd.events = POLLIN;
-	pfd.revents = 0;
-	fds.push_back(pfd);
+    pollfd pfd;
+    pfd.fd = client_fd;
+    pfd.events = POLLIN;
+    pfd.revents = 0;
+    fds.push_back(pfd);
 
-	std::cout << "[INFO] New client connected: FD=" << client_fd << std::endl;
+    std::cout << "[INFO] New client connected: FD=" << client_fd << std::endl;
 }
 
-
 void WebServer::cleanup_client(int fd, size_t i) {
-    // Close the client socket file descriptor
     close(fd);
-
-    // Remove the pollfd entry from fds vector
     if (i < fds.size()) {
         fds.erase(fds.begin() + i);
     }
-
-    // Remove the client's buffer from the map
     client_buffers.erase(fd);
-
     std::cout << "[INFO] Cleaned up client FD=" << fd << std::endl;
 }
 
-
 void WebServer::shutdown() {
-    // Close all open sockets
     for (size_t i = 0; i < fds.size(); ++i) {
         close(fds[i].fd);
     }
@@ -225,13 +188,9 @@ void WebServer::handle_client_data(size_t i) {
     try {
         Request request(request_data);
         std::cout << "[DEBUG] max body size: "<< g_config.getMaxBodySize() << std::endl;
-        // Check for chunked encoding and content length
         std::string transfer_encoding = request.getHeader("Transfer-Encoding");
-        bool is_chunked = !transfer_encoding.empty() && transfer_encoding == "chunked";
-        int content_length = parse_content_length(request_data.substr(0, header_end));
-        size_t body_start = header_end + 4;
+		bool is_chunked = request.isChunked();		int content_length = request.getContentLength();        size_t body_start = header_end + 4;
         size_t body_length_received = request_data.size() - body_start;
-        // Wait for more data if needed
         if (!is_chunked && content_length > 0 && body_length_received < static_cast<size_t>(content_length)) {
             return;
         }
@@ -248,9 +207,7 @@ void WebServer::handle_client_data(size_t i) {
             std::cout << "[DEBUG] No location matched!" << std::endl;
         // 501 Not Implemented
         if (method != "GET" && method != "POST" && method != "DELETE") {
-            Response resp(501, "Not Implemented");
-            write(client_fd, resp.toString().c_str(), resp.toString().size());
-            cleanup_client(client_fd, i);
+            send_error_response(client_fd, 501, "Not Implemented", i);
             return;
         }
         // --- DECODE CHUNKED BODY IF NEEDED ---
@@ -261,27 +218,19 @@ void WebServer::handle_client_data(size_t i) {
         std::cout << "[DEBUG] max body size: "<< g_config.getMaxBodySize() << std::endl;
         // 413 Payload Too Large
         if (request.getBody().size() > g_config.getMaxBodySize()) {
-            Response resp(413, "Payload Too Large");
-            //resp.setBody("<h1>413 Payload Too Large</h1>");
-            std::string raw = resp.toString();
-            write(client_fd, raw.c_str(), raw.size());
-            cleanup_client(client_fd, i);
+            send_error_response(client_fd, 413, "Payload Too Large", i);
             return;
         }
         // 405 Method Not Allowed
         if (loc && std::find(loc->allowed_methods.begin(), loc->allowed_methods.end(), method) == loc->allowed_methods.end()) {
-            Response resp(405, "Method Not Allowed");
-            write(client_fd, resp.toString().c_str(), resp.toString().size());
-            cleanup_client(client_fd, i);
+            send_error_response(client_fd, 405, "Method Not Allowed", i);
             return;
         }
         std::cout << "[DEBUG] is_cgi_request: " << is_cgi_request(*loc, request.getPath()) << std::endl;
-        // Handle CGI
         if (loc && is_cgi_request(*loc, request.getPath())) {
             handle_cgi(loc, request, client_fd, i);
             return;
         }
-        // Static file/auth/permission checks (401/403/404)
         if (method == "GET") {
             handle_get(request, loc, client_fd, i);
         } else if (method == "POST") {
@@ -300,135 +249,18 @@ void WebServer::handle_client_data(size_t i) {
     }
     catch (const std::exception& e) {
         std::cerr << "[ERROR] Request parsing failed: " << e.what() << std::endl;
-        Response resp(400, "Bad Request");
-        write(client_fd, resp.toString().c_str(), resp.toString().size());
-        cleanup_client(client_fd, i);
+        send_error_response(client_fd, 400, "Bad Request", i);
     }
     client_buffers.erase(client_fd);
 }
 
-void WebServer::send_redirect_response(int client_fd, int code, const std::string& location, size_t i) {
-    std::ostringstream body;
-    body << "<html><head><title>" << code << " Redirect</title></head><body>"
-         << "<h1>" << code << " Redirect</h1>"
-         << "<p>Redirecting to <a href=\"" << location << "\">" << location << "</a></p>"
-         << "</body></html>";
-
+// Send a standard error response and cleanup
+void WebServer::send_error_response(int client_fd, int code, const std::string& msg, size_t i) {
     std::ostringstream oss;
-    oss << "HTTP/1.1 " << code << " Redirect\r\n"
-        << "Location: " << location << "\r\n"
-        << "Content-Type: text/html\r\n"
-        << "Content-Length: " << body.str().size() << "\r\n"
-        << "Connection: close\r\n\r\n"
-        << body.str();
-
-    write(client_fd, oss.str().c_str(), oss.str().size());
-    close(client_fd);
-    fds.erase(fds.begin() + i);
+    oss << "<h1>" << code << " " << msg << "</h1>";
+    std::string body = oss.str();
+    Response(client_fd, code, msg, body, content_type_html());
+    cleanup_client(client_fd, i);
 }
 
 
-/*void WebServer::handle_client_data(size_t i) {
-    int client_fd = fds[i].fd;
-    std::cout << "[DEBUG] handle_client_data: FD=" << client_fd << std::endl;
-
-    if (!read_and_append_client_data(client_fd, i))
-        return;
-
-    std::string& request_data = client_buffers[client_fd];
-    size_t header_end = find_header_end(request_data);
-    if (header_end == std::string::npos) {
-        std::cout << "[DEBUG] Incomplete headers. Waiting for more data..." << std::endl;
-        return;
-    }
-
-    try {
-        Request request(request_data);
-
-        std::cout << "[DEBUG] max body size: "<< g_config.getMaxBodySize() << std::endl;
-
-        // Check for chunked encoding and content length
-        std::string transfer_encoding = request.getHeader("Transfer-Encoding");
-        bool is_chunked = !transfer_encoding.empty() && transfer_encoding == "chunked";
-        int content_length = parse_content_length(request_data.substr(0, header_end));
-        size_t body_start = header_end + 4;
-        size_t body_length_received = request_data.size() - body_start;
-
-        // Wait for more data if needed
-        if (!is_chunked && content_length > 0 && body_length_received < static_cast<size_t>(content_length)) {
-            return;
-        }
-        if (is_chunked && request.getBody().empty()) {
-            return;
-        }
-
-        std::cout << "[DEBUG] Full request received. Parsing and processing..." << std::endl;
-
-        std::string method = request.getMethod();
-        std::string uri = request.getPath();
-        const LocationConfig* loc = match_location(g_config.getLocations(), uri);
-
-		if (loc)
-    		std::cout << "[DEBUG] Matched location: " << loc->path << std::endl;
-		else
-			std::cout << "[DEBUG] No location matched!" << std::endl;
-        // 501 Not Implemented
-        if (method != "GET" && method != "POST" && method != "DELETE") {
-            Response resp(501, "Not Implemented");
-            write(client_fd, resp.toString().c_str(), resp.toString().size());
-            cleanup_client(client_fd, i);
-            return;
-        }
-
-        // --- DECODE CHUNKED BODY IF NEEDED ---
-        if (is_chunked) {
-            std::string decoded = decode_chunked_body(request.getBody());
-            request.setBody(decoded);
-        }
-
-        std::cout << "[DEBUG] max body size: "<< g_config.getMaxBodySize() << std::endl;
-        // 413 Payload Too Large
-		if (request.getBody().size() > g_config.getMaxBodySize()) {
-			Response resp(413, "Payload Too Large");
-			//resp.setBody("<h1>413 Payload Too Large</h1>");
-			std::string raw = resp.toString();
-			write(client_fd, raw.c_str(), raw.size());
-			cleanup_client(client_fd, i);
-			return;
-		}
-
-        // 405 Method Not Allowed
-        if (loc && std::find(loc->allowed_methods.begin(), loc->allowed_methods.end(), method) == loc->allowed_methods.end()) {
-            Response resp(405, "Method Not Allowed");
-            write(client_fd, resp.toString().c_str(), resp.toString().size());
-            cleanup_client(client_fd, i);
-            return;
-        }
-
-		std::cout << "[DEBUG] is_cgi_request: " << is_cgi_request(*loc, request.getPath()) << std::endl;
-        // Handle CGI
-        if (loc && is_cgi_request(*loc, request.getPath())) {
-            handle_cgi(loc, request, client_fd, i);
-            return;
-        }
-
-        // Static file/auth/permission checks (401/403/404)
-        if (method == "GET") {
-            handle_get(request, loc, client_fd, i);
-        } else if (method == "POST") {
-            handle_post(request, loc, client_fd, i);
-        } else if (method == "DELETE") {
-            handle_delete(request, client_fd, i);
-        }
-
-        cleanup_client(client_fd, i);
-    }
-    catch (const std::exception& e) {
-        std::cerr << "[ERROR] Request parsing failed: " << e.what() << std::endl;
-        Response resp(400, "Bad Request");
-        write(client_fd, resp.toString().c_str(), resp.toString().size());
-        cleanup_client(client_fd, i);
-    }
-
-    client_buffers.erase(client_fd);
-}*/

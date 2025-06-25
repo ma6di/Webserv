@@ -6,7 +6,7 @@ CXXFLAGS    := -Wall -Wextra -Werror -std=c++98 -pedantic -g
 # === Directories ===
 SRC_DIRS    := . config cgi
 OBJ_DIR     := obj
-INC_DIRS    := config cgi utils server http
+INC_DIRS    := config cgi utils server Request_Response
 
 # === Sources and Objects ===
 SRC_FILES   := main.cpp \
@@ -17,8 +17,8 @@ SRC_FILES   := main.cpp \
 			   server/sendResponse.cpp \
 			   server/serverUtils.cpp \
 			   server/methodHandlers.cpp \
-			   http/Request.cpp \
-			   http/Response.cpp
+			   Request_Response/Request.cpp \
+			   Request_Response/Response.cpp
 
 
 OBJS        := $(SRC_FILES:.cpp=.o)

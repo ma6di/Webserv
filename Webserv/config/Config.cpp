@@ -1,6 +1,5 @@
 #include "Config.hpp"
 
-
 // Constructor: read and parse the config file immediately
 Config::Config(const std::string& filename) : max_body_size(1048576) { // 1MB default
     parseConfigFile(filename);
