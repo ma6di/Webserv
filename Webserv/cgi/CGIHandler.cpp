@@ -9,6 +9,18 @@
  */
 
 #include "CGIHandler.hpp"
+#include <unistd.h>
+#include <fcntl.h>
+#include <cstdlib>
+#include <sys/wait.h>
+#include <signal.h>
+#include <cerrno>
+#include <cstring>
+#include <sys/time.h>
+#include <cstdio>
+#include <algorithm>
+#include <sstream>
+#include <iostream>
 
 volatile sig_atomic_t g_cgi_alarm_fired = 0;
 void cgi_alarm_handler(int) { g_cgi_alarm_fired = 1; }
@@ -20,12 +32,7 @@ CGIHandler::CGIHandler(const std::string& scriptPath,
     : scriptPath(scriptPath), environment(env), inputBody(inputBody), requestedUri(requestedUri) {}
 
 std::string CGIHandler::execute() {
-    return runCGI();
-}
-
-std::string CGIHandler::runCGI() {
     std::string absPath = resolve_script_path();
-    std::cerr << "[CGI] Executing script: " << absPath << std::endl;
     int input_pipe[2], output_pipe[2], error_pipe[2];
     if (!create_pipes(input_pipe, output_pipe, error_pipe)) {
         std::cerr << "[CGI] Pipe creation failed\n";
@@ -39,13 +46,9 @@ std::string CGIHandler::runCGI() {
     }
 
     if (pid == 0) {
-        // --- CHILD ---
         setup_child_process(absPath, input_pipe, output_pipe, error_pipe);
     }
 
-    std::cerr << "[CGI] forked child PID: " << pid << std::endl;
-
-    // --- PARENT PROCESS ---
     close(input_pipe[0]);
     close(output_pipe[1]);
     close(error_pipe[1]);
@@ -53,65 +56,21 @@ std::string CGIHandler::runCGI() {
     send_input_to_cgi(input_pipe[1]);
     close(input_pipe[1]);
 
-    // --- Timeout logic ---
-    int timeout_seconds = 5;
-
-    // Setup signal handler for alarm
-    struct sigaction sa;
-    sa.sa_handler = cgi_alarm_handler;
-    sa.sa_flags = 0;
-    sigemptyset(&sa.sa_mask);
-    sigaction(SIGALRM, &sa, NULL);
-
-    g_cgi_alarm_fired = 0;
-    alarm(timeout_seconds);
-
     int status = 0;
-    int ret = 0;
     bool timed_out = false;
-
-    // Wait for child with timeout
-    while (true) {
-        ret = waitpid(pid, &status, WNOHANG);
-        if (ret == pid) break;
-        if (ret == -1) break;
-        if (g_cgi_alarm_fired) {
-            timed_out = true;
-            break;
-        }
-        usleep(10000); // Sleep 10ms
-    }
-
-    alarm(0); // Cancel alarm
+    int ret = wait_for_child_with_timeout(pid, status, timed_out);
 
     if (timed_out) {
-        std::cerr << "[CGI] CGI script timed out, killing PID " << pid << std::endl;
-        kill(pid, SIGKILL);
-        waitpid(pid, &status, 0); // Reap
+        handle_timeout(pid, status);
         return "__CGI_TIMEOUT__";
     }
 
-    // Read CGI output until EOF
-    std::string output;
-    char buffer[4096];
-    ssize_t n;
-    while ((n = read(output_pipe[0], buffer, sizeof(buffer))) > 0) {
-        output.append(buffer, n);
-    }
+    std::string output = read_pipe_to_string(output_pipe[0]);
     close(output_pipe[0]);
-
     std::string error_output = read_from_pipe(error_pipe[0]);
     close(error_pipe[0]);
 
-    std::cerr << "[CGI] waitpid returned: " << ret << ", status: " << status << std::endl;
-    std::cerr << "[CGI] WIFEXITED: " << WIFEXITED(status) << ", WEXITSTATUS: " << WEXITSTATUS(status) << std::endl;
-    std::cerr << "[CGI] WIFSIGNALED: " << WIFSIGNALED(status) << ", WTERMSIG: " << WTERMSIG(status) << std::endl;
-
-    std::cerr << "[CGI DEBUG] Raw CGI output (hex):\n";
-    for (size_t i = 0; i < output.size(); ++i)
-        std::cerr << std::hex << (int)(unsigned char)output[i] << " ";
-    std::cerr << "\n[END HEX]\n";
-    std::cerr << "[CGI DEBUG] CGI ERROR output:\n" << error_output << "\n[END]\n";
+    log_cgi_debug(status, ret, output, error_output);
 
     if (!check_child_status(status, error_output))
         return "__CGI_INTERNAL_ERROR__";
@@ -122,7 +81,156 @@ std::string CGIHandler::runCGI() {
     return output;
 }
 
-// --- Helper methods ---
+// --- Private helpers ---
+
+int CGIHandler::wait_for_child_with_timeout(pid_t pid, int& status, bool& timed_out) {
+    int ret = 0;
+    int timeout_seconds = 5;
+    struct sigaction sa;
+    sa.sa_handler = cgi_alarm_handler;
+    sa.sa_flags = 0;
+    sigemptyset(&sa.sa_mask);
+    sigaction(SIGALRM, &sa, NULL);
+
+    g_cgi_alarm_fired = 0;
+    alarm(timeout_seconds);
+
+    timed_out = false;
+    while (true) {
+        ret = waitpid(pid, &status, WNOHANG);
+        if (ret == pid) break;
+        if (ret == -1) break;
+        if (g_cgi_alarm_fired) {
+            timed_out = true;
+            break;
+        }
+        usleep(10000); // Sleep 10ms
+    }
+    alarm(0); // Cancel alarm
+    return ret;
+}
+
+void CGIHandler::handle_timeout(pid_t pid, int& status) {
+    std::cerr << "[CGI] CGI script timed out, killing PID " << pid << std::endl;
+    kill(pid, SIGKILL);
+    waitpid(pid, &status, 0); // Reap
+}
+
+std::string CGIHandler::read_pipe_to_string(int fd) const {
+    std::string result;
+    char buffer[4096];
+    ssize_t n;
+    while ((n = read(fd, buffer, sizeof(buffer))) > 0) {
+        result.append(buffer, n);
+    }
+    return result;
+}
+
+void CGIHandler::log_cgi_debug(int status, int ret, const std::string& output, const std::string& error_output) const {
+    std::cerr << "[CGI] waitpid returned: " << ret << ", status: " << status << std::endl;
+    std::cerr << "[CGI] WIFEXITED: " << WIFEXITED(status) << ", WEXITSTATUS: " << WEXITSTATUS(status) << std::endl;
+    std::cerr << "[CGI] WIFSIGNALED: " << WIFSIGNALED(status) << ", WTERMSIG: " << WTERMSIG(status) << std::endl;
+
+    std::cerr << "[CGI DEBUG] Raw CGI output (hex):\n";
+    for (size_t i = 0; i < output.size(); ++i)
+        std::cerr << std::hex << (int)(unsigned char)output[i] << " ";
+    std::cerr << "\n[END HEX]\n";
+    std::cerr << "[CGI DEBUG] CGI ERROR output:\n" << error_output << "\n[END]\n";
+}
+
+// --- Static helpers for CGI logic ---
+
+bool CGIHandler::find_cgi_script(const std::string& cgi_root, const std::string& cgi_uri, const std::string& uri,
+                                 std::string& script_path, std::string& script_name, std::string& path_info) {
+    if (uri.find(cgi_uri) != 0)
+        return false;
+    std::string rel_uri = uri.substr(cgi_uri.length());
+    size_t match_len = 0;
+    for (size_t pos = rel_uri.size(); pos > 0; --pos) {
+        if (rel_uri[pos - 1] == '/')
+            continue;
+        std::string candidate = rel_uri.substr(0, pos);
+        std::string abs_candidate = cgi_root + candidate;
+        if (access(abs_candidate.c_str(), X_OK) == 0) {
+            script_path = abs_candidate;
+            script_name = cgi_uri + candidate;
+            match_len = pos;
+            break;
+        }
+    }
+    if (script_path.empty())
+        return false;
+    path_info = rel_uri.substr(match_len);
+    return true;
+}
+
+std::map<std::string, std::string> CGIHandler::build_cgi_env(const Request& request,
+                                                             const std::string& script_name,
+                                                             const std::string& path_info) {
+    std::map<std::string, std::string> env;
+    std::string uri = request.getPath();
+    std::string method = request.getMethod();
+    size_t q = uri.find('?');
+    std::string query_string = (q == std::string::npos) ? "" : uri.substr(q + 1);
+
+    env["REQUEST_METHOD"] = method;
+    env["SCRIPT_NAME"] = script_name;
+    env["QUERY_STRING"] = query_string;
+    env["PATH_INFO"] = path_info;
+    if (method == "POST") {
+        std::ostringstream oss;
+        oss << request.getBody().size();
+        env["CONTENT_LENGTH"] = oss.str();
+        env["CONTENT_TYPE"] = request.getHeader("Content-Type");
+    }
+    env["GATEWAY_INTERFACE"] = "CGI/1.1";
+    env["SERVER_PROTOCOL"] = "HTTP/1.1";
+    env["SERVER_SOFTWARE"] = "Webserv/1.0";
+    env["REDIRECT_STATUS"] = "200";
+    return env;
+}
+
+void CGIHandler::parse_cgi_output(const std::string& cgi_output, std::map<std::string, std::string>& cgi_headers, std::string& body) {
+    size_t header_end = cgi_output.find("\r\n\r\n");
+    size_t sep_len = 4;
+    if (header_end == std::string::npos) {
+        header_end = cgi_output.find("\n\n");
+        sep_len = 2;
+    }
+    if (header_end == std::string::npos) {
+        cgi_headers.clear();
+        body.clear();
+        return;
+    }
+    std::string headers = cgi_output.substr(0, header_end);
+    body = cgi_output.substr(header_end + sep_len);
+
+    std::istringstream header_stream(headers);
+    std::string line;
+    bool has_content_type = false;
+    while (std::getline(header_stream, line)) {
+        if (line.empty() || line == "\r")
+            continue;
+        size_t colon = line.find(':');
+        if (colon != std::string::npos) {
+            std::string key = line.substr(0, colon);
+            std::string value = line.substr(colon + 1);
+            while (!value.empty() && (value[0] == ' ' || value[0] == '\t'))
+                value.erase(0, 1);
+            std::string key_lower = key;
+            for (size_t j = 0; j < key_lower.length(); ++j)
+                key_lower[j] = (char)std::tolower((unsigned char)key_lower[j]);
+            if (key_lower == "content-type")
+                has_content_type = true;
+            cgi_headers[key] = value;
+        }
+    }
+    if (!has_content_type) {
+        cgi_headers["Content-Type"] = "text/html";
+    }
+}
+
+// --- Member helpers for process management ---
 
 std::string CGIHandler::resolve_script_path() const {
     char cwd[1024];
@@ -142,7 +250,6 @@ bool CGIHandler::create_pipes(int input_pipe[2], int output_pipe[2], int error_p
 }
 
 void CGIHandler::setup_child_process(const std::string& absPath, int input_pipe[2], int output_pipe[2], int error_pipe[2]) {
-    // Redirect stdin
     if (dup2(input_pipe[0], STDIN_FILENO) == -1) {
         perror("[CGI] dup2 STDIN failed");
         exit(1);
@@ -150,7 +257,6 @@ void CGIHandler::setup_child_process(const std::string& absPath, int input_pipe[
     close(input_pipe[0]);
     close(input_pipe[1]);
 
-    // Redirect stdout
     if (dup2(output_pipe[1], STDOUT_FILENO) == -1) {
         perror("[CGI] dup2 STDOUT failed");
         exit(1);
@@ -158,7 +264,6 @@ void CGIHandler::setup_child_process(const std::string& absPath, int input_pipe[
     close(output_pipe[0]);
     close(output_pipe[1]);
 
-    // Redirect stderr
     if (dup2(error_pipe[1], STDERR_FILENO) == -1) {
         perror("[CGI] dup2 STDERR failed");
         exit(1);
@@ -166,7 +271,6 @@ void CGIHandler::setup_child_process(const std::string& absPath, int input_pipe[
     close(error_pipe[0]);
     close(error_pipe[1]);
 
-    // --- Change working directory to script's directory ---
     size_t last_slash = absPath.find_last_of('/');
     if (last_slash != std::string::npos) {
         std::string script_dir = absPath.substr(0, last_slash);
@@ -175,13 +279,13 @@ void CGIHandler::setup_child_process(const std::string& absPath, int input_pipe[
             exit(1);
         }
     }
-	
-	std::string interpreter;
-	if (absPath.size() >= 4 && absPath.substr(absPath.size() - 4) == ".php") {
-		environment["SCRIPT_FILENAME"] = absPath;
-		interpreter = "/opt/homebrew/bin/php-cgi"; // Adjust path if needed (use `which php-cgi` to check)
-	}
-    // Prepare envp
+
+    std::string interpreter;
+    if (absPath.size() >= 4 && absPath.substr(absPath.size() - 4) == ".php") {
+        environment["SCRIPT_FILENAME"] = absPath;
+        interpreter = "/opt/homebrew/bin/php-cgi"; // Adjust path if needed
+    }
+
     std::vector<std::string> envStrings;
     for (std::map<std::string, std::string>::const_iterator it = environment.begin(); it != environment.end(); ++it)
         envStrings.push_back(it->first + "=" + it->second);
@@ -191,38 +295,24 @@ void CGIHandler::setup_child_process(const std::string& absPath, int input_pipe[
         envp.push_back(const_cast<char*>(envStrings[i].c_str()));
     envp.push_back(NULL);
 
-    // --- PHP support: use php-cgi for .php scripts ---
-
-    // Prepare argv
     char* argv[4];
     if (!interpreter.empty()) {
-		argv[0] = const_cast<char*>(interpreter.c_str());
-		argv[1] = NULL;
+        argv[0] = const_cast<char*>(interpreter.c_str());
+        argv[1] = NULL;
     } else {
         argv[0] = const_cast<char*>(absPath.c_str());
         argv[1] = const_cast<char*>(requestedUri.c_str());
         argv[2] = NULL;
     }
 
-    // Debug: print envp
-    std::cerr << "[CGI] Executing with environment variables:\n";
-    for (size_t i = 0; i < envp.size() - 1; ++i) {
-        std::cerr << "[CGI] " << envp[i] << std::endl;
-    }
     if (!interpreter.empty())
-        std::cerr << "[CGI] execve path: " << interpreter << " (PHP CGI)\n";
+        execve(interpreter.c_str(), argv, &envp[0]);
     else
-        std::cerr << "[CGI] execve path: " << absPath << std::endl;
-
-    // Use interpreter if needed
-    if (!interpreter.empty())
-        execve(interpreter.c_str(), argv, envp.data());
-    else
-        execve(absPath.c_str(), argv, envp.data());
+        execve(absPath.c_str(), argv, &envp[0]);
 
     perror("[CGI] execve failed");
     fprintf(stderr, "[CGI] execve failed for script: %s\n", absPath.c_str());
-    exit(127); // Standard for execve failure
+    exit(127);
 }
 
 void CGIHandler::send_input_to_cgi(int input_fd) const {
@@ -268,20 +358,15 @@ bool CGIHandler::validate_cgi_headers(const std::string& output) const {
     size_t header_end = output.find("\r\n\r\n");
     if (header_end == std::string::npos)
         header_end = output.find("\n\n");
-    std::cerr << "[CGI DEBUG] header_end: " << header_end << std::endl;
     if (header_end == std::string::npos)
         return false;
 
     std::string headers = output.substr(0, header_end);
-    std::cerr << "[CGI DEBUG] headers substring: [" << headers << "]" << std::endl;
     std::istringstream iss(headers);
     std::string line;
     while (std::getline(iss, line)) {
-        std::cerr << "[CGI DEBUG] header line: [" << line << "]" << std::endl;
-        // Remove trailing \r if present
         if (!line.empty() && line[line.size() - 1] == '\r')
             line.erase(line.size() - 1);
-        // Case-insensitive check for Content-Type
         std::string lower_line = line;
         std::transform(lower_line.begin(), lower_line.end(), lower_line.begin(), ::tolower);
         if (lower_line.find("content-type:") == 0)

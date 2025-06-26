@@ -1,28 +1,5 @@
 
 
-## 3. **Repeated Logic**
-- **Current:** Directory listing, file serving, and error handling logic is repeated.
-- **Suggestion:**  
-  - Extract file serving and directory listing into dedicated methods.
-  - Extract CGI handling into a separate class or module if it grows.
-
----
-
-## 4. **Configuration and Constants**
-- **Current:** Magic strings and numbers (e.g., `"text/html"`, `"<h1>404 Not Found</h1>"`) are scattered.
-- **Suggestion:**  
-  - Use constants or config for common status messages, content types, and error pages.
-  - Consider loading error pages from files if configured.
-
----
-
-## 5. **Error Handling**
-- **Current:** Error handling is sometimes inline, sometimes via `Response`.
-- **Suggestion:**  
-  - Always use a consistent error handling path.
-  - Consider a macro or function for logging errors.
-
----
 
 ## 6. **Request Routing**
 - **Current:** Routing logic is procedural and spread out.

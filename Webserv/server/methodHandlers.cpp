@@ -1,4 +1,5 @@
 #include "WebServer.hpp"
+#include "CGIHandler.hpp"
 
 extern Config g_config;
 
@@ -51,105 +52,31 @@ void WebServer::handle_file_request(const std::string& path, int client_fd, size
 
 // --- CGI Handler ---
 void WebServer::handle_cgi(const LocationConfig* loc, const Request& request, int client_fd, size_t i) {
-    std::string uri = request.getPath();
-    std::string method = request.getMethod();
-    std::string cgi_root = loc->root;
-    std::string cgi_uri = loc->path;
     std::string script_path, script_name, path_info;
-    size_t match_len = 0;
-
-    if (uri.find(cgi_uri) != 0) {
-        send_error_response(client_fd, 404, "CGI Script Not Found", i);
-        return;
-    }
-    std::string rel_uri = uri.substr(cgi_uri.length());
-
-    // Find the longest matching script file in cgi_root
-    for (size_t pos = rel_uri.size(); pos > 0; --pos) {
-        if (rel_uri[pos - 1] == '/')
-            continue;
-        std::string candidate = rel_uri.substr(0, pos);
-        std::string abs_candidate = cgi_root + candidate;
-        if (file_exists(abs_candidate) && access(abs_candidate.c_str(), X_OK) == 0) {
-            script_path = abs_candidate;
-            script_name = cgi_uri + candidate;
-            match_len = pos;
-            break;
-        }
-    }
-
-    if (script_path.empty()) {
+    if (!CGIHandler::find_cgi_script(loc->root, loc->path, request.getPath(), script_path, script_name, path_info)) {
         send_error_response(client_fd, 404, "CGI Script Not Found", i);
         return;
     }
 
-    path_info = rel_uri.substr(match_len);
-
-    std::map<std::string, std::string> env;
-    env["REQUEST_METHOD"] = method;
-    size_t q = uri.find('?');
-    std::string query_string = q == std::string::npos ? "" : uri.substr(q + 1);
-    env["SCRIPT_NAME"] = script_name;
-    env["QUERY_STRING"] = query_string;
-    env["PATH_INFO"] = path_info;
-    if (method == "POST") {
-        std::ostringstream oss;
-        oss << request.getBody().size();
-        env["CONTENT_LENGTH"] = oss.str();
-        env["CONTENT_TYPE"] = request.getHeader("Content-Type");
-    }
-    env["GATEWAY_INTERFACE"] = "CGI/1.1";
-    env["SERVER_PROTOCOL"] = "HTTP/1.1";
-    env["SERVER_SOFTWARE"] = "Webserv/1.0";
-    env["REDIRECT_STATUS"] = "200";
-
+    std::map<std::string, std::string> env = CGIHandler::build_cgi_env(request, script_name, path_info);
     CGIHandler handler(script_path, env, request.getBody(), request.getPath());
     std::string cgi_output = handler.execute();
 
     if (cgi_output == "__CGI_TIMEOUT__") {
         send_error_response(client_fd, 504, "Gateway Timeout", i);
         return;
-    } else if (cgi_output == "__CGI_MISSING_HEADER__") {
+    }
+    if (cgi_output == "__CGI_MISSING_HEADER__") {
         send_error_response(client_fd, 500, "Internal Server Error", i);
         return;
     }
-
-    size_t header_end = cgi_output.find("\r\n\r\n");
-    size_t sep_len = 4;
-    if (header_end == std::string::npos) {
-        header_end = cgi_output.find("\n\n");
-        sep_len = 2;
-    }
-    if (header_end == std::string::npos) {
-        send_error_response(client_fd, 500, "Internal Server Error", i);
-        return;
-    }
-
-    std::string headers = cgi_output.substr(0, header_end);
-    std::string body = cgi_output.substr(header_end + sep_len);
 
     std::map<std::string, std::string> cgi_headers;
-    std::istringstream header_stream(headers);
-    std::string line;
-    bool has_content_type = false;
-    while (std::getline(header_stream, line)) {
-        if (line.empty() || line == "\r")
-            continue;
-        size_t colon = line.find(':');
-        if (colon != std::string::npos) {
-            std::string key = line.substr(0, colon);
-            std::string value = line.substr(colon + 1);
-            while (!value.empty() && (value[0] == ' ' || value[0] == '\t')) value.erase(0, 1);
-            std::string key_lower = key;
-            for (size_t i = 0; i < key_lower.length(); ++i)
-                key_lower[i] = std::tolower(static_cast<unsigned char>(key_lower[i]));
-            if (key_lower == "content-type")
-                has_content_type = true;
-            cgi_headers[key] = value;
-        }
-    }
-    if (!has_content_type) {
-        cgi_headers["Content-Type"] = "text/html";
+    std::string body;
+    CGIHandler::parse_cgi_output(cgi_output, cgi_headers, body);
+    if (cgi_headers.empty() && body.empty()) {
+        send_error_response(client_fd, 500, "Internal Server Error", i);
+        return;
     }
 
     send_ok_response(client_fd, body, cgi_headers, i);
@@ -328,8 +255,6 @@ bool WebServer::write_upload_file(const std::string& full_path, const std::strin
     out.close();
     return true;
 }
-
-
 
 std::string WebServer::timestamp() {
     time_t now = time(NULL);

@@ -17,6 +17,8 @@
 #include <algorithm>
 #include <sstream>
 #include <iostream>
+#include "Request.hpp"
+
 
 // The CGIHandler class is responsible for executing CGI scripts like .py or .php files.
 // It passes environment variables and (optional) input data to the script,
@@ -35,6 +37,15 @@ public:
     // Executes the CGI program and returns its output (headers + body)
     std::string execute();
 
+    static bool find_cgi_script(const std::string& cgi_root, const std::string& cgi_uri, const std::string& uri,
+                                std::string& script_path, std::string& script_name, std::string& path_info);
+
+    static std::map<std::string, std::string> build_cgi_env(const Request& request,
+                                                            const std::string& script_name,
+                                                            const std::string& path_info);
+
+    static void parse_cgi_output(const std::string& cgi_output, std::map<std::string, std::string>& cgi_headers, std::string& body);
+
 private:
     std::string scriptPath;                     // Path to the CGI script (e.g., ./cgi-bin/test.py)
     std::map<std::string, std::string> environment; // Environment variables for the CGI execution
@@ -52,6 +63,10 @@ private:
     std::string read_from_pipe(int fd) const;
     bool check_child_status(int status, const std::string& error_output) const;
     bool validate_cgi_headers(const std::string& output) const;
+	int wait_for_child_with_timeout(pid_t pid, int& status, bool& timed_out);
+	void handle_timeout(pid_t pid, int& status);
+	std::string read_pipe_to_string(int fd) const;
+	void log_cgi_debug(int status, int ret, const std::string& output, const std::string& error_output) const;
 };
 
 #endif

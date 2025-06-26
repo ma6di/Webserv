@@ -74,6 +74,7 @@ private:
 	size_t find_header_end(const std::string& request_data);
 	bool read_and_append_client_data(int client_fd, size_t i);
 	int parse_content_length(const std::string& headers);
+
 };
 
 std::map<std::string, std::string> single_header(const std::string& k, const std::string& v);

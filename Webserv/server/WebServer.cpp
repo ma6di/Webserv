@@ -226,8 +226,9 @@ void WebServer::handle_client_data(size_t i) {
             send_error_response(client_fd, 405, "Method Not Allowed", i);
             return;
         }
-        std::cout << "[DEBUG] is_cgi_request: " << is_cgi_request(*loc, request.getPath()) << std::endl;
-        if (loc && is_cgi_request(*loc, request.getPath())) {
+		int is_cgi = is_cgi_request(*loc, request.getPath());
+        std::cout << "[DEBUG] is_cgi_request: " << is_cgi << std::endl;
+        if (loc && is_cgi) {
             handle_cgi(loc, request, client_fd, i);
             return;
         }
@@ -252,6 +253,7 @@ void WebServer::handle_client_data(size_t i) {
         send_error_response(client_fd, 400, "Bad Request", i);
     }
     client_buffers.erase(client_fd);
+	std::cout << std:: endl << std:: endl;
 }
 
 // Send a standard error response and cleanup
