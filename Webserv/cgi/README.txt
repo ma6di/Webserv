@@ -1,61 +1,77 @@
+# Module: CGI Executor (`CGIHandler`)
 
-**Module:** CGI Executor (`CGIHandler`)
+## Purpose
 
-**Purpose:**
+- Executes CGI scripts (e.g., `.py`, `.php`) when a matching location is configured.
+- Passes HTTP request data via stdin and environment variables.
+- Reads CGI output via stdout and returns it to the client.
 
-* Executes CGI scripts (e.g., `.py`, `.php`) when a matching location is configured.
-* Passes HTTP request data via stdin and environment variables.
-* Reads CGI output via stdout.
+## Components
 
-**Components:**
+- `CGIHandler.hpp` / `CGIHandler.cpp`
 
-* `CGIHandler.hpp` / `CGIHandler.cpp`
+## Responsibilities
 
-**Responsibilities:**
+- Set up CGI environment variables (e.g., `REQUEST_METHOD`, `SCRIPT_NAME`, `QUERY_STRING`, etc.).
+- Handle process creation and communication using `pipe()`, `fork()`, `dup2()`, and `execve()`.
+- Send request body to the CGI script via stdin (for POST).
+- Read CGI script output (headers + body) from stdout.
+- Parse and validate CGI output, ensuring required headers (like `Content-Type`) are present.
+- Handle timeouts and errors robustly.
 
-* Set up environment (REQUEST\_METHOD, SCRIPT\_NAME, etc.).
-* Handle stdin/stdout using `pipe()`, `fork()`, `dup2()`, `execve()`.
-* Read output and return it as raw HTTP string.
+## Integration
 
-**Integration:**
+- Called by `WebServer` when a request matches a CGI-enabled location.
+- Uses helpers to determine if a request should be handled as CGI and to build the correct environment.
 
-* Called by `WebServer::handle_client_data()` when a CGI path is matched.
-* Uses helpers from `utils/RequestUtils.cpp` to determine if a path is CGI.
+## Output
 
-**Output:**
+- Returns a raw string containing the CGI script's response (headers + body), which is then parsed and sent as an HTTP response.
 
-* Raw string containing CGI script response (headers + body).
+---
 
-------------------
-Key Concept: 
+## Key Concepts
 
-CGI (Common Gateway Interface)
-CGI is a standard way for a web server to run external scripts (like Python, PHP, or shell) and use the output as the HTTP response.
+### CGI (Common Gateway Interface)
 
-It’s like:
-	“Here’s the request — run this script — give me the result — I’ll send it to the client.”
-A CGI script receives input via:
-	stdin: for POST request body
-	environment variables: like REQUEST_METHOD, SCRIPT_NAME, etc.
+CGI is a standard way for a web server to run external scripts (like Python, PHP, or shell) and use their output as the HTTP response.
 
-It writes output to:
-	stdout: typically a string starting with headers like Content-Type: ..., then a blank line, then body
+- The server passes request data to the script via:
+  - **stdin**: For POST request body
+  - **Environment variables**: Such as `REQUEST_METHOD`, `SCRIPT_NAME`, `QUERY_STRING`, etc.
+- The script writes its response to **stdout**:
+  - Starts with HTTP headers (e.g., `Content-Type: text/html`)
+  - Followed by a blank line, then the response body
 
-2. HTTP Body, Header, Path, and Env
+### Example CGI Flow
 
-Term	Meaning
-Body	The raw content of a POST request (e.g., form data or uploaded file)
-Header	Extra info like Content-Type, Host, Content-Length, etc.
-Path	The URL the user requested (e.g., /cgi-bin/script.py)
-Env		Environment variables passed to the CGI script (REQUEST_METHOD=POST)
+1. **Server** creates pipes for input/output.
+2. **Server** forks a child process.
+3. **Child** sets up environment and replaces itself with the CGI script using `execve()`.
+4. **Parent** writes request body to the child's stdin (if needed) and reads the script's output from stdout.
+5. **Server** parses the CGI output and sends it to the client.
 
------------------------
+### Example Environment Variables
 
-Fork + Pipe
-To run a CGI script:
-	You create two pipes (for input and output).
-	You fork()
-	The child process replaces itself with the script (execve)
-	The parent sends input and reads output from the pipes
+| Variable         | Description                        |
+|------------------|------------------------------------|
+| REQUEST_METHOD   | HTTP method (GET, POST, etc.)      |
+| SCRIPT_NAME      | Path to the CGI script             |
+| QUERY_STRING     | URL query string                   |
+| CONTENT_TYPE     | MIME type of POST data             |
+| CONTENT_LENGTH   | Length of POST data                |
+| PATH_INFO        | Extra path info after script name  |
+| SERVER_PROTOCOL  | HTTP version                       |
+| SERVER_SOFTWARE  | Server identification              |
 
--------------
+---
+
+## Troubleshooting
+
+- If a CGI script fails, check stderr output and exit status.
+- If the CGI output is missing required headers, a 500 error is returned.
+- Timeouts are enforced to prevent hanging scripts.
+
+---
+
+Let us know if you want more details on CGI environment, debugging, or extending support for other

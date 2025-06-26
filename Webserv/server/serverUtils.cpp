@@ -7,7 +7,7 @@ std::string WebServer::resolve_path(const std::string& raw_path, const std::stri
     std::string base_dir;
     std::string resolved_path;
 
-    std::cout << "[DEBUG] resolve_path: raw_path = \"" << raw_path << "\", method = " << method << std::endl;
+    Logger::log(LOG_DEBUG, "resolve_path", "raw_path = \"" + raw_path + "\", method = " + method);
 
     // 1. CGI
     if (path.compare(0, 8, "/cgi-bin") == 0 && (path.size() == 8 || path[8] == '/')) {
@@ -15,7 +15,7 @@ std::string WebServer::resolve_path(const std::string& raw_path, const std::stri
         resolved_path = base_dir + path.substr(8);
         if (resolved_path.empty() || resolved_path == "/")
             resolved_path = base_dir + "/index.py";
-        std::cout << "[DEBUG] CGI path resolved: " << resolved_path << std::endl;
+        Logger::log(LOG_DEBUG, "resolve_path", "CGI path resolved: " + resolved_path);
         return resolved_path;
     }
 
@@ -23,7 +23,7 @@ std::string WebServer::resolve_path(const std::string& raw_path, const std::stri
     if (path == "/" || path.empty()) {
         base_dir = "./www/static";
         resolved_path = base_dir + "/index.html";
-        std::cout << "[DEBUG] Root GET, serving static index: " << resolved_path << std::endl;
+        Logger::log(LOG_DEBUG, "resolve_path", "Root GET, serving static index: " + resolved_path);
         return resolved_path;
     }
 
@@ -31,7 +31,7 @@ std::string WebServer::resolve_path(const std::string& raw_path, const std::stri
     if (path.compare(0, 7, "/upload") == 0 && (path.size() == 7 || path[7] == '/')) {
         base_dir = "./www/upload";
         resolved_path = base_dir + path.substr(7);
-        std::cout << "[DEBUG] Upload path resolved: " << resolved_path << std::endl;
+        Logger::log(LOG_DEBUG, "resolve_path", "Upload path resolved: " + resolved_path);
         return resolved_path;
     }
     // 4. Static
@@ -42,7 +42,7 @@ std::string WebServer::resolve_path(const std::string& raw_path, const std::stri
             resolved_path += "/index.html";
         if (resolved_path == base_dir + "/")
             resolved_path += "index.html";
-        std::cout << "[DEBUG] Static path resolved: " << resolved_path << std::endl;
+        Logger::log(LOG_DEBUG, "resolve_path", "Static path resolved: " + resolved_path);
         return resolved_path;
     }
 
@@ -51,7 +51,7 @@ std::string WebServer::resolve_path(const std::string& raw_path, const std::stri
     resolved_path = base_dir + path;
     if (!resolved_path.empty() && resolved_path[resolved_path.size() - 1] == '/')
         resolved_path += "/index.html";
-    std::cout << "[DEBUG] Default static path: " << resolved_path << std::endl;
+    Logger::log(LOG_DEBUG, "resolve_path", "Default static path: " + resolved_path);
     return resolved_path;
 }
 
@@ -71,7 +71,10 @@ std::string extract_filename(const std::string& header) {
 // Reads the entire contents of a file into a string
 std::string WebServer::read_file(const std::string& path) {
     std::ifstream file(path.c_str(), std::ios::in | std::ios::binary);
-    if (!file) return "";
+    if (!file) {
+        Logger::log(LOG_ERROR, "read_file", "Failed to open file: " + path);
+        return "";
+    }
     std::ostringstream ss;
     ss << file.rdbuf();
     return ss.str();
@@ -82,6 +85,7 @@ bool WebServer::read_and_append_client_data(int client_fd, size_t i) {
     ssize_t bytes_read = recv(client_fd, buffer, sizeof(buffer), 0);
     if (bytes_read <= 0) {
         // Client disconnected or error
+        Logger::log(LOG_INFO, "read_and_append_client_data", "Client disconnected or error on FD=" + to_str(client_fd));
         cleanup_client(client_fd, i);
         return false;
     }
@@ -89,12 +93,9 @@ bool WebServer::read_and_append_client_data(int client_fd, size_t i) {
 
     // Check if buffer is too large (AFTER appending)
     if (client_buffers[client_fd].size() > g_config.getMaxBodySize()) {
+        Logger::log(LOG_ERROR, "read_and_append_client_data", "Payload Too Large for FD=" + to_str(client_fd));
         send_error_response(client_fd, 413, "Payload Too Large", i);
-        // Shutdown reading, but allow client to read the response
-        // shutdown(client_fd, SHUT_RD);
-        // Give the client a moment to read the response
         usleep(100000); // 100ms
-        // cleanup_client is already called in send_error_response
         return false;
     }
 
@@ -118,4 +119,20 @@ int WebServer::parse_content_length(const std::string& headers) {
         }
     }
     return 0;
+}
+
+// --- Helper: Check if full body is received ---
+bool WebServer::is_full_body_received(const Request& request, const std::string& request_data, size_t header_end) {
+    bool is_chunked = request.isChunked();
+    int content_length = request.getContentLength();
+    size_t body_start = header_end + 4;
+    size_t body_length_received = request_data.size() - body_start;
+
+    if (!is_chunked && content_length > 0 && body_length_received < static_cast<size_t>(content_length)) {
+        return false;
+    }
+    if (is_chunked && request.getBody().empty()) {
+        return false;
+    }
+    return true;
 }

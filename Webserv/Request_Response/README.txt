@@ -1,46 +1,53 @@
+# Module: HTTP Request/Response
 
-**Module:** HTTP Request/Response
+## Purpose
 
-**Purpose:**
+- **Request**: Parses incoming HTTP requests, extracting method, path, version, headers, and body.
+- **Response**: Builds and sends outgoing HTTP responses (status, headers, body).
 
-* `Request`: Parses incoming HTTP requests.
-* `Response`: Builds outgoing HTTP responses (TBD).
+## Components
 
-**Components:**
+- `Request.hpp` / `Request.cpp` — Implements the `Request` class for parsing and accessing HTTP request data.
+- `Response.hpp` / `Response.cpp` — Implements the `Response` class for constructing and sending HTTP responses.
 
-* `Request.hpp` / `Request.cpp`
-* (Planned: `Response.hpp` / `Response.cpp`)
+## Request Responsibilities
 
-**Request Responsibilities:**
+- Parse the raw HTTP request string into:
+  - Method (GET, POST, DELETE, etc.)
+  - Path (URI)
+  - Version (HTTP/1.1, etc.)
+  - Headers (key-value pairs)
+  - Body (for POST/PUT)
+- Provide accessor methods for server logic.
 
-* Extract `method`, `path`, `version`, headers, body from raw HTTP string.
-* Provide accessors for server logic.
+## Response Responsibilities
 
-**Planned Response Responsibilities:**
+- Set status code, headers, and body.
+- Format as a complete HTTP response string.
+- Send the response to the client socket.
 
-* Set status code, headers, body.
-* Format as complete HTTP response string.
+## Integration
 
-**Integration:**
+- `Request` is used in `WebServer::handle_client_data()` to parse and access incoming requests.
+- `Response` is used to send CGI, static, and error responses to clients.
 
-* `Request` used inside `WebServer::handle_client_data()`.
-* `Response` will be used to send CGI/static responses.
+---
 
- ------------
- 
-🧠 Key Concepts
-Term			Meaning
-HTTP Request	What the client sends to the server
-Method			HTTP verb like GET, POST, DELETE, etc.
-Path			The URI being requested (e.g. /upload)
-Headers			Key-value metadata (e.g. Content-Type: text/html)
-Body			Optional data sent with the request (only for POST/PUT)
+## 🧠 Key Concepts
 
-----------------
+| Term          | Meaning                                                      |
+| ------------- | ------------------------------------------------------------ |
+| HTTP Request  | What the client sends to the server                          |
+| Method        | HTTP verb like GET, POST, DELETE, etc.                       |
+| Path          | The URI being requested (e.g. /upload)                       |
+| Headers       | Key-value metadata (e.g. Content-Type: text/html)            |
+| Body          | Optional data sent with the request (only for POST/PUT)      |
+
+---
 
 ## 🌐 What is HTTP?
 
-**HTTP (HyperText Transfer Protocol)** is the language browsers and servers use to communicate.
+**HTTP (HyperText Transfer Protocol)** is the protocol browsers and servers use to communicate.
 
 A basic HTTP request looks like this:
 

@@ -13,6 +13,7 @@
 #include <netinet/in.h>
 #include <fstream>
 #include <sys/stat.h>
+#include "../logger/Logger.hpp"
 #include "utils.hpp"
 #include "CGIHandler.hpp"
 #include "Config.hpp"
@@ -74,10 +75,19 @@ private:
 	size_t find_header_end(const std::string& request_data);
 	bool read_and_append_client_data(int client_fd, size_t i);
 	int parse_content_length(const std::string& headers);
+	bool is_full_body_received(const Request& request, const std::string& request_data, size_t header_end);
+	void process_request(Request& request, int client_fd, size_t i);
+
 
 };
 
 std::map<std::string, std::string> single_header(const std::string& k, const std::string& v);
 std::string extract_file_from_multipart(const std::string& body, std::string& filename);
+
+inline std::string to_str(int n) {
+    std::ostringstream oss;
+    oss << n;
+    return oss.str();
+}
 
 #endif

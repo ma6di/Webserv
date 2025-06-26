@@ -90,7 +90,7 @@ void Config::parseConfigFile(const std::string& filename) {
     }
 
     file.close();
-    std::cout << "Loaded config file: " << filename << std::endl;
+    Logger::log(LOG_INFO, "Config", "Loaded config file: " + filename);
 }
 
 // --- Helper functions ---
@@ -100,11 +100,11 @@ void Config::handleListenDirective(std::istringstream& iss) {
     iss >> token;
     int parsed = parseListenDirective(token);
     ports.push_back(parsed);
-    std::cout << "[DEBUG] listen port: " << parsed << std::endl;
+    Logger::log(LOG_DEBUG, "Config", "listen port: " + to_str(parsed));
     if (port == 0) {
         port = parsed; // Set the first parsed port as the default
     } else if (port != parsed) {
-        std::cout << "[DEBUG] Multiple listen ports detected, using first: " << port << std::endl;
+        Logger::log(LOG_DEBUG, "Config", "Multiple listen ports detected, using first: " + to_str(port));
     }
     if (parsed < 1 || parsed > 65535) {
         std::ostringstream oss;
@@ -118,7 +118,7 @@ void Config::handleRootDirective(std::istringstream& iss) {
     iss >> r;
     r = stripSemicolon(r);
     if (!pathExists(r)) {
-        std::cout << "[DEBUG] root value: [" << root << "]\n";
+        Logger::log(LOG_DEBUG, "Config", "root value: [" + root + "]");
         throw std::runtime_error("Invalid root path: " + r);
     }
     root = r;
@@ -149,7 +149,7 @@ void Config::handleClientMaxBodySizeDirective(std::istringstream& iss) {
 void Config::handleLocationEnd(LocationConfig& currentLocation, bool& insideLocation) {
     if (insideLocation) {
         if (currentLocation.index.empty()) {
-            std::cout << "⚠️  No index set for " << currentLocation.path << " → using default: index.html\n";
+            Logger::log(LOG_INFO, "Config", "No index set for " + currentLocation.path + " → using default: index.html");
             currentLocation.index = "index.html";
         }
         if (currentLocation.allowed_methods.empty())

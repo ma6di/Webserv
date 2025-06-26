@@ -1,60 +1,56 @@
+# Module: Configuration Parser (`Config`)
 
-**Module:** Configuration Parser (`Config`)
+## Purpose
 
-**Purpose:**
+- Parses the `default.conf` configuration file.
+- Stores global server settings (e.g., ports, root directory) and location blocks.
+- Provides accessor methods for other modules to retrieve configuration data.
 
-* Parses the `default.conf` file.
-* Stores global settings (e.g., port, root) and location blocks.
-* Provides accessors to retrieve configuration data for other modules.
+## Components
 
-**Components:**
+- `Config.hpp` / `Config.cpp` — Implements the `Config` class for parsing and storing server configuration.
+- `LocationConfig.hpp` — Defines the `LocationConfig` struct for location-specific settings.
 
-* `Config.hpp` / `Config.cpp`
-* `LocationConfig` struct
+## Responsibilities
 
-**Responsibilities:**
+- Parse configuration lines for:
+  - `listen` (port numbers)
+  - `root` (global or per-location root directory)
+  - `error_page` (custom error pages)
+  - `location { ... }` blocks (location-specific settings)
+  - `client_max_body_size`
+- Strip semicolons and validate syntax.
+- Match URIs to the longest-prefix location block for request routing.
 
-* Parse lines for `listen`, `root`, `error_page`, `location {}` blocks.
-* Strip semicolons, validate syntax.
-* Match URIs to longest-prefix location blocks.
+## Integration
 
-**Integration:**
+- Used globally (via `g_config`) or injected into `WebServer`.
+- Accessed by `WebServer`, request handlers, and `CGIHandler` for routing and settings.
 
-* Used globally (via `g_config`) or injected into `WebServer`.
-* Used by `WebServer`, `RequestRouter`, and `CGIHandler`.
+## Output
 
-**Output:**
+- Parsed values are stored in:
+  - `std::vector<int> ports` — All listen ports.
+  - `std::string root` — Global root directory.
+  - `std::vector<LocationConfig>` — All location blocks.
+  - `std::map<int, std::string> error_pages` — Custom error pages.
+  - `size_t max_body_size` — Maximum allowed request body size.
 
-* Parsed values stored in:
+---
 
-  * `int port`
-  * `std::string root`
-  * `std::vector<LocationConfig>`
-  * `std::map<int, std::string> error_pages`
+## Key Concepts
 
---------------------------------
-Key Concepts:
-In web server configuration (like in NGINX, which WebServ mimics), 
-a location block defines how to handle requests for a specific URI path.
+In web server configuration (similar to NGINX), a **location block** defines how to handle requests for a specific URI path.
 
-For example:
+**Example:**
+```nginx
+location / {
+    root /www/html;
+    index index.html;
+}
 
-	location / {
-		root /www/html;
-		index index.html;
-	}
-
-	location /cgi-bin {
-		root /www/cgi;
-		cgi_extension .py;
-	}
-
-The first block handles requests to /, /about, /index.html, etc.
-The second block handles requests to /cgi-bin/script.py, which are CGI scripts.
-
-Each location can:
-	Define a different file root
-	Set allowed HTTP methods (GET, POST, etc.)
-	Enable CGI
-	Turn on directory listing (autoindex)
-	Set upload folder
+location /cgi-bin {
+    root /www/cgi;
+    cgi_extension .py;
+}
+```

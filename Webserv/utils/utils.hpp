@@ -3,6 +3,7 @@
 
 #include "LocationConfig.hpp"
 #include "Config.hpp"
+#include "../logger/Logger.hpp"
 #include <string>
 #include <fstream>
 #include <sstream>
@@ -10,6 +11,7 @@
 #include <stdexcept>
 #include <iostream>
 #include <unistd.h> 
+#include <dirent.h>
 
 bool file_exists(const std::string& path);
 std::string get_mime_type(const std::string& path);

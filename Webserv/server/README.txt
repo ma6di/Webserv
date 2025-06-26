@@ -1,73 +1,67 @@
+# Module: Core HTTP Server
 
-**Module:** Core HTTP Server
+## Purpose
 
-**Purpose:**
-	Setting up the listening socket
-	Running the event loop using poll()
-	Accepting new connections
-	Reading/parsing HTTP requests
-	Dispatching either static file serving or CGI execution
-	Writing the response to the clien
+- Set up listening sockets on configured ports
+- Run the event loop using `poll()`
+- Accept new client connections
+- Read and parse HTTP requests
+- Match requests to locations and handlers (static, upload, CGI, etc.)
+- Write HTTP responses to clients
 
-**Components:**
+## Components
 
-* `WebServer.hpp` / `WebServer.cpp`
+- `WebServer.hpp` / `WebServer.cpp`
+- Handler implementations in `methodHandlers.cpp`
+- Helpers in `serverUtils.cpp`, `sendResponse.cpp`
 
-**Responsibilities:**
+## Responsibilities
 
-* Bind to port (`listen` from config).
-* Accept new clients.
-* Read data, parse into `Request`.
-* Match URI using config.
-* Delegate to CGI or static handler.
+- Bind to ports (from config)
+- Accept and manage clients
+- Read data and parse into `Request`
+- Match URI to `LocationConfig`
+- Delegate to static file, upload, or CGI handler
+- Handle errors and send appropriate HTTP responses
 
-**Integration:**
+## Integration
 
-* Central dispatcher for all modules.
-* Uses `Config`, `Request`, `CGIHandler`, and `utils`.
+- Central dispatcher for all modules
+- Uses `Config`, `Request`, `CGIHandler`, and `utils`
+- Calls helpers for file I/O, MIME types, and directory listings
 
------------
-Key Concepts Summary
+---
+
+## Key Concepts Summary
 
 | Concept             | Description                                            |
 | ------------------- | ------------------------------------------------------ |
 | `poll()`            | Monitors multiple sockets for I/O                      |
 | `non-blocking`      | Prevents blocking a single client from stalling server |
 | `request parser`    | Parses incoming HTTP requests                          |
-| `method validation` | Only allows GET/POST based on config                   |
+| `method validation` | Only allows GET/POST/DELETE based on config            |
 | `CGIHandler`        | Forks a subprocess and reads back script output        |
 | `static file serve` | Reads file and wraps it in an HTTP response            |
 
+---
 
---------------
+### About `poll()`
 
-poll() is a system call that lets you monitor multiple file descriptors (sockets, pipes, etc.) to see if they are ready for reading, writing, or have an error.
-It’s part of the POSIX standard and is available on all Unix-like systems
+`poll()` is a system call that lets you monitor multiple file descriptors (sockets, pipes, etc.) to see if they are ready for reading, writing, or have an error.  
+It’s part of the POSIX standard and is available on all Unix-like systems.
 
---------------
+---
 
-🧾 What is pollfd?
-pollfd is a structure defined in <poll.h> used with the poll() system call.
+### About `pollfd`
+
+`pollfd` is a structure defined in `<poll.h>` used with the `poll()` system call.  
 It describes which file descriptor you want to monitor, what events you care about, and what actually happened.
 
-🔧 Structure Definition:
-cpp
-Copy
-Edit
+**Structure:**
+```cpp
 struct pollfd {
     int   fd;       // File descriptor to monitor
     short events;   // Events to look for (input/output/error)
     short revents;  // Events that actually occurred (filled by poll())
 };
-🔹 Purpose of Each Field
-Field	Description
-fd	The file descriptor (e.g., socket or pipe) you want to monitor
-events	What you're interested in (e.g. read, write, error)
-revents	Set by poll() — tells you what actually happened to the fd
-
-🔧 Common events Values (you set these)
-Macro		Meaning
-POLLIN		Data available to read
-POLLOUT		Ready to write
-POLLERR		Error occurred
-POLLHUP		Hang-up (connection closed)
+```

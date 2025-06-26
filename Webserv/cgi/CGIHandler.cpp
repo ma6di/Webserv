@@ -9,18 +9,7 @@
  */
 
 #include "CGIHandler.hpp"
-#include <unistd.h>
-#include <fcntl.h>
-#include <cstdlib>
-#include <sys/wait.h>
-#include <signal.h>
-#include <cerrno>
-#include <cstring>
-#include <sys/time.h>
-#include <cstdio>
-#include <algorithm>
-#include <sstream>
-#include <iostream>
+
 
 volatile sig_atomic_t g_cgi_alarm_fired = 0;
 void cgi_alarm_handler(int) { g_cgi_alarm_fired = 1; }
@@ -35,13 +24,13 @@ std::string CGIHandler::execute() {
     std::string absPath = resolve_script_path();
     int input_pipe[2], output_pipe[2], error_pipe[2];
     if (!create_pipes(input_pipe, output_pipe, error_pipe)) {
-        std::cerr << "[CGI] Pipe creation failed\n";
+        Logger::log(LOG_ERROR, "CGIHandler", "Pipe creation failed");
         throw std::runtime_error("Pipe creation failed");
     }
 
     pid_t pid = fork();
     if (pid < 0) {
-        std::cerr << "[CGI] Fork failed\n";
+        Logger::log(LOG_ERROR, "CGIHandler", "Fork failed");
         throw std::runtime_error("Fork failed");
     }
 
@@ -111,7 +100,7 @@ int CGIHandler::wait_for_child_with_timeout(pid_t pid, int& status, bool& timed_
 }
 
 void CGIHandler::handle_timeout(pid_t pid, int& status) {
-    std::cerr << "[CGI] CGI script timed out, killing PID " << pid << std::endl;
+    Logger::log(LOG_ERROR, "CGIHandler", "CGI script timed out, killing PID " + to_str(pid));
     kill(pid, SIGKILL);
     waitpid(pid, &status, 0); // Reap
 }
@@ -127,15 +116,17 @@ std::string CGIHandler::read_pipe_to_string(int fd) const {
 }
 
 void CGIHandler::log_cgi_debug(int status, int ret, const std::string& output, const std::string& error_output) const {
-    std::cerr << "[CGI] waitpid returned: " << ret << ", status: " << status << std::endl;
-    std::cerr << "[CGI] WIFEXITED: " << WIFEXITED(status) << ", WEXITSTATUS: " << WEXITSTATUS(status) << std::endl;
-    std::cerr << "[CGI] WIFSIGNALED: " << WIFSIGNALED(status) << ", WTERMSIG: " << WTERMSIG(status) << std::endl;
+    Logger::log(LOG_DEBUG, "CGIHandler", "waitpid returned: " + to_str(ret) + ", status: " + to_str(status));
+    Logger::log(LOG_DEBUG, "CGIHandler", "WIFEXITED: " + to_str(WIFEXITED(status)) + ", WEXITSTATUS: " + to_str(WEXITSTATUS(status)));
+    Logger::log(LOG_DEBUG, "CGIHandler", "WIFSIGNALED: " + to_str(WIFSIGNALED(status)) + ", WTERMSIG: " + to_str(WTERMSIG(status)));
 
-    std::cerr << "[CGI DEBUG] Raw CGI output (hex):\n";
+    std::ostringstream hex;
+    hex << "[CGI DEBUG] Raw CGI output (hex):\n";
     for (size_t i = 0; i < output.size(); ++i)
-        std::cerr << std::hex << (int)(unsigned char)output[i] << " ";
-    std::cerr << "\n[END HEX]\n";
-    std::cerr << "[CGI DEBUG] CGI ERROR output:\n" << error_output << "\n[END]\n";
+        hex << std::hex << (int)(unsigned char)output[i] << " ";
+    hex << "\n[END HEX]\n";
+    Logger::log(LOG_DEBUG, "CGIHandler", hex.str());
+    Logger::log(LOG_DEBUG, "CGIHandler", "[CGI DEBUG] CGI ERROR output:\n" + error_output + "\n[END]");
 }
 
 // --- Static helpers for CGI logic ---
@@ -235,17 +226,17 @@ void CGIHandler::parse_cgi_output(const std::string& cgi_output, std::map<std::s
 std::string CGIHandler::resolve_script_path() const {
     char cwd[1024];
     if (!getcwd(cwd, sizeof(cwd))) {
-        perror("[CGI] getcwd failed");
+        Logger::log(LOG_ERROR, "CGIHandler", "getcwd failed");
         throw std::runtime_error("getcwd failed");
     }
     std::string abs = std::string(cwd) + "/" + scriptPath;
-    std::cerr << "[CGI] Resolved script path: " << abs << std::endl;
+    Logger::log(LOG_DEBUG, "CGIHandler", "Resolved script path: " + abs);
     return abs;
 }
 
 bool CGIHandler::create_pipes(int input_pipe[2], int output_pipe[2], int error_pipe[2]) const {
     bool ok = (pipe(input_pipe) == 0 && pipe(output_pipe) == 0 && pipe(error_pipe) == 0);
-    if (!ok) std::cerr << "[CGI] Pipe creation error\n";
+    if (!ok) Logger::log(LOG_ERROR, "CGIHandler", "Pipe creation error");
     return ok;
 }
 
@@ -318,7 +309,7 @@ void CGIHandler::setup_child_process(const std::string& absPath, int input_pipe[
 void CGIHandler::send_input_to_cgi(int input_fd) const {
     if (!inputBody.empty()) {
         ssize_t written = write(input_fd, inputBody.c_str(), inputBody.size());
-        std::cerr << "[CGI] Sent " << written << " bytes to CGI stdin\n";
+        Logger::log(LOG_DEBUG, "CGIHandler", "Sent " + to_str(written) + " bytes to CGI stdin");
     }
 }
 
@@ -333,22 +324,22 @@ std::string CGIHandler::read_from_pipe(int fd) const {
 
 bool CGIHandler::check_child_status(int status, const std::string& error_output) const {
     if (WIFSIGNALED(status)) {
-        std::cerr << "[CGI] CGI script killed by signal: " << WTERMSIG(status) << std::endl;
+        Logger::log(LOG_ERROR, "CGIHandler", "CGI script killed by signal: " + to_str(WTERMSIG(status)));
         if (!error_output.empty())
-            std::cerr << "[CGI] CGI script stderr: " << error_output << std::endl;
+            Logger::log(LOG_ERROR, "CGIHandler", "CGI script stderr: " + error_output);
         return false;
     }
     if (!WIFEXITED(status)) {
-        std::cerr << "[CGI] CGI script did not exit normally." << std::endl;
+        Logger::log(LOG_ERROR, "CGIHandler", "CGI script did not exit normally.");
         if (!error_output.empty())
-            std::cerr << "[CGI] CGI script stderr: " << error_output << std::endl;
+            Logger::log(LOG_ERROR, "CGIHandler", "CGI script stderr: " + error_output);
         return false;
     }
-    std::cerr << "[CGI] WIFEXITED: " << WIFEXITED(status) << ", WEXITSTATUS: " << WEXITSTATUS(status) << std::endl;
+    Logger::log(LOG_DEBUG, "CGIHandler", "WIFEXITED: " + to_str(WIFEXITED(status)) + ", WEXITSTATUS: " + to_str(WEXITSTATUS(status)));
     if (WEXITSTATUS(status) != 0) {
-        std::cerr << "[CGI] CGI script exited with status: " << WEXITSTATUS(status) << std::endl;
+        Logger::log(LOG_ERROR, "CGIHandler", "CGI script exited with status: " + to_str(WEXITSTATUS(status)));
         if (!error_output.empty())
-            std::cerr << "[CGI] CGI script stderr: " << error_output << std::endl;
+            Logger::log(LOG_ERROR, "CGIHandler", "CGI script stderr: " + error_output);
         return false;
     }
     return true;

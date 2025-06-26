@@ -1,25 +1,36 @@
+# Utilities and Helpers (`utils/`)
 
-**Module:** Utilities and Helpers
+## Purpose
 
-**Purpose:**
+Provide reusable logic for:
+- Location and path resolution
+- CGI detection
+- File and directory utilities
+- HTTP body decoding
 
-* Provide reusable logic for routing, path resolution, and CGI detection.
+## Components
 
-**Components:**
+- `utils.hpp` / `utils.cpp`
 
-* `RequestUtils.hpp` / `RequestUtils.cpp`
+## Responsibilities
 
-**Responsibilities:**
+- `file_exists(path)` — Check if a file exists on disk.
+- `get_mime_type(path)` — Guess MIME type from file extension.
+- `match_location(locations, path)` — Find the best-matching `LocationConfig` for a given URI.
+- `is_cgi_request(loc, uri)` — Determine if a request should be handled as CGI based on location and URI.
+- `decode_chunked_body(body)` — Decode HTTP chunked transfer encoding.
+- `is_directory(path)` — Check if a path is a directory.
+- `generate_directory_listing(dir_path, uri_path)` — Generate an HTML directory listing for autoindex.
 
-* `match_location()` — matches a URI to best `LocationConfig`
-* `is_cgi_request()` — checks URI extension against config
-* `resolve_script_path()` — builds filesystem path to CGI script
+## Integration
 
-**Integration:**
-
-* Used by `WebServer` to determine how to route a request
-* Pure functions; no side effects
+- Used by `WebServer` and handlers for routing, CGI, static file serving, and directory listing.
+- All functions are stateless and pure (no side effects except logging).
 
 ---
 
-Let me know if you’d like to include test plans or future feature documentation!
+**See also:**  
+- `LocationConfig.hpp` for location structure  
+- `Config.hpp` for server configuration
+
+Let us know if you need test plans or want to document future utility

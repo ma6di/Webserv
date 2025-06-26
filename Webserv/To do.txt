@@ -1,30 +1,5 @@
 
 
-
-## 6. **Request Routing**
-- **Current:** Routing logic is procedural and spread out.
-- **Suggestion:**  
-  - Use a routing table or map for method/path to handler function.
-  - This makes adding new routes or methods easier.
-
----
-
-## 7. **CGI and Uploads**
-- **Current:** CGI and upload logic is mixed with main handlers.
-- **Suggestion:**  
-  - Move CGI and upload logic to their own classes or modules.
-  - This keeps the main server logic focused and easier to test.
-
----
-
-## 8. **File and Path Utilities**
-- **Current:** File/path checks and manipulations are inline.
-- **Suggestion:**  
-  - Move all file/path utilities to a dedicated `utils.cpp`/`utils.hpp`.
-  - Use RAII for file streams where possible.
-
----
-
 ## 9. **Logging**
 - **Current:** Logging is done with `std::cout` and `std::cerr`.
 - **Suggestion:**  

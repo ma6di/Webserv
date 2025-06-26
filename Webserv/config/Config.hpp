@@ -2,6 +2,8 @@
 #define CONFIG_HPP
 
 #include "LocationConfig.hpp"
+#include "../logger/Logger.hpp"
+#include "WebServer.hpp"
 #include <string>
 #include <vector>
 #include <map>

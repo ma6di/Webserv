@@ -18,6 +18,8 @@
 #include <sstream>
 #include <iostream>
 #include "Request.hpp"
+#include "../logger/Logger.hpp"
+#include "WebServer.hpp"
 
 
 // The CGIHandler class is responsible for executing CGI scripts like .py or .php files.

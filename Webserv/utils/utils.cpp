@@ -1,59 +1,42 @@
 #include "utils.hpp"
-#include <sstream>
 
 bool file_exists(const std::string& path) {
     struct stat buffer;
-    return (stat(path.c_str(), &buffer) == 0);
+    bool exists = (stat(path.c_str(), &buffer) == 0);
+    Logger::log(LOG_DEBUG, "file_exists", "Checked: " + path + " exists=" + (exists ? "true" : "false"));
+    return exists;
 }
 
 std::string get_mime_type(const std::string& path) {
     size_t dot = path.rfind('.');
-    if (dot == std::string::npos)
-        return ("application/octet-stream");
+    if (dot == std::string::npos) {
+        Logger::log(LOG_DEBUG, "get_mime_type", "No extension for: " + path);
+        return "application/octet-stream";
+    }
 
     std::string ext = path.substr(dot);
+    std::string mime;
 
     if (ext == ".html")
-        return "text/html";
-    if (ext == ".css")
-        return "text/css";        
-    if (ext == ".js")
-        return "application/javascript";
-    if (ext == ".txt")
-        return "text/plain";        
-    if (ext == ".jpg" || ext == ".jpeg")
-        return "image/jpeg";   
-    if (ext == ".png")
-        return "image/png";        
-    if (ext == ".gif")
-        return "image/gif";
-    return "application/octet-stream";
+        mime = "text/html";
+    else if (ext == ".css")
+        mime = "text/css";
+    else if (ext == ".js")
+        mime = "application/javascript";
+    else if (ext == ".txt")
+        mime = "text/plain";
+    else if (ext == ".jpg" || ext == ".jpeg")
+        mime = "image/jpeg";
+    else if (ext == ".png")
+        mime = "image/png";
+    else if (ext == ".gif")
+        mime = "image/gif";
+    else
+        mime = "application/octet-stream";
+
+    Logger::log(LOG_DEBUG, "get_mime_type", "Path: " + path + " -> " + mime);
+    return mime;
 }
-
-// void    parse_http_request(const std::string& request, std::string& method, std::string& path, std::string& version) {
-//     std::istringstream stream(request);
-//     std::string request_line;
-
-//     if (!std::getline(stream, request_line)) {
-//         throw std::runtime_error("Empty request");
-//     }
-
-//     if (!request_line.empty() && request_line[request_line.size() - 1] == '\r') {
-//         request_line.erase(request_line.size() - 1);
-//     }
-
-//     std::istringstream line_stream(request_line);
-//     line_stream>> method >> path >> version;
-
-//     std::cout << "Parsed parts:\n";
-//     std::cout << "  Method: [" << method << "]\n";
-//     std::cout << "  Path: [" << path << "]\n";
-//     std::cout << "  Version: [" << version << "]\n";
-
-//     if (method.empty() || path.empty() || version.empty()) {
-//         throw std::runtime_error("Invalid HTTP request line");
-//     }
-// }
 
 const LocationConfig* match_location(const std::vector<LocationConfig>& locations, const std::string& path) {
     const LocationConfig* bestMatch = NULL;
@@ -66,6 +49,11 @@ const LocationConfig* match_location(const std::vector<LocationConfig>& location
             bestMatch = &locations[i];
         }
     }
+
+    if (bestMatch)
+        Logger::log(LOG_DEBUG, "match_location", "Matched: " + bestMatch->path + " for path: " + path);
+    else
+        Logger::log(LOG_DEBUG, "match_location", "No match for path: " + path);
 
     return bestMatch;
 }
@@ -93,15 +81,11 @@ bool is_cgi_request(const LocationConfig& loc, const std::string& uri) {
         abs_script += "/";
     abs_script += script_name;
 
-    std::cout << "[DEBUG] abs_script: [" << abs_script << "]\n";
-	
-    return file_exists(abs_script) && access(abs_script.c_str(), X_OK) == 0;
+    Logger::log(LOG_DEBUG, "is_cgi_request", "abs_script: [" + abs_script + "]");
+    bool valid = file_exists(abs_script) && access(abs_script.c_str(), X_OK) == 0;
+    Logger::log(LOG_DEBUG, "is_cgi_request", std::string("CGI valid: ") + (valid ? "true" : "false"));
+    return valid;
 }
-
-// std::string resolve_script_path(const std::string& uri, const LocationConfig& loc) {
-//     std::string root = loc.root.empty() ? "./www" : loc.root;
-//     return root + uri.substr(loc.path.length());  // Trim location prefix from URI
-// }
 
 std::string decode_chunked_body(const std::string& body) {
     std::istringstream in(body);
@@ -125,21 +109,23 @@ std::string decode_chunked_body(const std::string& body) {
         // Read the trailing \r\n after chunk data
         std::getline(in, line);
     }
+    Logger::log(LOG_DEBUG, "decode_chunked_body", "Decoded chunked body, size=" + to_str(decoded.size()));
     return decoded;
 }
 
 bool is_directory(const std::string& path) {
     struct stat statbuf;
-    return stat(path.c_str(), &statbuf) == 0 && S_ISDIR(statbuf.st_mode);
+    bool dir = stat(path.c_str(), &statbuf) == 0 && S_ISDIR(statbuf.st_mode);
+    Logger::log(LOG_DEBUG, "is_directory", path + " is_directory=" + (dir ? "true" : "false"));
+    return dir;
 }
-
-#include <dirent.h>
-#include <sstream>
 
 std::string generate_directory_listing(const std::string& dir_path, const std::string& uri_path) {
     DIR* dir = opendir(dir_path.c_str());
-    if (!dir)
+    if (!dir) {
+        Logger::log(LOG_ERROR, "generate_directory_listing", "Failed to open dir: " + dir_path);
         return "<html><body><h1>403 Forbidden</h1></body></html>";
+    }
 
     std::ostringstream html;
     html << "<html><head><title>Index of " << uri_path << "</title></head><body>";
@@ -157,5 +143,6 @@ std::string generate_directory_listing(const std::string& dir_path, const std::s
 
     html << "</ul></body></html>";
     closedir(dir);
+    Logger::log(LOG_DEBUG, "generate_directory_listing", "Generated listing for: " + dir_path);
     return html.str();
 }
