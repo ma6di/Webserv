@@ -50,11 +50,45 @@ void WebServer::send_upload_success_response(int client_fd, const std::string& f
 }
 
 // Send a standard error response and cleanup
-void WebServer::send_error_response(int client_fd, int code, const std::string& msg, size_t i) {
+/*void WebServer::send_error_response(int client_fd, int code, const std::string& msg, size_t i) {
     std::ostringstream oss;
     oss << "<h1>" << code << " " << msg << "</h1>";
     std::string body = oss.str();
     Logger::log(LOG_ERROR, "send_error_response", "Sending error " + to_str(code) + ": " + msg);
     Response(client_fd, code, msg, body, content_type_html());
     cleanup_client(client_fd, i);
+}*/
+
+void WebServer::send_error_response(int client_fd, int code, const std::string& msg, size_t i) {
+    const std::string* err_page = g_config.getErrorPage(code);
+    std::string body;
+
+    if (err_page && !err_page->empty()) {
+        std::string resolved_path = resolve_path(*err_page, "GET");
+        Logger::log(LOG_DEBUG, "send_error_response", "Trying custom error page: " + resolved_path);
+
+        if (file_exists(resolved_path) && access(resolved_path.c_str(), R_OK) == 0) {
+            body = read_file(resolved_path);
+            if (!body.empty()) {
+                Logger::log(LOG_INFO, "send_error_response", "Using custom error page for code " + to_str(code));
+                Response(client_fd, code, msg, body, content_type_html());
+                cleanup_client(client_fd, i);
+                return;
+            }
+        } else {
+            Logger::log(LOG_ERROR, "send_error_response", "Custom error page not found or not readable: " + resolved_path);
+        }
+    }
+
+    // Fallback default error HTML
+    std::ostringstream oss;
+    oss << "<!DOCTYPE html><html><head><title>" << code << " " << msg
+        << "</title></head><body><h1>" << code << " " << msg
+        << "</h1><p>The server could not fulfill your request.</p></body></html>";
+    body = oss.str();
+
+    Logger::log(LOG_INFO, "send_error_response", "Using default error page for code " + to_str(code));
+    Response(client_fd, code, msg, body, content_type_html());
+    cleanup_client(client_fd, i);
 }
+
