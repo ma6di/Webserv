@@ -41,8 +41,8 @@ void WebServer::send_upload_success_response(int client_fd, const std::string& f
          << "<p>Saved as: <code>" << full_filename << "</code></p>"
          << "<br><br>"
          << "<a href=\"/\" style=\"margin: 0 10px;\"><button>Home</button></a>"
-         << "<a href=\"/about.html\" style=\"margin: 0 10px;\"><button>About</button></a>"
-         << "<a href=\"/static/upload.html\" style=\"margin: 0 10px;\"><button>Upload Another</button></a>"
+         << "<a href=\"/about\" style=\"margin: 0 10px;\"><button>About</button></a>"
+         << "<a href=\"/static/upload\" style=\"margin: 0 10px;\"><button>Upload Another</button></a>"
          << "</body></html>";
 
     Logger::log(LOG_INFO, "send_upload_success_response", "Upload successful: " + full_filename);

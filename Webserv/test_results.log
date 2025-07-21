@@ -10,7 +10,7 @@ Connection: close
 Content-Length: 523
 Content-Type: text/html; charset=utf-8
 
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Upload Successful</title></head><body style="font-family:sans-serif;text-align:center;margin-top:50px;"><h1>✅ File uploaded successfully!</h1><p>Saved as: <code>www/upload/test.txt_20250626_151157.txt</code></p><br><br><a href="/" style="margin: 0 10px;"><button>Home</button></a><a href="/about.html" style="margin: 0 10px;"><button>About</button></a><a href="/static/upload.html" style="margin: 0 10px;"><button>Upload Another</button></a></body></html>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Upload Successful</title></head><body style="font-family:sans-serif;text-align:center;margin-top:50px;"><h1>✅ File uploaded successfully!</h1><p>Saved as: <code>www/upload/test.txt_20250626_151157.txt</code></p><br><br><a href="/" style="margin: 0 10px;"><button>Home</button></a><a href="/about" style="margin: 0 10px;"><button>About</button></a><a href="/static/upload" style="margin: 0 10px;"><button>Upload Another</button></a></body></html>
 HTTP 200
 
 [OK] POST /upload returned 200 OK
@@ -135,7 +135,9 @@ Content-Type: text/html
 >> curl -X POST http://localhost:8080/upload -F file=@bigfile.txt
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0 37  169k    0     0   37 65536      0   137M --:--:-- --:--:-- --:--:-- 62.5M
+
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+ 37  169k    0     0   37 65536      0   137M --:--:-- --:--:-- --:--:-- 62.5M
 curl: (55) Send failure: Broken pipe
 
 [FAIL] 413 Payload Too Large error returned.
@@ -167,7 +169,9 @@ Content-Type: text/html
 >> touch www/upload/forbidden.txt && chmod 444 www/upload/forbidden.txt && curl -i -F file=@test.txt http://localhost:8080/upload/test_forbidden.txt
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   207    0     0  100   207      0   383k --:--:-- --:--:-- --:--:--  202k
+
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+100   207    0     0  100   207      0   383k --:--:-- --:--:-- --:--:--  202k
 curl: (52) Empty reply from server
 
 [FAIL] 403 Forbidden error returned.
