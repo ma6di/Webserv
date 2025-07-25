@@ -1,0 +1,57 @@
+/*
+  Note: In a typical project structure, CSS, JavaScript, and HTML files should be organized
+  into separate folders to maintain clean and modular architecture.
+
+  However, when these files are placed outside the 'static' directory, the server returns a 403 Forbidden error.
+  This indicates a possible server-side path resolution issue or misconfiguration in the server settings.
+
+  Resolving this is important for proper project structure and long-term maintainability.
+*/
+
+/*
+  DEFAULT CSS FILE
+  This file contains styles shared across multiple pages.
+  Common elements such as the body and navigation bar should be styled here.
+
+  Examples:
+  - Body: shared background color, font settings, etc.
+  - Navbar: consistent appearance across all HTML pages
+
+  IMPORTANT: when creating a .css file for a new html page remember to add this on top of the page:
+
+    @import url("style.css");
+
+*/
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: lightblue;
+}
+
+/* Navigation bar */
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #333;
+  padding: 1rem 2rem;
+}
+
+.navbar .logo img {
+  height: 40px;
+}
+
+.navbar .nav-links {
+  list-style: none;
+  display: flex;
+  gap: 2rem;
+  margin: 0;
+  padding: 0;
+}
+
+.navbar .nav-links a {
+  color: #fff;
+  text-decoration: none;
+  font-weight: 600;
+}

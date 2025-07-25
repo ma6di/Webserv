@@ -1,0 +1,55 @@
+/* imports the default style shared across all html pages */
+@import url("style.css");
+
+
+.title {
+  margin-top: 60px;
+  text-align: center;
+  font-size: 4rem;
+  animation: pulse 3s infinite;
+}
+
+/* animation of title */
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+.description {
+  max-width: 800px;
+  margin: 30px auto;
+  padding: 0 20px;
+  font-size: 1.2rem;
+  text-align: center;
+}
+
+/* Testing grid */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 40px auto;
+  padding: 0 20px;
+}
+
+.card {
+  background-color: #fff;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.card h3 {
+  margin-top: 0;
+}
+
+.card p {
+  margin-bottom: 0;
+}

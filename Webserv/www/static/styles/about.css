@@ -1,0 +1,65 @@
+/*
+  Note: typically .css, .scripts and .htmls should be kept separately in their own folder and not
+  mixed together to ensure the projectstructure.
+  However if we place these files outside the static folder they are not loaded correctly and
+  we get a 403 error, meaning we are having a server side path issue or even config issue.
+  I think that is something important to solve.
+*/
+
+/* imports the default style shared across all html pages */
+@import url("style.css");
+
+
+/* Team section styles */
+.team-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.team-card {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  max-width: 280px;
+  text-align: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.team-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.team-card .avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 15px;
+}
+
+.team-card h3 {
+  margin: 0 0 10px;
+}
+
+.team-card p {
+  color: #555;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  margin-bottom: 15px;
+}
+
+.social-links a {
+  margin: 0 8px;
+  color: #444;
+  font-size: 1.3rem;
+  transition: color 0.2s ease;
+}
+
+.social-links a:hover {
+  color: #0077b5;
+}

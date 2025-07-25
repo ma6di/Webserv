@@ -1,46 +1,106 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<!-- <link rel="stylesheet" type="text/css" href="/styles.css" /> -->
-	 <link rel="stylesheet" type="text/css" href="/static/style.css" />
-	<title>Document</title>
-</head>
-<body>
-    <h1>About This Site</h1>
-    <p>
-        <b>Webserv</b> is a lightweight, educational HTTP server from 42 Berlin core corriculum which is written in C++.<br>
-        It supports static file serving, CGI scripts, file uploads, and custom error pages.<br>
-        This demo site shows static content and basic navigation.
-    </p>
-<h2>Contact</h2>
-<div class="contact-list" id="">
-  <div class="contact-card">
-    <img class="avatar" src="/static/images/tayfun.jpeg" width="100" alt="Tayfun Kasapoglu">
-    <div>
-      <h4>Tayfun Kasapoglu</h4>
-      <p>
-		Email: <a href="mailto:tkasapog@student.42berlin.de">tkasapog@student.42berlin.de</a>
-	 </p>
-	 <p>
-		GitHub: <a href="https://github.com/tayfunkas" target="_blank">tayfunkas</a>
-	 </p>
-    </div>
-  </div>
-  <div class="contact-card">
-    <img class="avatar" src="/static/images/mahdi.jpeg" width="100" alt="Mahdi Cheraghali">
-    <div>
-      <h4>Mahdi Cheraghali</h4>
-      <p>
-		  Email: <a href="mailto:tmcheragh@student.42berlin.de">tmcheragh@student.42berlin.de</a>
-	  </p>
-	  <p>
-		  GitHub: <a href="https://github.com/ma6di" target="_blank">ma6di</a>
-	  </p>
-    </div>
-  </div>
-</div>
-    <p><a href="/">Home</a></p>
-</body>
+    <head>
+        <meta charset="UTF‑8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="stylesheet" href="/static/styles/about.css" />
+
+        <!-- Include Font Awesome for social icons -->
+        <script
+            src="https://kit.fontawesome.com/a076d05399.js"
+            crossorigin="anonymous"></script>
+        <title>About Our Team</title>
+    </head>
+    <body>
+        <nav class="navbar">
+            <div class="logo">
+                <img src="/static/images/logo.png" alt="Logo" />
+            </div>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/static/about">About</a></li>
+            </ul>
+        </nav>
+
+        <h1>Meet the Team</h1>
+        <div class="team-container">
+            <!-- Tayfun -->
+            <div class="team-card">
+                <img
+                    src="/static/images/tayfun.jpeg"
+                    alt="Tayfun Kasapoglu"
+                    class="avatar" />
+                <h3>Tayfun Kasapoglu</h3>
+                <p>
+                    Passionate about C++ and networks, Tayfun co‑designed the
+                    core of Webserv.
+                </p>
+                <div class="social-links">
+                    <a href="mailto:tkasapog@student.42berlin.de"
+                        ><i class="fas fa-envelope"></i
+                    ></a>
+                    <a
+                        href="https://www.linkedin.com/in/tayfun-kasapoglu/"
+                        target="_blank"
+                        ><i class="fab fa-linkedin"></i
+                    ></a>
+                    <a href="https://github.com/tayfunkas" target="_blank"
+                        ><i class="fab fa-github"></i
+                    ></a>
+                </div>
+            </div>
+
+            <!-- Mahdi -->
+            <div class="team-card">
+                <img
+                    src="/static/images/mahdi.jpeg"
+                    alt="Mahdi Cheraghali"
+                    class="avatar" />
+                <h3>Mahdi Cheraghali</h3>
+                <p>
+                    Mahdi is our HTTP expert, handling request parsing and
+                    server optimization.
+                </p>
+                <div class="social-links">
+                    <a href="mailto:tmcheragh@student.42berlin.de"
+                        ><i class="fas fa-envelope"></i
+                    ></a>
+                    <a
+                        href="https://www.linkedin.com/in/mahdi-cheraghali/"
+                        target="_blank"
+                        ><i class="fab fa-linkedin"></i
+                    ></a>
+                    <a href="https://github.com/ma6di" target="_blank"
+                        ><i class="fab fa-github"></i
+                    ></a>
+                </div>
+            </div>
+
+            <!-- Jessica -->
+            <div class="team-card">
+                <img
+                    src="/static/images/jessica.jpeg"
+                    alt="Jessica Slusark"
+                    class="avatar" />
+                <h3>Jessica Slusark</h3>
+                <p>
+                    Jessica focuses on UI/UX and documentation, making Webserv
+                    usable and friendly.
+                </p>
+                <div class="social-links">
+                    <a href="mailto:jslusark@student.42berlin.de"
+                        ><i class="fas fa-envelope"></i
+                    ></a>
+                    <a
+                        href="https://www.linkedin.com/in/jessica-slusark/"
+                        target="_blank"
+                        ><i class="fab fa-linkedin"></i
+                    ></a>
+                    <a href="https://github.com/jessicaslusark" target="_blank"
+                        ><i class="fab fa-github"></i
+                    ></a>
+                </div>
+            </div>
+        </div>
+    </body>
 </html>
