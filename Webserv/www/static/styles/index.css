@@ -1,55 +1,75 @@
 /* imports the default style shared across all html pages */
 @import url("style.css");
 
+/* PAGE 1 */
 
 .title {
-  margin-top: 60px;
-  text-align: center;
-  font-size: 4rem;
-  animation: pulse 3s infinite;
+    text-align: center;
+    font-size: 200px;
+    margin: 0px;
+    /* animation: pulse 3s infinite; */
+    background: linear-gradient(
+        to right,
+        #7953cd 20%,
+        #00affa 30%,
+        #0190cd 70%,
+        #764ada 80%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    /* text-fill-color: transparent; */
+    background-size: 500% auto;
+    animation: textShine 3s ease-in-out infinite alternate;
+}
+.subtitle {
+    text-align: center;
+    margin: -30px 0 0 0;
+    color: aliceblue;
 }
 
-/* animation of title */
-@keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.08); }
+.page-1 {
+    margin: 150px 0;
+    text-align: center;
 }
 
-.description {
-  max-width: 800px;
-  margin: 30px auto;
-  padding: 0 20px;
-  font-size: 1.2rem;
-  text-align: center;
+@keyframes textShine {
+    0% {
+        background-position: 0% 50%;
+    }
+    100% {
+        background-position: 100% 50%;
+    }
 }
 
+/* PAGE 2 */
 /* Testing grid */
 .grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 2rem;
-  max-width: 1200px;
-  margin: 40px auto;
-  padding: 0 20px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    max-width: 1200px;
+    /* margin: 40px auto; */
+    padding: 0 20px;
 }
 
 .card {
-  background-color: #fff;
-  border-radius: 8px;
-  padding: 1.5rem;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+    background-color: #fff;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    transform: translateY(-8px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
 }
 
 .card h3 {
-  margin-top: 0;
+    /* margin-top: 0; */
 }
 
 .card p {
-  margin-bottom: 0;
+    /* margin-bottom: 0; */
 }
