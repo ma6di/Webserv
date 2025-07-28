@@ -44,13 +44,13 @@ private:
     void poll_loop();
     void handle_new_connection(int listen_fd);
     void handle_client_data(size_t i);
-    std::string resolve_path(const std::string& raw_path, const std::string& method);
+    std::string resolve_path(const std::string& raw_path, const std::string& method, const LocationConfig* loc);
     void cleanup_client(int fd, size_t i);
 
     // --- HTTP Method Handlers ---
     void handle_get(const Request& request, const LocationConfig* loc, int client_fd, size_t i);
     void handle_post(const Request& request, const LocationConfig* loc, int client_fd, size_t i);
-    void handle_delete(const Request& request, int client_fd, size_t i);
+    void handle_delete(const Request& request, const LocationConfig* loc, int client_fd, size_t i);
     void handle_cgi(const LocationConfig* loc, const Request& request, int client_fd, size_t i);
 
     // --- Directory and File Helpers ---
