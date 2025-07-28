@@ -6,9 +6,6 @@
   I think that is something important to solve.
 */
 
-/* imports the default style shared across all html pages */
-@import url("style.css");
-
 h1 {
     text-align: center;
     color: #fff;

@@ -1,42 +1,41 @@
 /* imports the default style shared across all html pages */
 @import url("style.css");
+@import url("about.css");
 
 /* PAGE 1 */
-
-.title {
-    text-align: center;
-    font-size: 200px;
-    margin: 0px;
-    /* animation: pulse 3s infinite; */
-    background: linear-gradient(
-        to right,
-        #7953cd 20%,
-        #00affa 30%,
-        #0190cd 70%,
-        #764ada 80%
-    );
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    /* text-fill-color: transparent; */
-    background-size: 500% auto;
-    animation: textShine 3s ease-in-out infinite alternate;
-}
-.subtitle {
-    text-align: center;
-    margin: -30px 0 0 0;
-    color: aliceblue;
-}
 
 .page-1 {
     margin: 150px 0;
     text-align: center;
 }
 
+.title {
+    text-align: center;
+    font-size: 200px;
+    margin: 0px;
+    /* animation: pulse 3s infinite; */
+    background: linear-gradient(to right,
+            #7953cd 20%,
+            #00affa 30%,
+            #0190cd 70%,
+            #764ada 80%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-size: 500% auto;
+    animation: textShine 3s ease-in-out infinite alternate;
+}
+
+.subtitle {
+    margin: -30px 0 0 0;
+    color: rgb(97, 176, 245);
+}
+
 @keyframes textShine {
     0% {
         background-position: 0% 50%;
     }
+
     100% {
         background-position: 100% 50%;
     }
