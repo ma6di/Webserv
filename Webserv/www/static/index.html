@@ -24,13 +24,13 @@
             <div class="collapse navbar-collapse" id="navbarTogglerDemo01">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     <li class="nav-item">
-                        <a class="nav-link active" aria-current="page" href="#">Home</a>
+                        <a class="nav-link active" aria-current="page" href="#home">Home</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#">About</a>
+                        <a class="nav-link" href="#features">Features</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#">Test it out!</a>
+                        <a class="nav-link" href="#about">About</a>
                     </li>
                 </ul>
             </div>
@@ -38,12 +38,11 @@
     </nav>
 
 
-
     <!-- contains the area below navbar -->
     <div class="container">
 
         <!-- Presentation area -->
-        <div class="page-1">
+        <div class="page-1 " id="home">
             <!-- Project title with animation -->
             <h1 class="title">Webserv</h1>
             <!-- Project description -->
@@ -51,14 +50,13 @@
                 A lightweight HTTP server built in C++ as a group project
                 at 42 Berlin.
             </p>
-
         </div>
 
-        <!-- about area -->
-        <div class="page-2">
+        <!-- feature area -->
+        <div class="container page-2 " id="features">
             <h1>About the project</h1>
             <div class="description">
-                <p>
+                <p class="text-light mb-4">
                     Webserv is a modular, educational HTTP server built in C++ for the 42 Berlin curriculum.
                     It demonstrates core web server concepts such as socket programming, non-blocking I/O, event-driven
                     architecture, and CGI support.
@@ -69,10 +67,85 @@
                     This demo site showcases static content, team information and basic navigation, illustrating how
                     Webserv can power modern web pages and assets.
                 </p>
-                <button class="btn btn-primary" type="submit">Test it out!</button>
             </div>
+            <p class="text-light mb-4">Here we explain that we implemented some tests that will...</p>
+
+            <!-- row 1 -->
+            <div class="row m-4">
+                <div class="col-md-4">
+                    <a href="#feature1" class="card-link-wrapper">
+                        <div class="card feature-card text-white">
+                            <div class="card-body">
+                                <h5 class="card-title">Feature 1</h5>
+                                <p class="card-text">Short description of feature to test.</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <div class="col-md-4">
+                    <a href="#feature2" class="card-link-wrapper">
+                        <div class="card feature-card text-white">
+                            <div class="card-body">
+                                <h5 class="card-title">Feature 2</h5>
+                                <p class="card-text">Short description of feature to test.</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <div class="col-md-4">
+                    <a href="#feature3" class="card-link-wrapper">
+                        <div class="card feature-card text-white">
+                            <div class="card-body">
+                                <h5 class="card-title">Feature 3</h5>
+                                <p class="card-text">Short description of feature to test.</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            <!-- Next row of 3 -->
+            <div class="row m-4"> <!-- g-4 adds spacing between cards -->
+                <div class="col-md-4">
+                    <a href="#feature1" class="card-link-wrapper">
+                        <div class="card feature-card text-white">
+                            <div class="card-body">
+                                <h5 class="card-title">Feature 4</h5>
+                                <p class="card-text">Short description of feature to test.</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <div class="col-md-4">
+                    <a href="#feature2" class="card-link-wrapper">
+                        <div class="card feature-card text-white">
+                            <div class="card-body">
+                                <h5 class="card-title">Feature 5</h5>
+                                <p class="card-text">Short description of feature to test.</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <div class="col-md-4">
+                    <a href="#feature3" class="card-link-wrapper">
+                        <div class="card feature-card text-white">
+                            <div class="card-body">
+                                <h5 class="card-title">Feature 6</h5>
+                                <p class="card-text">Short description of feature to test.</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- about area -->
+        <div class="page-3  " id="about">
             <h1>Meet our team</h1>
-            <p class="team-intro">
+            <p class="text-light mb-4">
                 We met at 42 Berlin at the very start of our journey, going through
                 the piscine together and building a friendship that grew alongside
                 our skills. Over time, we each followed our own pace through the
@@ -84,7 +157,7 @@
             </p>
             <div class="team-container">
                 <!-- Tayfun -->
-                <div class="flip-card">
+                <div class="flip-card shadow">
                     <div class="flip-card-inner">
                         <div class="flip-card-front">
                             <img src="/static/images/tayfun.jpeg" alt="Tayfun Kasapoglu" />
@@ -111,7 +184,7 @@
                 </div>
 
                 <!-- Mahdi -->
-                <div class="flip-card">
+                <div class="flip-card shadow">
                     <div class="flip-card-inner">
                         <div class="flip-card-front">
                             <img src="/static/images/mahdi.jpeg" alt="Mahdi Cheraghali" />
@@ -138,7 +211,7 @@
                 </div>
 
                 <!-- Jessica -->
-                <div class="flip-card">
+                <div class="flip-card shadow">
                     <div class="flip-card-inner">
                         <div class="flip-card-front">
                             <img src="/static/images/jessica.jpeg" alt="Jessica Slusark" />
@@ -167,81 +240,10 @@
             </div>
         </div>
 
-        <!-- feature area -->
-        <div class="page-3">
-            <h1>Test us out!</h1>
-            <div class="grid">
-                <div class="card">
-                    <h3>Feature 1</h3>
-                    <p>
-                        Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-                        Sed do eiusmod tempor incididunt ut labore et dolore
-                        magna aliqua.
-                    </p>
-                </div>
-                <div class="card">
-                    <h3>Feature 2</h3>
-                    <p>
-                        Ut enim ad minim veniam, quis nostrud exercitation
-                        ullamco laboris nisi ut aliquip ex ea commodo consequat.
-                    </p>
-                </div>
-                <div class="card">
-                    <h3>Feature 3</h3>
-                    <p>
-                        Duis aute irure dolor in reprehenderit in voluptate
-                        velit esse cillum dolore eu fugiat nulla pariatur.
-                    </p>
-                </div>
-                <div class="card">
-                    <h3>Feature 4</h3>
-                    <p>
-                        Excepteur sint occaecat cupidatat non proident, sunt in
-                        culpa qui officia deserunt mollit anim id est laborum.
-                    </p>
-                </div>
-                <div class="card">
-                    <h3>Feature 5</h3>
-                    <p>
-                        Sed ut perspiciatis unde omnis iste natus error sit
-                        voluptatem accusantium doloremque laudantium.
-                    </p>
-                </div>
-                <div class="card">
-                    <h3>Feature 6</h3>
-                    <p>
-                        Totam rem aperiam, eaque ipsa quae ab illo inventore
-                        veritatis et quasi architecto beatae vitae dicta sunt
-                        explicabo.
-                    </p>
-                </div>
-                <div class="card">
-                    <h3>Feature 7</h3>
-                    <p>
-                        Nemo enim ipsam voluptatem quia voluptas sit aspernatur
-                        aut odit aut fugit, sed quia consequuntur magni dolores
-                        eos qui ratione.
-                    </p>
-                </div>
-                <div class="card">
-                    <h3>Feature 8</h3>
-                    <p>
-                        Neque porro quisquam est, qui dolorem ipsum quia dolor
-                        sit amet, consectetur, adipisci velit.
-                    </p>
-                </div>
-                <div class="card">
-                    <h3>Feature 9</h3>
-                    <p>
-                        Nam libero tempore, cum soluta nobis est eligendi optio
-                        cumque nihil impedit quo minus id quod maxime placeat.
-                    </p>
-                </div>
-            </div>
-        </div>
-
-
     </div>
+    <footer id="endFooter" class="footer-message text-center text-white py-3">
+  <p>A <i class="fa-solid fa-heart"></i> for sticking with with this website till the very end!</p>
+</footer>
     <script src="/static/scripts/app.js"></script>
 </body>
 

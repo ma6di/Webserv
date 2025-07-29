@@ -26,37 +26,54 @@
 body {
     margin: 0;
     font-family: Arial, sans-serif;
-    background: #28293d;
+
+    background: #1f1e63;
+    background: radial-gradient(circle, rgba(31, 30, 99, 1) 0%, rgba(13, 14, 71, 1) 53%, rgba(9, 9, 38, 1) 100%);
+    /* background: #f2f3f7; /* fallback */
+    /* background: linear-gradient(to bottom, #f5f7fa, #e4e7f1, #d6dae7); */
+
+
+
+
+
+
+
+
 }
 
-/* .container {
-    padding: 30px 50px;
-} */
-
-/* Navigation bar */
-/* .navbar {
-    display: flex;
-    background-color: #28293d;
-    padding: 1rem 2rem;
+#mainNavbar {
+    position: fixed;
+    width: 100%;
+    top: 0;
+    transition: top 0.3s;
+    z-index: 999;
+    /* background: #000; */
+    /* color: #1f1e63; */
 }
 
-.navbar .logo img {
-    height: 40px;
+.navbar {
+  background: linear-gradient(to bottom, #000000, rgba(0, 0, 0, 0)) !important;
 }
 
-.navbar .nav-links {
-    list-style: none;
-    display: flex;
-    gap: 2rem;
-    margin: 0;
-    padding: 0;
-}
 
-.navbar .nav-links a {
-    color: #fff;
+
+.nav-link {
     text-decoration: none;
-    font-weight: 600;
-} */
+    padding: 10px 15px;
+    font-size: 1.1rem;
+    transition: color 0.3s ease;
+}
+
+.nav-link {
+    color: #ffffff !important;
+}
+
+.active {
+    color: #5552e2 !important;
+    font-weight: bold;
+}
+
+
 
 /* Paragraph */
 .paragraph {
@@ -67,4 +84,11 @@ body {
     color: #fff;
     line-height: 1.6;
     text-align: start;
-} 
+}
+
+.fa-heart{
+    color: #ff5760;
+    margin: 0 5px;
+    font-size: 1.2rem;
+    transition: color 0.3s ease;
+}
