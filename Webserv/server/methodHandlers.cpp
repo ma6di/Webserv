@@ -5,7 +5,7 @@ extern Config g_config;
 // --- GET Handler ---
 void WebServer::handle_get(const Request& request, const LocationConfig* loc, int client_fd, size_t i) {
     std::string uri = request.getPath();
-    std::string path = resolve_path(uri, "GET");
+    std::string path = resolve_path(uri, "GET", loc);
     Logger::log(LOG_DEBUG, "handle_get", "uri=" + uri + " path=" + path);
 
     if (loc && !loc->redirect_url.empty()) {
@@ -24,8 +24,28 @@ void WebServer::handle_get(const Request& request, const LocationConfig* loc, in
 }
 
 // --- Directory Handler ---
-void WebServer::handle_directory_request(const std::string& path, const std::string& uri, const LocationConfig* loc, int client_fd, size_t i) {
+/*void WebServer::handle_directory_request(const std::string& path, const std::string& uri, const LocationConfig* loc, int client_fd, size_t i) {
     std::string index_path = path + "/index.html";
+    if (file_exists(index_path)) {
+        Logger::log(LOG_DEBUG, "handle_directory_request", "Serving index: " + index_path);
+        send_file_response(client_fd, index_path, i);
+        return;
+    }
+    if (loc && loc->autoindex) {
+        Logger::log(LOG_DEBUG, "handle_directory_request", "Autoindex enabled for: " + path);
+        std::string html = generate_directory_listing(path, uri);
+        send_ok_response(client_fd, html, content_type_html(), i);
+        return;
+    }
+    Logger::log(LOG_ERROR, "handle_directory_request", "Forbidden: " + path);
+    send_error_response(client_fd, 403, "Forbidden", i);
+}*/
+
+void WebServer::handle_directory_request(const std::string& path, const std::string& uri, const LocationConfig* loc, int client_fd, size_t i) {
+    // Use the configured index if set, otherwise default to index.html
+    const std::string index_file = (loc && !loc->index.empty()) ? loc->index : "index.html";
+
+    std::string index_path = path + "/" + index_file;
     if (file_exists(index_path)) {
         Logger::log(LOG_DEBUG, "handle_directory_request", "Serving index: " + index_path);
         send_file_response(client_fd, index_path, i);
@@ -97,7 +117,7 @@ void WebServer::handle_cgi(const LocationConfig* loc, const Request& request, in
 // --- POST Handler ---
 void WebServer::handle_post(const Request& request, const LocationConfig* loc, int client_fd, size_t i) {
     std::string uri = request.getPath();
-    std::string path = resolve_path(uri, "POST");
+    std::string path = resolve_path(uri, "POST", loc);
     Logger::log(LOG_DEBUG, "handle_post", "method=" + request.getMethod() + ", uri=" + uri + " path=" + path);
 
     if (loc && is_cgi_request(*loc, request.getPath())) {
@@ -129,9 +149,9 @@ void WebServer::handle_post(const Request& request, const LocationConfig* loc, i
 }
 
 // --- DELETE Handler ---
-void WebServer::handle_delete(const Request& request, int client_fd, size_t i) {
+void WebServer::handle_delete(const Request& request, const LocationConfig* loc, int client_fd, size_t i) {
     std::string uri = request.getPath();
-    std::string path = resolve_path(uri, "DELETE");
+    std::string path = resolve_path(uri, "DELETE", loc);
     Logger::log(LOG_DEBUG, "handle_delete", "uri=" + uri + " path=" + path);
     if (!file_exists(path)) {
         Logger::log(LOG_ERROR, "handle_delete", "File not found: " + path);
