@@ -8,7 +8,7 @@ const navbar = document.getElementById("mainNavbar");
 window.addEventListener("scroll", function () {
     const positionOnScroll = window.pageYOffset || document.documentElement.positionOnScroll;
     if (positionOnScroll > positionStart) {
-        navbar.style.top = "0px"; // 
+        navbar.style.top = "0px"; //
     } else {
         navbar.style.top = "-80px"; // hides the navbar when scrolling up
     }
@@ -34,3 +34,12 @@ document.querySelectorAll('.nav-link').forEach(link => {
     this.classList.add('active');
   });
 });
+
+/* remove anchor hashes from html */
+function scrollToSection(id) {
+    const el = document.getElementById(id);
+    if (el) {
+        el.scrollIntoView({ behavior: "smooth" });
+        history.replaceState(null, "", window.location.pathname); // ✅ clean URL with no #
+    }
+}
