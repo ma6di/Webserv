@@ -53,13 +53,6 @@
                 color: #6c757d;
             }
 
-            .toast-container {
-                position: fixed;
-                bottom: 1rem;
-                right: 1rem;
-                z-index: 9999;
-            }
-
             .delete-btn {
                 position: absolute;
                 top: 6px;
@@ -97,40 +90,73 @@
 
             <div class="photo-grid mb-4">
                 <!-- Upload Button -->
-                <div class="photo-card" onclick="showToast()">
+                <div class="photo-card" onclick="showModal()">
                     <span class="upload-icon">+</span>
                 </div>
             </div>
 
-            <!-- toast -->
-            <form
-                action="/upload"
-                method="POST"
-                enctype="multipart/form-data"
-                class="d-none"
-                id="uploadForm">
-                <input
-                    type="file"
-                    name="file"
-                    id="fileInput"
-                    onchange="document.getElementById('uploadForm').submit();" />
-            </form>
-        </div>
-
-        <!-- Toast -->
-        <div class="toast-container">
+            <!-- Upload Modal -->
             <div
-                id="uploadToast"
-                class="toast align-items-center text-white bg-primary border-0"
-                role="alert">
-                <div class="d-flex">
-                    <div class="toast-body">
-                        Please select a photo to upload.
+                class="modal fade"
+                id="uploadModal"
+                tabindex="-1"
+                aria-labelledby="uploadModalLabel"
+                aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <form
+                            id="photoUploadForm"
+                            enctype="multipart/form-data">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="uploadModalLabel">
+                                    Add your photo
+                                </h5>
+                                <button
+                                    type="button"
+                                    class="btn-close"
+                                    data-bs-dismiss="modal"
+                                    aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p>Click the button below to add your photo.</p>
+                                <input
+                                    type="file"
+                                    name="file"
+                                    id="modalFileInput"
+                                    class="form-control mb-3"
+                                    required />
+                                <div id="fileReady" class="text-success d-none">
+                                    ✅ Photo ready to upload
+                                </div>
+
+                                <label for="photoName" class="form-label mt-3"
+                                    >Photo name</label
+                                >
+                                <input
+                                    type="text"
+                                    name="name"
+                                    id="photoName"
+                                    class="form-control"
+                                    required />
+
+                                <label
+                                    for="photoDescription"
+                                    class="form-label mt-3"
+                                    >Description</label
+                                >
+                                <textarea
+                                    name="description"
+                                    id="photoDescription"
+                                    class="form-control"
+                                    rows="2"></textarea>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="submit" class="btn btn-primary">
+                                    Upload
+                                </button>
+                            </div>
+                        </form>
                     </div>
-                    <button
-                        type="button"
-                        class="btn-close btn-close-white me-2 m-auto"
-                        data-bs-dismiss="toast"></button>
                 </div>
             </div>
         </div>
@@ -163,16 +189,79 @@
                   from asset arrival, we keep UI predictable even with cache, CDN, or latency variati
             `);
 
-            function showToast() {
-                const toast = new bootstrap.Toast(
-                    document.getElementById("uploadToast")
+            function showModal() {
+                const modal = new bootstrap.Modal(
+                    document.getElementById("uploadModal")
                 );
-                toast.show();
-
-                setTimeout(() => {
-                    document.getElementById("fileInput").click();
-                }, 400);
+                modal.show();
             }
+
+            document
+                .getElementById("modalFileInput")
+                .addEventListener("change", function () {
+                    const file = this.files[0];
+                    const readyNotice = document.getElementById("fileReady");
+
+                    if (!file) {
+                        readyNotice.classList.add("d-none");
+                        return;
+                    }
+
+                    const allowedTypes = [
+                        "image/jpeg",
+                        "image/png",
+                        "image/webp",
+                        "image/gif",
+                    ];
+                    if (!allowedTypes.includes(file.type)) {
+                        alert(
+                            "❌ Only JPG, PNG, WEBP, and GIF files are allowed."
+                        );
+                        this.value = ""; // reset input
+                        readyNotice.classList.add("d-none");
+                        return;
+                    }
+
+                    readyNotice.classList.remove("d-none");
+                });
+
+            //POST REQUEST
+            document
+                .getElementById("photoUploadForm")
+                .addEventListener("submit", function (e) {
+                    e.preventDefault();
+
+                    const form = e.target;
+                    const formData = new FormData(form); // auto includes file + name + desc
+
+                    fetch("/cgi-bin/photobook_upload.py", {
+                        method: "POST",
+                        body: new FormData(
+                            document.getElementById("photoUploadForm")
+                        ),
+                    })
+                        .then((res) => {
+                            if (!res.ok) throw new Error("Upload failed");
+                            return res.text(); // or .json() if your backend returns metadata
+                        })
+                        .then((msg) => {
+                            alert("✅ Upload complete!");
+                            form.reset();
+                            document
+                                .getElementById("fileReady")
+                                .classList.add("d-none");
+                            bootstrap.Modal.getInstance(
+                                document.getElementById("uploadModal")
+                            ).hide();
+                            location.reload(); // or dynamically add to photo-grid
+                        })
+                        .catch((err) => {
+                            console.error("❌ Upload error:", err);
+                            alert("Upload failed!");
+                        });
+                });
+
+            //GET REQUEST
             console.time("⏰ Completed in");
             fetch("../cgi-bin/photobook_json.py")
                 .then((res) => {
@@ -231,12 +320,11 @@
                         card.appendChild(img);
                         grid.appendChild(card);
 
-                        // Create delete button
+                        // DELETE BUTTON AND REQUEST
                         const deleteBtn = document.createElement("button");
                         deleteBtn.textContent = "×";
                         deleteBtn.className = "delete-btn";
                         deleteBtn.title = "Delete photo";
-
                         // Handle click → send DELETE request
                         deleteBtn.onclick = () => {
                             if (
