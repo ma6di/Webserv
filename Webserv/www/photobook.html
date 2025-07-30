@@ -7,6 +7,7 @@
         <link
             href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css"
             rel="stylesheet" />
+        <!-- <link rel="stylesheet" type="text/css" href="/styles/index.css" /> -->
         <style>
             body {
                 background-color: #f8f9fa;
@@ -74,6 +75,33 @@
         </style>
     </head>
     <body>
+        <nav id="mainNavbar" class="navbar navbar-expand-lg bg-body-tertiary">
+            <div class="container-fluid">
+                <button
+                    class="navbar-toggler"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#navbarTogglerDemo01"
+                    aria-controls="navbarTogglerDemo01"
+                    aria-expanded="false"
+                    aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarTogglerDemo01">
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                        <li class="nav-item">
+                            <a
+                                class="nav-link"
+                                aria-current="page"
+                                href="/index.html#features"></a>
+                                👈 Back to features</a
+                            >
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
         <div class="container py-5">
             <h1 class="text-center mb-3">Evaluator Photobook</h1>
             <p class="text-center mb-5 text-muted">
@@ -94,6 +122,12 @@
                     <span class="upload-icon">+</span>
                 </div>
             </div>
+            <!-- Empty state message -->
+            <p
+                id="emptyMessage"
+                class="text-center mt-4 d-none px-4 py-3 border rounded bg-warning bg-opacity-25 text-dark">
+                📭 The photobook is empty! Add its first picture!
+            </p>
 
             <!-- Upload Modal -->
             <div
@@ -157,6 +191,60 @@
                             </div>
                         </form>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delete Confirmation Modal -->
+        <div
+            class="modal fade"
+            id="confirmDeleteModal"
+            tabindex="-1"
+            aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title">Confirm Deletion</h5>
+                        <button
+                            type="button"
+                            class="btn-close btn-close-white"
+                            data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        Are you sure you want to delete this photo?
+                    </div>
+                    <div class="modal-footer">
+                        <button
+                            type="button"
+                            class="btn btn-secondary"
+                            data-bs-dismiss="modal">
+                            Cancel
+                        </button>
+                        <button
+                            id="confirmDeleteBtn"
+                            type="button"
+                            class="btn btn-danger">
+                            Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Deletion Toast -->
+        <div class="toast-container position-fixed bottom-0 end-0 p-3">
+            <div
+                id="deleteToast"
+                class="toast text-white bg-success border-0"
+                role="alert">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        ✅ Photo deleted successfully from database.
+                    </div>
+                    <button
+                        type="button"
+                        class="btn-close btn-close-white me-2 m-auto"
+                        data-bs-dismiss="toast"></button>
                 </div>
             </div>
         </div>
@@ -269,11 +357,71 @@
                     return res.json();
                 })
                 .then((data) => {
+                    // makes the "empty photobooth" warning visible or not
+                    if (!Array.isArray(data) || data.length === 0) {
+                        document
+                            .getElementById("emptyMessage")
+                            .classList.remove("d-none");
+                        return;
+                    } else {
+                        document
+                            .getElementById("emptyMessage")
+                            .classList.add("d-none");
+                    }
+
                     console.log("✅ Request handled successfully!");
                     console.timeEnd("⏰ Completed in");
                     console.log("Retrieved data:", data);
 
                     const grid = document.querySelector(".photo-grid");
+                    let fileToDelete = null;
+                    let cardToDelete = null;
+                    document.getElementById("confirmDeleteBtn").onclick =
+                        () => {
+                            if (!fileToDelete || !cardToDelete) return;
+
+                            fetch(`/images/uploads/${fileToDelete}`, {
+                                method: "DELETE",
+                            })
+                                .then((res) => {
+                                    if (!res.ok)
+                                        throw new Error("Delete failed");
+
+                                    cardToDelete.remove();
+
+                                    const toast = new bootstrap.Toast(
+                                        document.getElementById("deleteToast")
+                                    );
+                                    toast.show();
+
+                                    fileToDelete = null;
+                                    cardToDelete = null;
+
+                                    bootstrap.Modal.getInstance(
+                                        document.getElementById(
+                                            "confirmDeleteModal"
+                                        )
+                                    ).hide();
+
+                                    // shows "empty phitobook" message
+                                    if (
+                                        document.querySelectorAll(".photo-card")
+                                            .length === 1
+                                    ) {
+                                        // Only the upload button remains
+                                        document
+                                            .getElementById("emptyMessage")
+                                            .classList.remove("d-none");
+                                    }
+                                })
+                                .catch((err) => {
+                                    console.error(
+                                        "❌ Could not delete image:",
+                                        err
+                                    );
+                                    alert("Error: failed to delete image.");
+                                });
+                        };
 
                     data.forEach((filename) => {
                         const card = document.createElement("div");
@@ -325,30 +473,16 @@
                         deleteBtn.textContent = "×";
                         deleteBtn.className = "delete-btn";
                         deleteBtn.title = "Delete photo";
-                        // Handle click → send DELETE request
-                        deleteBtn.onclick = () => {
-                            if (
-                                !confirm(
-                                    `Are you sure you want to delete "${filename}"?`
-                                )
-                            )
-                                return;
 
-                            fetch(`/images/uploads/${filename}`, {
-                                method: "DELETE",
-                            })
-                                .then((res) => {
-                                    if (!res.ok)
-                                        throw new Error("Delete failed");
-                                    card.remove(); // Remove from UI
-                                })
-                                .catch((err) => {
-                                    console.error(
-                                        "❌ Could not delete image:",
-                                        err
-                                    );
-                                    alert("Error: failed to delete image.");
-                                });
+                        // PHASE 1: When user clicks X button
+                        deleteBtn.onclick = () => {
+                            fileToDelete = filename;
+                            cardToDelete = card;
+
+                            const modal = new bootstrap.Modal(
+                                document.getElementById("confirmDeleteModal")
+                            );
+                            modal.show();
                         };
 
                         card.appendChild(deleteBtn);
