@@ -2,11 +2,11 @@
 
 extern Config g_config;
 
-std::string WebServer::resolve_path(const std::string& raw_path, const std::string& method) {
+/*std::string WebServer::resolve_path(const std::string& raw_path, const std::string& method, const LocationConfig* loc) {
     std::string path = raw_path;
     std::string base_dir;
     std::string resolved_path;
-
+    (void)loc; // Avoid unused parameter warning
     Logger::log(LOG_DEBUG, "resolve_path", "raw_path = \"" + raw_path + "\", method = " + method);
 
     // 1. CGI
@@ -53,7 +53,157 @@ std::string WebServer::resolve_path(const std::string& raw_path, const std::stri
         resolved_path += "/index.html";
     Logger::log(LOG_DEBUG, "resolve_path", "Default static path: " + resolved_path);
     return resolved_path;
+}*/
+
+/*std::string WebServer::resolve_path(const std::string& raw_path, const std::string& method, const LocationConfig* loc) {
+    Logger::log(LOG_DEBUG, "resolve_path", "raw_path = \"" + raw_path + "\", method = " + method);
+
+    if (loc) {
+        std::string base_dir = loc->root;
+        std::string rel_path = raw_path.substr(loc->path.length()); // Strip the location prefix
+        if (!rel_path.empty() && rel_path[0] == '/')
+            rel_path = rel_path.substr(1);
+
+        std::string resolved_path = base_dir;
+        if (!rel_path.empty())
+            resolved_path += "/" + rel_path;
+        else
+            resolved_path += "/" + loc->index; // default index file
+
+        // If it's a directory, append index
+        if (resolved_path[resolved_path.size() - 1] == '/')
+            resolved_path += loc->index;
+
+        Logger::log(LOG_DEBUG, "resolve_path", "Resolved with loc: " + resolved_path);
+        return resolved_path;
+    }
+
+    // Fallback behavior (hardcoded)
+    std::string fallback = "./www/static" + raw_path;
+    if (!fallback.empty() && fallback[fallback.size() - 1] == '/')
+        fallback += "index.html";
+
+    Logger::log(LOG_DEBUG, "resolve_path", "Resolved fallback: " + fallback);
+    return fallback;
+}*/
+
+/*std::string WebServer::resolve_path(const std::string& raw_path, const std::string& method, const LocationConfig* loc) {
+    Logger::log(LOG_DEBUG, "resolve_path", "raw_path = \"" + raw_path + "\", method = " + method);
+
+    if (loc) {
+        std::string base_dir = loc->root;
+        std::string rel_path = raw_path;
+
+        // Only strip prefix if not "/"
+        if (loc->path != "/" && raw_path.find(loc->path) == 0)
+            rel_path = raw_path.substr(loc->path.length());
+
+        if (!rel_path.empty() && rel_path[0] == '/')
+            rel_path = rel_path.substr(1);
+
+        std::string resolved_path = base_dir;
+        if (!rel_path.empty())
+            resolved_path += "/" + rel_path;
+
+        // Check if the resolved path is a directory
+        if (is_directory(resolved_path)) {
+            Logger::log(LOG_DEBUG, "resolve_path", "Path is a directory, appending index: " + loc->index);
+            resolved_path += "/" + loc->index;
+        }
+
+        Logger::log(LOG_DEBUG, "resolve_path", "Resolved with loc: " + resolved_path);
+        return resolved_path;
+    }
+
+    // Fallback behavior
+    std::string fallback = "./www" + raw_path;
+    if (is_directory(fallback))
+        fallback += "/index.html";
+
+    Logger::log(LOG_DEBUG, "resolve_path", "Resolved fallback: " + fallback);
+    return fallback;
+}*/
+
+/*std::string WebServer::resolve_path(const std::string& raw_path, const std::string& method, const LocationConfig* loc) {
+    Logger::log(LOG_DEBUG, "resolve_path", "raw_path = \"" + raw_path + "\", method = " + method);
+
+    if (loc) {
+        std::string base_dir = loc->root;
+        std::string rel_path = raw_path;
+
+        // Strip location prefix
+        if (loc->path != "/" && raw_path.find(loc->path) == 0)
+            rel_path = raw_path.substr(loc->path.length());
+
+        if (!rel_path.empty() && rel_path[0] == '/')
+            rel_path = rel_path.substr(1);
+
+        std::string resolved_path = base_dir;
+        if (!rel_path.empty())
+            resolved_path += "/" + rel_path;
+
+        // DO NOT append index.html here.
+        Logger::log(LOG_DEBUG, "resolve_path", "Resolved with loc: " + resolved_path);
+        return resolved_path;
+    }
+
+    // Fallback
+    std::string fallback = "./www" + raw_path;
+    Logger::log(LOG_DEBUG, "resolve_path", "Resolved fallback: " + fallback);
+    return fallback;
+}*/
+
+std::string WebServer::resolve_path(const std::string& raw_path,
+                                    const std::string& method,
+                                    const LocationConfig* loc) {
+    Logger::log(LOG_DEBUG, "resolve_path",
+                "raw_path = \"" + raw_path + "\", method = " + method);
+
+    // Helper to strip the location prefix
+    std::string rel = raw_path;
+    if (loc && loc->path != "/" && raw_path.find(loc->path) == 0) {
+        rel = raw_path.substr(loc->path.length());
+    }
+    if (!rel.empty() && rel[0] == '/')
+        rel = rel.substr(1);
+
+    // Build candidate path under this location’s root
+    std::string candidate;
+    if (loc) {
+        candidate = loc->root;
+    } else {
+        candidate = "./www";  // global fallback
+    }
+    if (!rel.empty())
+        candidate += "/" + rel;
+
+    Logger::log(LOG_DEBUG, "resolve_path", "Candidate path: " + candidate);
+
+    // 1) If it’s a directory, return it—handle_get will dispatch to handle_directory_request()
+    if (is_directory(candidate)) {
+        Logger::log(LOG_DEBUG, "resolve_path", "Directory detected, returning: " + candidate);
+        return candidate;
+    }
+
+    // 2) If it’s a file, return it directly
+    if (file_exists(candidate)) {
+        Logger::log(LOG_DEBUG, "resolve_path", "File exists, returning: " + candidate);
+        return candidate;
+    }
+
+    // 3) Fallback: try adding “.html”
+    std::string html_fallback = candidate + ".html";
+    if (file_exists(html_fallback)) {
+        Logger::log(LOG_DEBUG, "resolve_path", "HTML fallback, returning: " + html_fallback);
+        return html_fallback;
+    }
+
+    // 4) Nothing matched — return the original candidate (so handle_file_request will 404)
+    Logger::log(LOG_DEBUG, "resolve_path", "Nothing found, returning: " + candidate);
+    return candidate;
 }
+
+
 
 std::string extract_filename(const std::string& header) {
     size_t pos = header.find("filename=");

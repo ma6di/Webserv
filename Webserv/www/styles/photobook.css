@@ -28,17 +28,14 @@ body {
     font-family: Arial, sans-serif;
 
     background: #1f1e63;
-    background: radial-gradient(circle, rgba(31, 30, 99, 1) 0%, rgba(13, 14, 71, 1) 53%, rgba(9, 9, 38, 1) 100%);
+    background: radial-gradient(
+        circle,
+        rgba(31, 30, 99, 1) 0%,
+        rgba(13, 14, 71, 1) 53%,
+        rgba(9, 9, 38, 1) 100%
+    );
     /* background: #f2f3f7; /* fallback */
     /* background: linear-gradient(to bottom, #f5f7fa, #e4e7f1, #d6dae7); */
-
-
-
-
-
-
-
-
 }
 
 #mainNavbar {
@@ -52,10 +49,12 @@ body {
 }
 
 .navbar {
-  background: linear-gradient(to bottom, #000000, rgba(0, 0, 0, 0)) !important;
+    background: linear-gradient(
+        to bottom,
+        #000000,
+        rgba(0, 0, 0, 0)
+    ) !important;
 }
-
-
 
 .nav-link {
     text-decoration: none;
@@ -73,8 +72,6 @@ body {
     font-weight: bold;
 }
 
-
-
 /* Paragraph */
 .paragraph {
     text-align: center;
@@ -86,7 +83,7 @@ body {
     text-align: start;
 }
 
-.fa-heart{
+.fa-heart {
     color: #ff5760;
     margin: 0 5px;
     font-size: 1.2rem;

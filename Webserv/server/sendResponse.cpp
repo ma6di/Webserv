@@ -41,12 +41,24 @@ void WebServer::send_upload_success_response(int client_fd, const std::string& f
          << "<p>Saved as: <code>" << full_filename << "</code></p>"
          << "<br><br>"
          << "<a href=\"/\" style=\"margin: 0 10px;\"><button>Home</button></a>"
-         << "<a href=\"/about.html\" style=\"margin: 0 10px;\"><button>About</button></a>"
-         << "<a href=\"/static/upload.html\" style=\"margin: 0 10px;\"><button>Upload Another</button></a>"
+         << "<a href=\"/about\" style=\"margin: 0 10px;\"><button>About</button></a>"
+         << "<a href=\"/upload\" style=\"margin: 0 10px;\"><button>Upload Another</button></a>"
          << "</body></html>";
 
     Logger::log(LOG_INFO, "send_upload_success_response", "Upload successful: " + full_filename);
     send_ok_response(client_fd, body.str(), single_header("Content-Type", "text/html; charset=utf-8"), i);
+}
+
+static std::string resolve_error_page_path(const std::string& err_uri) {
+    std::string fallback_root = "./www/";
+    std::string cleaned_uri = err_uri;
+
+    if (!cleaned_uri.empty() && cleaned_uri[0] == '/')
+        cleaned_uri = cleaned_uri.substr(1);
+
+    std::string full_path = fallback_root + "/" + cleaned_uri;
+    Logger::log(LOG_DEBUG, "resolve_error_page_path", "Resolved error path: " + full_path);
+    return full_path;
 }
 
 // Send a standard error response and cleanup
@@ -59,12 +71,45 @@ void WebServer::send_upload_success_response(int client_fd, const std::string& f
     cleanup_client(client_fd, i);
 }*/
 
+/*void WebServer::send_error_response(int client_fd, int code, const std::string& msg, size_t i) {
+    const std::string* err_page = g_config.getErrorPage(code);
+    std::string body;
+
+    if (err_page && !err_page->empty()) {
+        std::string resolved_path = resolve_path(*err_page, "GET", loc);
+        Logger::log(LOG_DEBUG, "send_error_response", "Trying custom error page: " + resolved_path);
+
+        if (file_exists(resolved_path) && access(resolved_path.c_str(), R_OK) == 0) {
+            body = read_file(resolved_path);
+            if (!body.empty()) {
+                Logger::log(LOG_INFO, "send_error_response", "Using custom error page for code " + to_str(code));
+                Response(client_fd, code, msg, body, content_type_html());
+                cleanup_client(client_fd, i);
+                return;
+            }
+        } else {
+            Logger::log(LOG_ERROR, "send_error_response", "Custom error page not found or not readable: " + resolved_path);
+        }
+    }
+
+    // Fallback default error HTML
+    std::ostringstream oss;
+    oss << "<!DOCTYPE html><html><head><title>" << code << " " << msg
+        << "</title></head><body><h1>" << code << " " << msg
+        << "</h1><p>The server could not fulfill your request.</p></body></html>";
+    body = oss.str();
+
+    Logger::log(LOG_INFO, "send_error_response", "Using default error page for code " + to_str(code));
+    Response(client_fd, code, msg, body, content_type_html());
+    cleanup_client(client_fd, i);
+}*/
+
 void WebServer::send_error_response(int client_fd, int code, const std::string& msg, size_t i) {
     const std::string* err_page = g_config.getErrorPage(code);
     std::string body;
 
     if (err_page && !err_page->empty()) {
-        std::string resolved_path = resolve_path(*err_page, "GET");
+        std::string resolved_path = resolve_error_page_path(*err_page);
         Logger::log(LOG_DEBUG, "send_error_response", "Trying custom error page: " + resolved_path);
 
         if (file_exists(resolved_path) && access(resolved_path.c_str(), R_OK) == 0) {
@@ -91,4 +136,5 @@ void WebServer::send_error_response(int client_fd, int code, const std::string& 
     Response(client_fd, code, msg, body, content_type_html());
     cleanup_client(client_fd, i);
 }
+
 

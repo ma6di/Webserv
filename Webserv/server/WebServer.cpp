@@ -238,7 +238,7 @@ void WebServer::process_request(Request& request, int client_fd, size_t i) {
     } else if (method == "POST") {
         handle_post(request, loc, client_fd, i);
     } else if (method == "DELETE") {
-        handle_delete(request, client_fd, i);
+        handle_delete(request, loc, client_fd, i);
     }
 
     // Connection: close logic
