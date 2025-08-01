@@ -11,23 +11,27 @@
         integrity="sha384-ndDqU0Gzau9qJ1lfW4pNLlhNTkCfHzAVBReH9diLvGRem5+R9g2FzA8ZGN954O5Q"
         crossorigin="anonymous"></script>
 </head>
-<style>
+    <style>
     @media screen and (orientation: landscape) {
         .carousel img {
             height: 100vh;
         }
     }
 
-    .carousel-slide-bg {
-        background-color: #333;
+        .carousel-slide-bg {
+            background-color: #f54e4e;
         /* or use bg-dark, bg-primary, etc. */
-        min-height: 100vh;
+            min-height: 100vh;
         /* Makes it full height like an image */
-    }
-</style>
+        }
+    </style>
 
 <body class="bg-dark text-light">
-    <div id="carouselExampleCaptions" class="carousel slide">
+
+    <a href="/index.html"> go back</a>
+    <div id="carouselExampleCaptions" class="carousel slide" data-bs-ride="carousel">
+
+        <!-- Indicators -->
         <div class="carousel-indicators">
             <button type="button" data-bs-target="#carouselExampleCaptions" data-bs-slide-to="0" class="active"
                 aria-current="true" aria-label="Slide 1"></button>
@@ -42,70 +46,90 @@
             <button type="button" data-bs-target="#carouselExampleCaptions" data-bs-slide-to="5"
                 aria-label="Slide 6"></button>
         </div>
-    </div>
-    <div class="carousel-inner">
-        <div class=" carousel-slide-bg carousel-item active">
-            <div class="carousel-caption d-flex flex-column h-100 align-items-center justify-content-center">
-                <h2 class="bg-dark bg-opacity-50 py-2 px-4">Error 403</h2>
-                <p class="bg-dark bg-opacity-50 py-2 px-4">Triggered when requesting a resource without permission</p>
-                <a href="/images/uploads/forbidden.txt" class="btn btn-outline-light px-4 py-2 rounded-0">Trigger
-                    me!</a>
+
+        <!-- Carousel Inner -->
+        <div class="carousel-inner">
+
+            <!-- Slide 1: 403 -->
+            <div class="carousel-item active carousel-slide-bg">
+                <div class="carousel-caption d-flex flex-column h-100 align-items-center justify-content-center">
+                    <h2 class=" py-2 px-4">Error 403</h2>
+                    <p class=" py-2 px-4">Triggered when requesting a resource without permission.
+                    </p>
+                    <a href="/images/uploads/forbidden.txt" class="btn btn-outline-light px-4 py-2 rounded-0">Trigger
+                        me!</a>
+                </div>
             </div>
-        </div>
-        <div class=" carousel-slide-bg carousel-item ">
-            <div class="carousel-caption d-flex flex-column h-100 align-items-center justify-content-center">
-                <h2 class="bg-dark bg-opacity-50 py-2 px-4">Error 404</h2>
-                <p class="bg-dark bg-opacity-50 py-2 px-4">Triggered when the requested URL cannot be found on the
-                    server.</p>
-                <a href="/images/uploads/not_exists.txt" class="btn btn-outline-light px-4 py-2 rounded-0">Trigger
-                    me!</a>
+
+            <!-- Slide 2: 404 -->
+            <div class="carousel-item carousel-slide-bg">
+                <div class="carousel-caption d-flex flex-column h-100 align-items-center justify-content-center">
+                    <h2 class=" py-2 px-4">Error 404</h2>
+                    <p class=" py-2 px-4">Triggered when the requested URL cannot be found on the
+                        server.</p>
+                    <a href="/images/uploads/not_exists.txt" class="btn btn-outline-light px-4 py-2 rounded-0">Trigger
+                        me!</a>
+                </div>
             </div>
-        </div>
-        <div class=" carousel-slide-bg carousel-item ">
-            <div class="carousel-caption d-flex flex-column h-100 align-items-center justify-content-center">
-                <h2 class="bg-dark bg-opacity-50 py-2 px-4">Error 405</h2>
-                <p class="bg-dark bg-opacity-50 py-2 px-4">Triggered when the HTTP method is not supported for this
-                    route</p>
-                <a href="/images/uploads/forbidden.txt" class="btn btn-outline-light px-4 py-2 rounded-0">Need to
-                    implement⚠️ </a>
+
+            <!-- Slide 3: 405 -->
+            <div class="carousel-item carousel-slide-bg">
+                <div class="carousel-caption d-flex flex-column h-100 align-items-center justify-content-center">
+                    <h2 class=" py-2 px-4">Error 405</h2>
+                    <p class=" py-2 px-4">Triggered when the HTTP method is not supported for this
+                        route.</p>
+                    <a href="/images/uploads/forbidden.txt" class="btn btn-outline-light px-4 py-2 rounded-0">Need to
+                        implement ⚠️</a>
+                </div>
             </div>
-        </div>
-        <div class=" carousel-slide-bg carousel-item ">
-            <div class="carousel-caption d-flex flex-column h-100 align-items-center justify-content-center">
-                <h2 class="bg-dark bg-opacity-50 py-2 px-4">Error 413</h2>
-                <p class="bg-dark bg-opacity-50 py-2 px-4">Triggered when the request body is larger than the server
-                    allows.</p>
-                <a href="/images/uploads/forbidden.txt" class="btn btn-outline-light px-4 py-2 rounded-0">Need to
-                    implement⚠️</a>
+
+            <!-- Slide 4: 413 -->
+            <div class="carousel-item carousel-slide-bg">
+                <div class="carousel-caption d-flex flex-column h-100 align-items-center justify-content-center">
+                    <h2 class=" py-2 px-4">Error 413</h2>
+                    <p class=" py-2 px-4">Triggered when the request body is larger than the server
+                        allows.</p>
+                    <a href="/images/uploads/forbidden.txt" class="btn btn-outline-light px-4 py-2 rounded-0">Need to
+                        implement ⚠️</a>
+                </div>
             </div>
-        </div>
-        <div class=" carousel-slide-bg carousel-item ">
-            <div class="carousel-caption d-flex flex-column h-100 align-items-center justify-content-center">
-                <h2 class="bg-dark bg-opacity-50 py-2 px-4">Error 500</h2>
-                <p class="bg-dark bg-opacity-50 py-2 px-4">Triggered when the server encounters an unexpected condition.
-                </p>
-                <a href="/images/uploads/forbidden.txt" class="btn btn-outline-light px-4 py-2 rounded-0">Need to
-                    implement⚠️</a>
+
+            <!-- Slide 5: 500 -->
+            <div class="carousel-item carousel-slide-bg">
+                <div class="carousel-caption d-flex flex-column h-100 align-items-center justify-content-center">
+                    <h2 class=" py-2 px-4">Error 500</h2>
+                    <p class=" py-2 px-4">Triggered when the server encounters an unexpected
+                        condition.</p>
+                    <a href="/images/uploads/forbidden.txt" class="btn btn-outline-light px-4 py-2 rounded-0">Need to
+                        implement ⚠️</a>
+                </div>
             </div>
-        </div>
-        <div class=" carousel-slide-bg carousel-item ">
-            <div class="carousel-caption d-flex flex-column h-100 align-items-center justify-content-center">
-                <h2 class="bg-dark bg-opacity-50 py-2 px-4">Error 403</h2>
-                <p class="bg-dark bg-opacity-50 py-2 px-4">Triggered when the server does not receive a timely response
-                    from an upstream process.</p>
-                <a href="/images/uploads/forbidden.txt" class="btn btn-outline-light px-4 py-2 rounded-0">Need to
-                    implement⚠️</a>
+
+            <!-- Slide 6: 504 -->
+            <div class="carousel-item carousel-slide-bg">
+                <div class="carousel-caption d-flex flex-column h-100 align-items-center justify-content-center">
+                    <h2 class=" py-2 px-4">Error 504</h2>
+                    <p class=" py-2 px-4">Triggered when the server does not receive a timely
+                        response from an upstream process.</p>
+                    <a href="/images/uploads/forbidden.txt" class="btn btn-outline-light px-4 py-2 rounded-0">Need to
+                        implement ⚠️</a>
+                </div>
             </div>
+
         </div>
-    </div>
-    <button class="carousel-control-prev" type="button" data-bs-target="#carouselExampleCaptions" data-bs-slide="prev">
-        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-        <span class="visually-hidden">Previous</span>
-    </button>
-    <button class="carousel-control-next" type="button" data-bs-target="#carouselExampleCaptions" data-bs-slide="next">
-        <span class="carousel-control-next-icon" aria-hidden="true"></span>
-        <span class="visually-hidden">Next</span>
-    </button>
+
+        <!-- Controls -->
+        <button class="carousel-control-prev" type="button" data-bs-target="#carouselExampleCaptions"
+            data-bs-slide="prev">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Previous</span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#carouselExampleCaptions"
+            data-bs-slide="next">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Next</span>
+        </button>
+
     </div>
 </body>
 
