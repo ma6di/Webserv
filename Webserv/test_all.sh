@@ -66,7 +66,7 @@ echo "This is a test file." > test.txt
 #     result_echo.txt "HTTP/1.1 200" "POST /echo returned 200 OK"
 
 log_and_run "Test 2: POST /upload (multipart/form-data)" \
-    "curl -s -i -w \"\nHTTP %{http_code}\n\" -X POST http://localhost:8080/upload -F \"file=@test.txt\"" \
+    "curl -s -i -w \"\nHTTP %{http_code}\n\" -X POST http://localhost:8080/upload -F \"file=@test.cpp\"" \
     result_upload.txt "HTTP/1.1 200" "POST /upload returned 200 OK"
 
 log_and_run "Test 3: DELETE /1.txt" \

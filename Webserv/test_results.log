@@ -4,13 +4,13 @@
 ------------------------------------------------------------
 == Test 2: POST /upload (multipart/form-data) ==
 ------------------------------------------------------------
->> curl -s -i -w "\nHTTP %{http_code}\n" -X POST http://localhost:8080/upload -F "file=@test.txt"
+>> curl -s -i -w "\nHTTP %{http_code}\n" -X POST http://localhost:8080/upload -F "file=@test.cpp"
 HTTP/1.1 200 OK
 Connection: close
-Content-Length: 523
+Content-Length: 507
 Content-Type: text/html; charset=utf-8
 
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Upload Successful</title></head><body style="font-family:sans-serif;text-align:center;margin-top:50px;"><h1>✅ File uploaded successfully!</h1><p>Saved as: <code>www/upload/test.txt_20250626_151157.txt</code></p><br><br><a href="/" style="margin: 0 10px;"><button>Home</button></a><a href="/about" style="margin: 0 10px;"><button>About</button></a><a href="/static/upload" style="margin: 0 10px;"><button>Upload Another</button></a></body></html>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Upload Successful</title></head><body style="font-family:sans-serif;text-align:center;margin-top:50px;"><h1>✅ File uploaded successfully!</h1><p>Saved as: <code>www/uploads/test.cpp_20250801_131521.txt</code></p><br><br><a href="/" style="margin: 0 10px;"><button>Home</button></a><a href="/about" style="margin: 0 10px;"><button>About</button></a><a href="/upload" style="margin: 0 10px;"><button>Upload Another</button></a></body></html>
 HTTP 200
 
 [OK] POST /upload returned 200 OK
@@ -18,15 +18,30 @@ HTTP 200
 == Test 3: DELETE /1.txt ==
 ------------------------------------------------------------
 >> curl -s -i -w "\nHTTP %{http_code}\n" -X DELETE http://localhost:8080/upload/1.txt
-HTTP/1.1 200 OK
+HTTP/1.1 405 Method Not Allowed
 Connection: close
-Content-Length: 62
+Content-Length: 393
 Content-Type: text/html
 
-<html><body><h1>File deleted: /upload/1.txt</h1></body></html>
-HTTP 200
+<!DOCTYPE html>
+<html>
+<head>
+    <title>405 Method Not Allowed</title>
+    <style>
+        body { font-family: Arial; background: #fff0f0; color: #a00; text-align: center; margin-top: 5em; }
+        a { color: #3366cc; }
+    </style>
+</head>
+<body>
+    <h1>405 Method Not Allowed</h1>
+    <p>The method is not allowed for the requested URL.</p>
+    <a href="/">Go to Home</a>
+</body>
+</html>
 
-[OK] DELETE /1.txt returned 200 OK
+HTTP 405
+
+[FAIL] DELETE /1.txt returned 200 OK
 ------------------------------------------------------------
 == Test 4: GET /cgi-bin/test.py ==
 ------------------------------------------------------------
@@ -75,7 +90,7 @@ Connection: close
 Content-Length: 111
 Content-Type: text/html
 
-<h1>File 'test.cpp' uploaded successfully to /home/mcheragh/Desktop/new_webb/Webserv/www/upload/test.cpp!</h1>
+<h1>File 'test.cpp' uploaded successfully to /home/mcheragh/Desktop/web_main/Webserv/www/upload/test.cpp!</h1>
 
 [OK] CGI POST (file) returned 200 OK
 ------------------------------------------------------------
@@ -113,10 +128,10 @@ ChunkedBodyTest
 >> curl -s -i -X PATCH http://localhost:8080/
 HTTP/1.1 501 Not Implemented
 Connection: close
-Content-Length: 28
+Content-Length: 165
 Content-Type: text/html
 
-<h1>501 Not Implemented</h1>
+<!DOCTYPE html><html><head><title>501 Not Implemented</title></head><body><h1>501 Not Implemented</h1><p>The server could not fulfill your request.</p></body></html>
 [OK] 501 Not Implemented error returned.
 ------------------------------------------------------------
 == Test 10: 405 Method Not Allowed ==
@@ -124,10 +139,25 @@ Content-Type: text/html
 >> curl -s -i -X DELETE http://localhost:8080/
 HTTP/1.1 405 Method Not Allowed
 Connection: close
-Content-Length: 31
+Content-Length: 393
 Content-Type: text/html
 
-<h1>405 Method Not Allowed</h1>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>405 Method Not Allowed</title>
+    <style>
+        body { font-family: Arial; background: #fff0f0; color: #a00; text-align: center; margin-top: 5em; }
+        a { color: #3366cc; }
+    </style>
+</head>
+<body>
+    <h1>405 Method Not Allowed</h1>
+    <p>The method is not allowed for the requested URL.</p>
+    <a href="/">Go to Home</a>
+</body>
+</html>
+
 [OK] 405 Method Not Allowed error returned.
 ------------------------------------------------------------
 == Test 11: 413 Payload Too Large ==
@@ -135,9 +165,7 @@ Content-Type: text/html
 >> curl -X POST http://localhost:8080/upload -F file=@bigfile.txt
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
-
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
- 37  169k    0     0   37 65536      0   137M --:--:-- --:--:-- --:--:-- 62.5M
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0 37  169k    0     0   37 65536      0   166M --:--:-- --:--:-- --:--:-- 62.5M
 curl: (55) Send failure: Broken pipe
 
 [FAIL] 413 Payload Too Large error returned.
@@ -147,10 +175,10 @@ curl: (55) Send failure: Broken pipe
 >> printf "GET /missing_http_version\r\n\r\n" | nc localhost 8080
 HTTP/1.1 400 Bad Request
 Connection: close
-Content-Length: 24
+Content-Length: 157
 Content-Type: text/html
 
-<h1>400 Bad Request</h1>
+<!DOCTYPE html><html><head><title>400 Bad Request</title></head><body><h1>400 Bad Request</h1><p>The server could not fulfill your request.</p></body></html>
 [OK] 400 Bad Request error returned.
 ------------------------------------------------------------
 == Test 13: 401 Unauthorized ==
@@ -158,10 +186,26 @@ Content-Type: text/html
 >> curl -s -i http://localhost:8080/should_require_auth
 HTTP/1.1 404 Not Found
 Connection: close
-Content-Length: 22
+Content-Length: 483
 Content-Type: text/html
 
-<h1>404 Not Found</h1>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>404 Not Found</title>
+    <style>
+        body { font-family: Arial; background: #fff0f0; color: #a00; text-align: center; margin-top: 5em; }
+        a { color: #3366cc; }
+    </style>
+</head>
+<body>
+    <h1>404 Not Found</h1>
+    <p>The requested resource could not be found on this server.</p>
+    <p>If you believe this is an error, please <a href="mailto:your@email.com">contact us</a>.</p>
+    <a href="/">Go to Home</a>
+</body>
+</html>
+
 [FAIL] 401 Unauthorized error returned.
 ------------------------------------------------------------
 == Test 14: 403 Forbidden ==
@@ -169,11 +213,13 @@ Content-Type: text/html
 >> touch www/upload/forbidden.txt && chmod 444 www/upload/forbidden.txt && curl -i -F file=@test.txt http://localhost:8080/upload/test_forbidden.txt
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   704  100   497  100   207  1052k   438k --:--:-- --:--:-- --:--:--  687k
+HTTP/1.1 200 OK
+Connection: close
+Content-Length: 497
+Content-Type: text/html; charset=utf-8
 
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
-100   207    0     0  100   207      0   383k --:--:-- --:--:-- --:--:--  202k
-curl: (52) Empty reply from server
-
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Upload Successful</title></head><body style="font-family:sans-serif;text-align:center;margin-top:50px;"><h1>✅ File uploaded successfully!</h1><p>Saved as: <code>www/uploads/test_forbidden.txt</code></p><br><br><a href="/" style="margin: 0 10px;"><button>Home</button></a><a href="/about" style="margin: 0 10px;"><button>About</button></a><a href="/upload" style="margin: 0 10px;"><button>Upload Another</button></a></body></html>
 [FAIL] 403 Forbidden error returned.
 ------------------------------------------------------------
 == Test 15: 404 Not Found ==
@@ -181,10 +227,26 @@ curl: (52) Empty reply from server
 >> curl -s -i http://localhost:8080/doesnotexist.txt
 HTTP/1.1 404 Not Found
 Connection: close
-Content-Length: 22
+Content-Length: 483
 Content-Type: text/html
 
-<h1>404 Not Found</h1>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>404 Not Found</title>
+    <style>
+        body { font-family: Arial; background: #fff0f0; color: #a00; text-align: center; margin-top: 5em; }
+        a { color: #3366cc; }
+    </style>
+</head>
+<body>
+    <h1>404 Not Found</h1>
+    <p>The requested resource could not be found on this server.</p>
+    <p>If you believe this is an error, please <a href="mailto:your@email.com">contact us</a>.</p>
+    <a href="/">Go to Home</a>
+</body>
+</html>
+
 [OK] 404 Not Found error returned.
 ------------------------------------------------------------
 == Test 16: 408 Request Timeout (manual/visual) ==
@@ -197,10 +259,25 @@ Manual/visual: To test 408, connect with 'telnet localhost 8080', send nothing, 
 >> echo -e '#!/usr/bin/env python3\nimport sys\nsys.exit(1)' > www/cgi-bin/error500.py && chmod +x www/cgi-bin/error500.py && curl -s -i http://localhost:8080/cgi-bin/error500.py
 HTTP/1.1 500 Internal Server Error
 Connection: close
-Content-Length: 34
+Content-Length: 389
 Content-Type: text/html
 
-<h1>500 Internal Server Error</h1>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>500 Internal Server Error</title>
+    <style>
+        body { font-family: Arial; background: #fff0f0; color: #a00; text-align: center; margin-top: 5em; }
+        a { color: #3366cc; }
+    </style>
+</head>
+<body>
+    <h1>500 Internal Server Error</h1>
+    <p>Oops! Something went wrong on our end.</p>
+    <a href="/">Go to Home</a>
+</body>
+</html>
+
 [OK] 500 Internal Server Error returned.
 ------------------------------------------------------------
 == Test 18: 502 Bad Gateway (manual/visual) ==
@@ -217,15 +294,30 @@ Manual/visual: To test 503, simulate server overload or maintenance mode.
 ------------------------------------------------------------
 HTTP/1.1 504 Gateway Timeout
 Connection: close
-Content-Length: 28
+Content-Length: 375
 Content-Type: text/html
 
-<h1>504 Gateway Timeout</h1>[OK] 504 Gateway Timeout error returned for CGI timeout.
+<!DOCTYPE html>
+<html>
+<head>
+    <title>504 Gateway Timeout</title>
+    <style>
+        body { font-family: Arial; background: #fff0f0; color: #a00; text-align: center; margin-top: 5em; }
+        a { color: #3366cc; }
+    </style>
+</head>
+<body>
+    <h1>504 Gateway Timeout</h1>
+    <p>The server took too long to respond.</p>
+    <a href="/">Go to Home</a>
+</body>
+</html>
+[OK] 504 Gateway Timeout error returned for CGI timeout.
 ------------------------------------------------------------
 == Checking Results ==
 ------------------------------------------------------------
-[OK] File uploaded successfully as www/upload/test.txt_20250615_163610.txt.
-[OK] File deleted successfully.
+[FAIL] File upload failed or is empty.
+[FAIL] File was not deleted.
 [OK] CGI GET returned Content-Type header.
 [OK] CGI POST returned Content-Type header.
 ------------------------------------------------------------

@@ -232,6 +232,7 @@ void WebServer::process_request(Request& request, int client_fd, size_t i) {
         return;
     }
 
+	Logger::log(LOG_DEBUG, "WebServer", "METHOD IS: " + method);
     // Dispatch to method handler
     if (method == "GET") {
         handle_get(request, loc, client_fd, i);
