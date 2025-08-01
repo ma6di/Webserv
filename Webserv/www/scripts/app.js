@@ -29,10 +29,10 @@ window.addEventListener("scroll", function () {
 
 /* activate/deactivate nav link */
 document.querySelectorAll('.nav-link').forEach(link => {
-  link.addEventListener('click', function () {
-    document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
-    this.classList.add('active');
-  });
+    link.addEventListener('click', function () {
+        document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+        this.classList.add('active');
+    });
 });
 
 /* remove anchor hashes from html */
@@ -42,4 +42,23 @@ function scrollToSection(id) {
         el.scrollIntoView({ behavior: "smooth" });
         history.replaceState(null, "", window.location.pathname); // ✅ clean URL with no #
     }
+}
+
+/* Redirection modal */
+let redirectInterval = null; // global or module-scoped to access from cancel button
+function redirectionCountdown() {
+    const modal = new bootstrap.Modal(document.getElementById('redirectModal'));
+    let countdownValue = 5;
+    const countdownSpan = document.getElementById('countdown');
+
+    modal.show();
+    const interval = setInterval(() => {
+        countdownValue--;
+        countdownSpan.textContent = countdownValue;
+        if (countdownValue === 0) {
+            clearInterval(interval);
+            window.location.href = "http://localhost:8080/42";
+            modal.hide();
+        }
+    }, 1000);
 }
