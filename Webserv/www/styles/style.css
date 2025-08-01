@@ -1,0 +1,94 @@
+/*
+  Note: In a typical project structure, CSS, JavaScript, and HTML files should be organized
+  into separate folders to maintain clean and modular architecture.
+
+  However, when these files are placed outside the 'static' directory, the server returns a 403 Forbidden error.
+  This indicates a possible server-side path resolution issue or misconfiguration in the server settings.
+
+  Resolving this is important for proper project structure and long-term maintainability.
+*/
+
+/*
+  DEFAULT CSS FILE
+  This file contains styles shared across multiple pages.
+  Common elements such as the body and navigation bar should be styled here.
+
+  Examples:
+  - Body: shared background color, font settings, etc.
+  - Navbar: consistent appearance across all HTML pages
+
+  IMPORTANT: when creating a .css file for a new html page remember to add this on top of the page:
+
+    @import url("style.css");
+
+*/
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+
+    background: #1f1e63;
+    background: radial-gradient(circle, rgba(31, 30, 99, 1) 0%, rgba(13, 14, 71, 1) 53%, rgba(9, 9, 38, 1) 100%);
+    /* background: #f2f3f7; /* fallback */
+    /* background: linear-gradient(to bottom, #f5f7fa, #e4e7f1, #d6dae7); */
+
+
+
+
+
+
+
+
+}
+
+#mainNavbar {
+    position: fixed;
+    width: 100%;
+    top: 0;
+    transition: top 0.3s;
+    z-index: 999;
+    /* background: #000; */
+    /* color: #1f1e63; */
+}
+
+.navbar {
+  background: linear-gradient(to bottom, #000000, rgba(0, 0, 0, 0)) !important;
+}
+
+
+
+.nav-link {
+    text-decoration: none;
+    padding: 10px 15px;
+    font-size: 1.1rem;
+    transition: color 0.3s ease;
+}
+
+.nav-link {
+    color: #ffffff !important;
+}
+
+.active {
+    color: #5552e2 !important;
+    font-weight: bold;
+}
+
+
+
+/* Paragraph */
+.paragraph {
+    text-align: center;
+    max-width: 800px;
+    margin: 0 auto 2rem;
+    font-size: 1.1rem;
+    color: #fff;
+    line-height: 1.6;
+    text-align: start;
+}
+
+.fa-heart{
+    color: #ff5760;
+    margin: 0 5px;
+    font-size: 1.2rem;
+    transition: color 0.3s ease;
+}

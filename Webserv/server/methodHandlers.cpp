@@ -1,9 +1,7 @@
 #include "WebServer.hpp"
 
-extern Config g_config;
-
 // --- GET Handler ---
-void WebServer::handle_get(const Request& request, const LocationConfig* loc, int client_fd, size_t i) {
+/*void WebServer::handle_get(const Request& request, const LocationConfig* loc, int client_fd, size_t i) {
     std::string uri = request.getPath();
     std::string path = resolve_path(uri, "GET", loc);
     Logger::log(LOG_DEBUG, "handle_get", "uri=" + uri + " path=" + path);
@@ -21,7 +19,67 @@ void WebServer::handle_get(const Request& request, const LocationConfig* loc, in
     }
 
     handle_file_request(path, client_fd, i);
+}*/
+
+/*void WebServer::handle_get(const Request& req,
+                           const LocationConfig* loc,
+                           int client_fd,
+                           size_t idx)
+{
+    // 1) Compute the on-disk path using resolve_path
+    std::string fs_path = resolve_path(req.getPath(),
+                                       req.getMethod(),
+                                       loc);
+    char cwd[1024];
+    getcwd(cwd, sizeof(cwd));
+    Logger::log(LOG_DEBUG, "handle_get", "CWD = " + std::string(cwd));
+    Logger::log(LOG_DEBUG, "handle_get", "Serving file: " + fs_path);
+    // 2) Stat it to see if it's a directory or file
+    struct stat st;
+    if (stat(fs_path.c_str(), &st) < 0) {
+        // Not found
+        send_error_response(client_fd, 404, "Not Found", idx);
+        return;
+    }
+
+    // 3) Directory? Hand off to directory handler
+    if (S_ISDIR(st.st_mode)) {
+        handle_directory_request(fs_path, req.getPath(), loc, client_fd, idx);
+    }
+    else {
+        // 4) Regular file
+        handle_file_request(fs_path, client_fd, idx);
+    }
+}*/
+
+void WebServer::handle_get(const Request& req,
+                           const LocationConfig* loc,
+                           int client_fd,
+                           size_t idx)
+{
+    // 1) Compute the on-disk path
+    std::string fs_path = resolve_path(req.getPath(),
+                                       req.getMethod(),
+                                       loc);
+
+    // 2) Stat it
+    struct stat st;
+    if (stat(fs_path.c_str(), &st) < 0) {
+        send_error_response(client_fd, 404, "Not Found", idx);
+        return;
+    }
+
+    // 3) Directory? use the directory handler
+    if (S_ISDIR(st.st_mode)) {
+        handle_directory_request(fs_path, req.getPath(), loc, client_fd, idx);
+    }
+    else {
+        // Otherwise it really is a file
+        handle_file_request(fs_path, client_fd, idx);
+    }
 }
+
+
 
 // --- Directory Handler ---
 /*void WebServer::handle_directory_request(const std::string& path, const std::string& uri, const LocationConfig* loc, int client_fd, size_t i) {

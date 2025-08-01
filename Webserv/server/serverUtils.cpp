@@ -1,7 +1,5 @@
 #include "WebServer.hpp"
 
-extern Config g_config;
-
 /*std::string WebServer::resolve_path(const std::string& raw_path, const std::string& method, const LocationConfig* loc) {
     std::string path = raw_path;
     std::string base_dir;
@@ -153,7 +151,7 @@ extern Config g_config;
     return fallback;
 }*/
 
-std::string WebServer::resolve_path(const std::string& raw_path,
+/*std::string WebServer::resolve_path(const std::string& raw_path,
                                     const std::string& method,
                                     const LocationConfig* loc) {
     Logger::log(LOG_DEBUG, "resolve_path",
@@ -201,7 +199,66 @@ std::string WebServer::resolve_path(const std::string& raw_path,
     // 4) Nothing matched — return the original candidate (so handle_file_request will 404)
     Logger::log(LOG_DEBUG, "resolve_path", "Nothing found, returning: " + candidate);
     return candidate;
+}*/
+
+std::string WebServer::resolve_path(const std::string& raw_path,
+                                    const std::string& method,
+                                    const LocationConfig* loc)
+{
+    Logger::log(LOG_DEBUG, "resolve_path",
+                "raw_path = \"" + raw_path + "\", method = " + method);
+
+    // 1) Pick the base filesystem root:
+    //    - If the location block set a root, use it.
+    //    - Otherwise fall back to the server-level root from config_.
+    const std::string& serverRoot = config_->getRoot();
+    std::string base = (loc && !loc->root.empty())
+                         ? loc->root
+                         : serverRoot;
+
+    // 2) Strip off the location prefix from the URI, if any
+    std::string rel = raw_path;
+    if (loc && loc->path != "/" && rel.find(loc->path) == 0) {
+        rel = rel.substr(loc->path.length());
+    }
+    if (!rel.empty() && rel[0] == '/')
+        rel = rel.substr(1);
+
+    // 3) Build the candidate filesystem path
+    std::string candidate = base;
+    if (!rel.empty())
+        candidate += "/" + rel;
+
+    Logger::log(LOG_DEBUG, "resolve_path", "Candidate path: " + candidate);
+
+    // 4) If it’s a directory, hand it off to handle_directory_request()
+    if (is_directory(candidate)) {
+        Logger::log(LOG_DEBUG, "resolve_path",
+                    "Directory detected, returning: " + candidate);
+        return candidate;
+    }
+
+    // 5) If it’s an existing file, return it
+    if (file_exists(candidate)) {
+        Logger::log(LOG_DEBUG, "resolve_path",
+                    "File exists, returning: " + candidate);
+        return candidate;
+    }
+
+    // 6) Try adding “.html”
+    std::string html_fallback = candidate + ".html";
+    if (file_exists(html_fallback)) {
+        Logger::log(LOG_DEBUG, "resolve_path",
+                    "HTML fallback, returning: " + html_fallback);
+        return html_fallback;
+    }
+
+    // 7) Nothing matched: return candidate so your 404 logic fires
+    Logger::log(LOG_DEBUG, "resolve_path",
+                "Nothing found, returning: " + candidate);
+    return candidate;
 }
+
 
 
 
@@ -242,7 +299,7 @@ bool WebServer::read_and_append_client_data(int client_fd, size_t i) {
     client_buffers[client_fd].append(buffer, bytes_read);
 
     // Check if buffer is too large (AFTER appending)
-    if (client_buffers[client_fd].size() > g_config.getMaxBodySize()) {
+    if (client_buffers[client_fd].size() > config_->getMaxBodySize()) {
         Logger::log(LOG_ERROR, "read_and_append_client_data", "Payload Too Large for FD=" + to_str(client_fd));
         send_error_response(client_fd, 413, "Payload Too Large", i);
         usleep(100000); // 100ms

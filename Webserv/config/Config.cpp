@@ -1,5 +1,8 @@
 #include "Config.hpp"
 
+Config::Config() : port(0), root(""), max_body_size(1048576) // 1MB default
+{}
+
 // Constructor: read and parse the config file immediately
 Config::Config(const std::string& filename) : max_body_size(1048576) { // 1MB default
     parseConfigFile(filename);
@@ -49,7 +52,7 @@ bool Config::pathExists(const std::string& path) {
 }
 
 // Main config parser
-void Config::parseConfigFile(const std::string& filename) {
+/*void Config::parseConfigFile(const std::string& filename) {
     std::ifstream file(filename.c_str());
     if (!file.is_open())
         throw std::runtime_error("Could not open config file: " + filename);
@@ -91,7 +94,7 @@ void Config::parseConfigFile(const std::string& filename) {
 
     file.close();
     Logger::log(LOG_INFO, "Config", "Loaded config file: " + filename);
-}
+}*/
 
 // --- Helper functions ---
 
@@ -209,3 +212,111 @@ size_t Config::getMaxBodySize() const {
 const std::vector<int>& Config::getPorts() const {
     return ports;
 }
+
+/*std::vector<Config> parseConfigFile(const std::string& filename) {
+    std::ifstream file(filename.c_str());
+    if (!file.is_open())
+        throw std::runtime_error("Could not open config file");
+
+    std::vector<Config> servers;
+    std::string line;
+    while (std::getline(file, line)) {
+        // trim leading whitespace
+        std::string trimmed = line.substr(line.find_first_not_of(" \t"));
+        if (trimmed.rfind("server", 0) == 0  // starts with "server"
+            && trimmed.find("{") != std::string::npos) {
+          Config cfg;
+          cfg.parseServerBlock(file);
+          servers.push_back(cfg);
+        }
+    }
+    return servers;
+}*/
+
+std::vector<Config> parseConfigFile(const std::string& filename) {
+    std::ifstream file(filename.c_str());
+    if (!file.is_open())
+        throw std::runtime_error("Could not open config file");
+
+    std::vector<Config> servers;
+    std::string line;
+    while (std::getline(file, line)) {
+        // Find first non-whitespace
+        size_t start = line.find_first_not_of(" \t");
+        if (start == std::string::npos)  // line is all whitespace
+            continue;
+        std::string trimmed = line.substr(start);
+        if (trimmed.empty() || trimmed[0] == '#')
+            continue;
+
+        // Now safe to check for server blocks
+        if (trimmed.rfind("server", 0) == 0 && trimmed.find("{") != std::string::npos) {
+            Config cfg;
+            cfg.parseServerBlock(file);
+            servers.push_back(cfg);
+        }
+    }
+    return servers;
+}
+
+
+// In Config.cpp
+void Config::parseServerBlock(std::ifstream& file) {
+    ports.clear();
+    root.clear();
+    error_pages.clear();
+    locations.clear();
+    max_body_size = 1048576; // 1MB default
+    
+    std::string line;
+    bool insideLocation = false;
+    LocationConfig currentLocation;
+
+    // Consume lines until you hit the matching closing brace for this server block
+    while (std::getline(file, line)) {
+        // trim leading whitespace
+        line.erase(0, line.find_first_not_of(" \t"));
+        if (line.empty() || line[0] == '#')
+            continue;
+
+        std::istringstream iss(line);
+        std::string keyword;
+        iss >> keyword;
+
+        if (keyword == "}") {
+            // end of this server block
+            // finalize any pending location
+            if (insideLocation) {
+                // push currentLocation into this->locations
+                handleLocationEnd(currentLocation, insideLocation);
+            }
+            break;
+        }
+
+        // exactly your old parseConfigFile logic:
+        if (keyword == "listen") {
+            handleListenDirective(iss);
+        }
+        else if (keyword == "root" && !insideLocation) {
+            handleRootDirective(iss);
+        }
+        else if (keyword == "error_page") {
+            handleErrorPageDirective(iss);
+        }
+        else if (keyword == "location") {
+            handleLocationStart(iss, currentLocation, insideLocation);
+        }
+        else if (keyword == "client_max_body_size") {
+            handleClientMaxBodySizeDirective(iss);
+        }
+        else if (insideLocation) {
+            handleLocationDirective(keyword, iss, currentLocation);
+        }
+    }
+
+    // After the block ends, set default_port from first listen, etc.
+    if (!ports.empty())
+        port = ports.front();
+}
+
+

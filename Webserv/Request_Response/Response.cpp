@@ -14,7 +14,7 @@ Response::Response() : status_code(200), status_message("OK") {
 //     headers["Connection"] = "close";
 // }
 
-Response::Response(int client_fd, int code, const std::string& message, const std::string& body,
+/*Response::Response(int client_fd, int code, const std::string& message, const std::string& body,
                    const std::map<std::string, std::string>& extra_headers)
     : status_code(code), status_message(message), body(body)
 {
@@ -32,7 +32,49 @@ Response::Response(int client_fd, int code, const std::string& message, const st
     // Write response immediately
     std::string raw = toString();
     write(client_fd, raw.c_str(), raw.size());
+}*/
+
+#include "Response.hpp"
+#include "../logger/Logger.hpp"
+#include <unistd.h>
+#include <sstream>
+
+Response::Response(int client_fd,
+                   int code,
+                   const std::string& status,
+                   const std::string& body,
+                   const std::map<std::string,std::string>& headers)
+{
+    // 1) Build the HTTP response
+    std::ostringstream oss;
+    oss << "HTTP/1.1 " << code << " " << status << "\r\n";
+    for (std::map<std::string,std::string>::const_iterator it = headers.begin();
+         it != headers.end(); ++it)
+    {
+        oss << it->first << ": " << it->second << "\r\n";
+    }
+    oss << "Content-Length: " << body.size() << "\r\n";
+    oss << "Connection: close\r\n";
+    oss << "\r\n";
+    oss << body;
+
+    std::string raw = oss.str();
+
+    // 2) Log what we’re about to send
+    Logger::log(LOG_DEBUG, "Response",
+                "=== BEGIN RAW RESPONSE ===\n" +
+                raw +
+                "\n===  END RAW RESPONSE  ===");
+
+    // 3) Write to the socket
+    ssize_t n = write(client_fd, raw.c_str(), raw.size());
+    Logger::log(LOG_DEBUG, "Response",
+                "Wrote " + to_str(n) + " bytes to FD=" + to_str(client_fd));
+
+    // 4) Shutdown write side so the client sees EOF
+    shutdown(client_fd, SHUT_WR);
 }
+
 
 void Response::setStatus(int code, const std::string& message) {
     status_code = code;

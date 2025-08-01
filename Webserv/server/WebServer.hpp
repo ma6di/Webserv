@@ -16,18 +16,21 @@
 #include "../logger/Logger.hpp"
 #include "utils.hpp"
 #include "CGIHandler.hpp"
-#include "Config.hpp"
 #include "Request.hpp"
 #include "Response.hpp"
+#include "LocationConfig.hpp"
 #include <ctime>
 #include <map>
 
+class Config;
+
 class WebServer {
 public:
-    WebServer(const std::vector<int>& ports);
-    std::vector<int> listening_sockets;
+    //WebServer(const std::vector<int>& ports);
+    //std::vector<int> listening_sockets;
+    explicit WebServer(const Config& cfg);
     ~WebServer();
-    void run();
+    //void run();
     void run_one_iteration();
     void shutdown();
 
@@ -35,13 +38,15 @@ public:
     std::string get_default_error_page(int code);
 
 private:
-    int server_fd;
+    const Config* config_;
+
+    std::vector<int> listening_sockets; // List of listening sockets
     std::vector<pollfd> fds;
     std::map<int, std::string> client_buffers;
 
-    void setup_server_socket(int port);
+    //void setup_server_socket(int port);
     void make_socket_non_blocking(int fd);
-    void poll_loop();
+    //void poll_loop();
     void handle_new_connection(int listen_fd);
     void handle_client_data(size_t i);
     std::string resolve_path(const std::string& raw_path, const std::string& method, const LocationConfig* loc);

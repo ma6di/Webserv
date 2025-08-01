@@ -9,10 +9,9 @@
  */
 
 #include "WebServer.hpp"
+#include "Config.hpp"
 
-extern Config g_config;
-
-WebServer::WebServer(const std::vector<int>& ports) {
+/*WebServer::WebServer(const std::vector<int>& ports) {
     for (size_t i = 0; i < ports.size(); ++i) {
         int sockfd = socket(AF_INET, SOCK_STREAM, 0);
         if (sockfd < 0) {
@@ -46,6 +45,53 @@ WebServer::WebServer(const std::vector<int>& ports) {
         Logger::log(LOG_INFO, "WebServer", "Server running on http://localhost:" + to_str(ports[i]));
         listening_sockets.push_back(sockfd);
     }
+}*/
+
+WebServer::WebServer(const Config& cfg)
+  : config_(&cfg) {
+    // For each port in this server’s Config, open a nonblocking listen socket
+    for (size_t i = 0; i < config_->getPorts().size(); ++i) {
+        int port = config_->getPorts()[i];
+        int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+        if (sockfd < 0) {
+            perror("socket");
+            continue;
+        }
+
+        // Make it non-blocking
+        if (fcntl(sockfd, F_SETFL, O_NONBLOCK) < 0) {
+            perror("fcntl");
+            close(sockfd);
+            continue;
+        }
+
+        // Allow quick reuse of the address
+        int opt = 1;
+        setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+
+        // Bind to INADDR_ANY:port
+        sockaddr_in addr;
+        std::memset(&addr, 0, sizeof(addr));
+        addr.sin_family = AF_INET;
+        addr.sin_addr.s_addr = INADDR_ANY;
+        addr.sin_port = htons(port);
+
+        if (bind(sockfd, (sockaddr*)&addr, sizeof(addr)) < 0) {
+            perror("bind");
+            close(sockfd);
+            continue;
+        }
+
+        if (listen(sockfd, SOMAXCONN) < 0) {
+            perror("listen");
+            close(sockfd);
+            continue;
+        }
+
+        Logger::log(LOG_INFO, "WebServer",
+                    "Server listening on http://localhost:" + to_str(port));
+        listening_sockets.push_back(sockfd);
+    }
 }
 
 WebServer::~WebServer() {
@@ -53,7 +99,7 @@ WebServer::~WebServer() {
         close(fds[i].fd);
 }
 
-void WebServer::run() {
+/*void WebServer::run() {
     poll_loop();
 }
 
@@ -77,14 +123,14 @@ void WebServer::setup_server_socket(int port) {
         throw std::runtime_error("Listen failed");
 
     make_socket_non_blocking(server_fd);
-}
+}*/
 
 void WebServer::make_socket_non_blocking(int fd) {
     if (fcntl(fd, F_SETFL, O_NONBLOCK) == -1)
         throw std::runtime_error("Failed to set O_NONBLOCK");
 }
 
-void WebServer::poll_loop() {
+/*void WebServer::poll_loop() {
     Logger::log(LOG_DEBUG, "WebServer", "poll_loop running, fds.size() = " + to_str(fds.size()));
     fds.clear();
 
@@ -116,7 +162,7 @@ void WebServer::poll_loop() {
             }
         }
     }
-}
+}*/
 
 void WebServer::handle_new_connection(int listen_fd) {
     sockaddr_in client_addr;
@@ -193,7 +239,7 @@ void WebServer::handle_client_data(size_t i) {
 void WebServer::process_request(Request& request, int client_fd, size_t i) {
     std::string method = request.getMethod();
     std::string uri = request.getPath();
-    const LocationConfig* loc = match_location(g_config.getLocations(), uri);
+    const LocationConfig* loc = match_location(config_->getLocations(), uri);
 
     if (loc)
         Logger::log(LOG_DEBUG, "WebServer", "Matched location: " + loc->path);
@@ -213,7 +259,7 @@ void WebServer::process_request(Request& request, int client_fd, size_t i) {
     }
 
     // 413 Payload Too Large
-    if (request.getBody().size() > g_config.getMaxBodySize()) {
+    if (request.getBody().size() > config_->getMaxBodySize()) {
         send_error_response(client_fd, 413, "Payload Too Large", i);
         return;
     }
@@ -225,7 +271,8 @@ void WebServer::process_request(Request& request, int client_fd, size_t i) {
     }
 
     // CGI check
-    int is_cgi = (loc ? is_cgi_request(*loc, request.getPath()) : 0);
+   // int is_cgi = (loc ? is_cgi_request(*loc, request.getPath()) : 0);
+    int is_cgi = ( loc && !loc->cgi_extension.empty() && is_cgi_request(*loc, request.getPath()) ) ? 1: 0;
     Logger::log(LOG_DEBUG, "WebServer", "is_cgi_request: " + to_str(is_cgi));
     if (loc && is_cgi) {
         handle_cgi(loc, request, client_fd, i);
@@ -248,4 +295,50 @@ void WebServer::process_request(Request& request, int client_fd, size_t i) {
         cleanup_client(client_fd, i);
     }
 }
+
+void WebServer::run_one_iteration() {
+    // On first call, seed fds[] with all listening sockets
+    if (fds.empty()) {
+        for (size_t idx = 0; idx < listening_sockets.size(); ++idx) {
+            int lsock = listening_sockets[idx];
+            pollfd pfd;
+            pfd.fd = lsock;
+            pfd.events = POLLIN;
+            pfd.revents = 0;
+            fds.push_back(pfd);
+        }
+    }
+
+    // Block until *any* socket is ready
+    int ready = poll(fds.data(), fds.size(), -1);
+    if (ready < 0) {
+        perror("poll");
+        return;
+    }
+
+    // Number of listening sockets (they occupy the front of fds[])
+    size_t listener_count = listening_sockets.size();
+
+    // Iterate through fds; note that fds may grow or shrink in the loop
+    for (size_t i = 0; i < fds.size() && ready > 0; ++i) {
+        if (fds[i].revents == 0) 
+            continue;
+
+        --ready;  // one event to handle
+
+        // New incoming connection?
+        if ((fds[i].revents & POLLIN) && i < listener_count) {
+            handle_new_connection(fds[i].fd);
+        }
+        else if (fds[i].revents & POLLIN) {
+            // Data on an existing client socket
+            handle_client_data(i);
+        }
+        // (You could also watch for POLLOUT here if you buffer writes.)
+
+        // Clear the event flag so we don't handle it again
+        fds[i].revents = 0;
+    }
+}
+
 

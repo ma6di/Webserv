@@ -5,6 +5,7 @@
 #include <map>
 #include <sstream>
 #include <unistd.h>
+#include <sys/socket.h>
 // Type alias for readability
 typedef std::map<std::string, std::string> Headers;
 

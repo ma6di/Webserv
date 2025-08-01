@@ -1,11 +1,11 @@
 #include "WebServer.hpp"
 
-extern Config g_config;
-
 // Send a file as a response (with correct Content-Type)
-void WebServer::send_file_response(int client_fd, const std::string& path, size_t i) {
+void WebServer::send_file_response(int client_fd, const std::string &path, size_t i)
+{
     std::string body = read_file(path);
-    if (body.empty()) {
+    if (body.empty())
+    {
         Logger::log(LOG_ERROR, "send_file_response", "File not found or empty: " + path);
         send_error_response(client_fd, 404, "Not Found", i);
         return;
@@ -16,7 +16,8 @@ void WebServer::send_file_response(int client_fd, const std::string& path, size_
 }
 
 // Send a redirect response
-void WebServer::send_redirect_response(int client_fd, int code, const std::string& location, size_t i) {
+void WebServer::send_redirect_response(int client_fd, int code, const std::string &location, size_t i)
+{
     std::ostringstream body;
     body << "<html><head><title>" << code << " Redirect</title></head><body>"
          << "<h1>" << code << " Redirect</h1>"
@@ -27,13 +28,15 @@ void WebServer::send_redirect_response(int client_fd, int code, const std::strin
     cleanup_client(client_fd, i);
 }
 
-void WebServer::send_ok_response(int client_fd, const std::string& body, const std::map<std::string, std::string>& headers, size_t i) {
+void WebServer::send_ok_response(int client_fd, const std::string &body, const std::map<std::string, std::string> &headers, size_t i)
+{
     Logger::log(LOG_INFO, "send_ok_response", "Sending 200 OK response.");
     Response(client_fd, 200, "OK", body, headers);
     cleanup_client(client_fd, i);
 }
 
-void WebServer::send_upload_success_response(int client_fd, const std::string& full_filename, size_t i) {
+void WebServer::send_upload_success_response(int client_fd, const std::string &full_filename, size_t i)
+{
     std::ostringstream body;
     body << "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\">"
          << "<title>Upload Successful</title></head><body style=\"font-family:sans-serif;text-align:center;margin-top:50px;\">"
@@ -49,7 +52,8 @@ void WebServer::send_upload_success_response(int client_fd, const std::string& f
     send_ok_response(client_fd, body.str(), single_header("Content-Type", "text/html; charset=utf-8"), i);
 }
 
-static std::string resolve_error_page_path(const std::string& err_uri) {
+static std::string resolve_error_page_path(const std::string &err_uri)
+{
     std::string fallback_root = "./www/";
     std::string cleaned_uri = err_uri;
 
@@ -104,23 +108,29 @@ static std::string resolve_error_page_path(const std::string& err_uri) {
     cleanup_client(client_fd, i);
 }*/
 
-void WebServer::send_error_response(int client_fd, int code, const std::string& msg, size_t i) {
-    const std::string* err_page = g_config.getErrorPage(code);
+void WebServer::send_error_response(int client_fd, int code, const std::string &msg, size_t i)
+{
+    const std::string *err_page = config_->getErrorPage(code);
     std::string body;
 
-    if (err_page && !err_page->empty()) {
+    if (err_page && !err_page->empty())
+    {
         std::string resolved_path = resolve_error_page_path(*err_page);
         Logger::log(LOG_DEBUG, "send_error_response", "Trying custom error page: " + resolved_path);
 
-        if (file_exists(resolved_path) && access(resolved_path.c_str(), R_OK) == 0) {
+        if (file_exists(resolved_path) && access(resolved_path.c_str(), R_OK) == 0)
+        {
             body = read_file(resolved_path);
-            if (!body.empty()) {
+            if (!body.empty())
+            {
                 Logger::log(LOG_INFO, "send_error_response", "Using custom error page for code " + to_str(code));
                 Response(client_fd, code, msg, body, content_type_html());
                 cleanup_client(client_fd, i);
                 return;
             }
-        } else {
+        }
+        else
+        {
             Logger::log(LOG_ERROR, "send_error_response", "Custom error page not found or not readable: " + resolved_path);
         }
     }
@@ -136,5 +146,3 @@ void WebServer::send_error_response(int client_fd, int code, const std::string& 
     Response(client_fd, code, msg, body, content_type_html());
     cleanup_client(client_fd, i);
 }
-
-

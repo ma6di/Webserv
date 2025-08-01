@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <ctime>
+#include "../server/WebServer.hpp"
 
 #define COLOR_RESET   "\033[0m"
 #define COLOR_INFO    "\033[32m" // Green

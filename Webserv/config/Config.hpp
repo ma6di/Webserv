@@ -3,7 +3,7 @@
 
 #include "LocationConfig.hpp"
 #include "../logger/Logger.hpp"
-#include "WebServer.hpp"
+//#include "WebServer.hpp"
 #include <string>
 #include <vector>
 #include <map>
@@ -22,7 +22,8 @@ class Config {
 public:
     // Constructor takes the path to a config file and immediately parses it.
     //So when you write Config conf("default.conf"); it loads config on the spot
-	Config(const std::string& filename);
+	Config();
+    explicit Config(const std::string& filename);
 
     // Accessor methods for the parsed configuration.
 	//All are marked const, meaning they don’t modify the object.
@@ -44,6 +45,8 @@ public:
     //Helper Validating functions
 	int parseListenDirective(const std::string& token);
 	bool pathExists(const std::string& path);
+    void parseServerBlock(std::ifstream& file);
+    //void parseConfigFile(const std::string& filename);
 
 private:
     void handleListenDirective(std::istringstream& iss);
@@ -60,7 +63,12 @@ private:
     std::map<int, std::string> error_pages;   // Map of error codes to file paths (e.g., 404 → /404.html)
 	size_t max_body_size;
     // Internal method that performs the actual parsing logic
-    void parseConfigFile(const std::string& filename);
+
+
 };
+
+// In ConfigParser.hpp (or in Config.hpp, if you prefer)
+std::vector<Config> parseConfigFile(const std::string& filename);
+
 
 #endif
