@@ -3,20 +3,106 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Siege Test - Webserv</title>
         <link
             href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css"
-            rel="stylesheet"
-            integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr"
-            crossorigin="anonymous" />
-        <script
-            src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"
-            integrity="sha384-ndDqU0Gzau9qJ1lfW4pNLlhNTkCfHzAVBReH9diLvGRem5+R9g2FzA8ZGN954O5Q"
-            crossorigin="anonymous"></script>
-        <link rel="stylesheet" type="text/css" href="/styles/index.css" />
-        <title>Webserv</title>
+            rel="stylesheet" />
+        <link rel="stylesheet" href="/styles/common.css" />
+        <style>
+            .siege-container {
+                max-width: 800px;
+                margin: var(--spacing-xl) auto;
+            }
+
+            .stats-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                gap: var(--spacing-md);
+                margin: var(--spacing-lg) 0;
+            }
+
+            .stat-card {
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: var(--border-radius-md);
+                padding: var(--spacing-lg);
+                text-align: center;
+            }
+
+            .stat-value {
+                font-size: var(--font-size-xxl);
+                color: var(--primary-color);
+                font-weight: 700;
+                margin-bottom: var(--spacing-sm);
+            }
+
+            .stat-label {
+                color: var(--text-muted);
+                font-size: var(--font-size-sm);
+                text-transform: uppercase;
+                letter-spacing: 1px;
+            }
+
+            .progress {
+                height: 10px;
+                background: rgba(255, 255, 255, 0.1);
+                margin: var(--spacing-lg) 0;
+            }
+
+            .progress-bar {
+                background-color: var(--primary-color);
+                transition: width var(--transition-base);
+            }
+
+            @media (max-width: 768px) {
+                .siege-container {
+                    padding: var(--spacing-md);
+                }
+            }
+        </style>
     </head>
-    <body>
-        <h1>siege</h1>
+    <body class="bg-dark">
+        <div class="container siege-container">
+            <h1 class="text-center mb-4">Server Load Test</h1>
+            <p class="text-center text-muted mb-4">
+                Testing server performance under heavy load using Siege
+            </p>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value">99.8%</div>
+                    <div class="stat-label">Availability</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">0.32s</div>
+                    <div class="stat-label">Response Time</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">1024</div>
+                    <div class="stat-label">Concurrent Users</div>
+                </div>
+            </div>
+
+            <div class="progress-section">
+                <h3 class="mb-2">Server Load</h3>
+                <div class="progress">
+                    <div
+                        class="progress-bar"
+                        role="progressbar"
+                        style="width: 75%"></div>
+                </div>
+            </div>
+
+            <div class="text-center mt-4">
+                <button class="btn btn-outline-light me-2">
+                    Start New Test
+                </button>
+                <button class="btn btn-outline-light">
+                    View Previous Results
+                </button>
+            </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
         <script src="/scripts/app.js"></script>
     </body>
 </html>
