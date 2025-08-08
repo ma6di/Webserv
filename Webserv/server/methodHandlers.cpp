@@ -1,103 +1,31 @@
 #include "WebServer.hpp"
 
 // --- GET Handler ---
-/*void WebServer::handle_get(const Request& request, const LocationConfig* loc, int client_fd, size_t i) {
-    std::string uri = request.getPath();
-    std::string path = resolve_path(uri, "GET", loc);
-    Logger::log(LOG_DEBUG, "handle_get", "uri=" + uri + " path=" + path);
-
-    if (loc && !loc->redirect_url.empty()) {
-        Logger::log(LOG_INFO, "handle_get", "Redirecting to: " + loc->redirect_url);
-        send_redirect_response(client_fd, loc->redirect_code, loc->redirect_url, i);
-        return;
-    }
-
-    if (is_directory(path)) {
-        Logger::log(LOG_DEBUG, "handle_get", "Directory detected: " + path);
-        handle_directory_request(path, uri, loc, client_fd, i);
-        return;
-    }
-
-    handle_file_request(path, client_fd, i);
-}*/
-
-/*void WebServer::handle_get(const Request& req,
-                           const LocationConfig* loc,
-                           int client_fd,
-                           size_t idx)
-{
-    // 1) Compute the on-disk path using resolve_path
-    std::string fs_path = resolve_path(req.getPath(),
-                                       req.getMethod(),
-                                       loc);
-    char cwd[1024];
-    getcwd(cwd, sizeof(cwd));
-    Logger::log(LOG_DEBUG, "handle_get", "CWD = " + std::string(cwd));
-    Logger::log(LOG_DEBUG, "handle_get", "Serving file: " + fs_path);
-    // 2) Stat it to see if it's a directory or file
-    struct stat st;
-    if (stat(fs_path.c_str(), &st) < 0) {
-        // Not found
-        send_error_response(client_fd, 404, "Not Found", idx);
-        return;
-    }
-
-    // 3) Directory? Hand off to directory handler
-    if (S_ISDIR(st.st_mode)) {
-        handle_directory_request(fs_path, req.getPath(), loc, client_fd, idx);
-    }
-    else {
-        // 4) Regular file
-        handle_file_request(fs_path, client_fd, idx);
-    }
-}*/
 
 void WebServer::handle_get(const Request& req,
                            const LocationConfig* loc,
                            int client_fd,
                            size_t idx)
 {
-    // 1) Compute the on-disk path
     std::string fs_path = resolve_path(req.getPath(),
                                        req.getMethod(),
                                        loc);
 
-    // 2) Stat it
     struct stat st;
     if (stat(fs_path.c_str(), &st) < 0) {
         send_error_response(client_fd, 404, "Not Found", idx);
         return;
     }
 
-    // 3) Directory? use the directory handler
     if (S_ISDIR(st.st_mode)) {
         handle_directory_request(fs_path, req.getPath(), loc, client_fd, idx);
     }
     else {
-        // Otherwise it really is a file
         handle_file_request(fs_path, client_fd, idx);
     }
 }
 
-
-
 // --- Directory Handler ---
-/*void WebServer::handle_directory_request(const std::string& path, const std::string& uri, const LocationConfig* loc, int client_fd, size_t i) {
-    std::string index_path = path + "/index.html";
-    if (file_exists(index_path)) {
-        Logger::log(LOG_DEBUG, "handle_directory_request", "Serving index: " + index_path);
-        send_file_response(client_fd, index_path, i);
-        return;
-    }
-    if (loc && loc->autoindex) {
-        Logger::log(LOG_DEBUG, "handle_directory_request", "Autoindex enabled for: " + path);
-        std::string html = generate_directory_listing(path, uri);
-        send_ok_response(client_fd, html, content_type_html(), i);
-        return;
-    }
-    Logger::log(LOG_ERROR, "handle_directory_request", "Forbidden: " + path);
-    send_error_response(client_fd, 403, "Forbidden", i);
-}*/
 
 void WebServer::handle_directory_request(const std::string& path, const std::string& uri, const LocationConfig* loc, int client_fd, size_t i) {
     // Use the configured index if set, otherwise default to index.html
@@ -270,7 +198,6 @@ std::string extract_file_from_multipart(const std::string& body, std::string& fi
             file_content << line << "\n";
     }
 
-    // Remove last newline
     std::string content = file_content.str();
     if (!content.empty() && content[content.size() - 1] == '\n')
         content.erase(content.size() - 1);
@@ -280,6 +207,10 @@ std::string extract_file_from_multipart(const std::string& body, std::string& fi
 
 bool WebServer::handle_upload(const Request& request, const LocationConfig* loc, int client_fd, size_t i) {
     if (!is_valid_upload_request(request, loc)) {
+        Logger::log(LOG_DEBUG, "is_valid_upload_request",
+  "method=" + request.getMethod() +
+  " upload_dir=" + (loc? loc->upload_dir : "<none>"));
+
         Logger::log(LOG_DEBUG, "handle_upload", "Not an upload request.");
         return false;
     }

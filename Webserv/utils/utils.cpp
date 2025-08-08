@@ -38,7 +38,7 @@ std::string get_mime_type(const std::string& path) {
     return mime;
 }
 
-const LocationConfig* match_location(const std::vector<LocationConfig>& locations, const std::string& path) {
+/*const LocationConfig* match_location(const std::vector<LocationConfig>& locations, const std::string& path) {
     const LocationConfig* bestMatch = NULL;
     size_t bestLength = 0;
 
@@ -56,7 +56,49 @@ const LocationConfig* match_location(const std::vector<LocationConfig>& location
         Logger::log(LOG_DEBUG, "match_location", "No match for path: " + path);
 
     return bestMatch;
+}*/
+
+const LocationConfig* match_location(
+    const std::vector<LocationConfig>& locations,
+    const std::string& path)
+{
+    const LocationConfig* best = NULL;
+    size_t bestLen = 0;
+
+    for (size_t i = 0; i < locations.size(); ++i) {
+        const std::string& loc = locations[i].path;
+
+        // 1) must be prefix …
+        if (path.compare(0, loc.length(), loc) != 0)
+            continue;
+
+        // 2) … and either exact match, or next char is '/'
+        if (path.length() > loc.length() &&
+            loc != "/" &&
+            path[loc.length()] != '/')
+        {
+            continue;
+        }
+
+        // 3) take the longest valid prefix
+        if (loc.length() > bestLen) {
+            bestLen = loc.length();
+            best    = &locations[i];
+        }
+    }
+
+    if (best)
+        Logger::log(LOG_DEBUG,
+                    "match_location",
+                    "Matched: " + best->path + " for path: " + path);
+    else
+        Logger::log(LOG_DEBUG,
+                    "match_location",
+                    "No match for path: " + path);
+
+    return best;
 }
+
 
 bool is_cgi_request(const LocationConfig& loc, const std::string& uri) {
     std::string cgi_uri = loc.path;  // e.g. /cgi-bin

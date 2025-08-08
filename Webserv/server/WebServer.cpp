@@ -1,245 +1,165 @@
-/**
- * WebServer.cpp
- * -------------
- * Implements the WebServer class.
- * - Sets up listening sockets
- * - Accepts and manages client connections
- * - Handles HTTP requests, static files, uploads, and CGI
- * - Provides logging and error handling
- */
-
 #include "WebServer.hpp"
 #include "Config.hpp"
+#include <cstring>
+#include <errno.h>
 
-/*WebServer::WebServer(const std::vector<int>& ports) {
-    for (size_t i = 0; i < ports.size(); ++i) {
-        int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-        if (sockfd < 0) {
+WebServer::WebServer(const Config &cfg)
+    : config_(&cfg)
+{
+    // grab ports into a local vector for C++98 style iteration
+    std::vector<int> ports = config_->getPorts();
+    for (size_t idx = 0; idx < ports.size(); ++idx)
+    {
+        int port = ports[idx];
+        int sock = socket(AF_INET, SOCK_STREAM, 0);
+        if (sock < 0)
+        {
             perror("socket");
             continue;
         }
 
-        fcntl(sockfd, F_SETFL, O_NONBLOCK);
+        make_socket_non_blocking(sock);
 
         int opt = 1;
-        setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+        setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
-        sockaddr_in addr;
-        std::memset(&addr, 0, sizeof(addr));
-        addr.sin_family = AF_INET;
-        addr.sin_addr.s_addr = INADDR_ANY;
-        addr.sin_port = htons(ports[i]);
-
-        if (bind(sockfd, (sockaddr*)&addr, sizeof(addr)) < 0) {
-            perror("bind");
-            close(sockfd);
-            continue;
-        }
-
-        if (listen(sockfd, SOMAXCONN) < 0) {
-            perror("listen");
-            close(sockfd);
-            continue;
-        }
-
-        Logger::log(LOG_INFO, "WebServer", "Server running on http://localhost:" + to_str(ports[i]));
-        listening_sockets.push_back(sockfd);
-    }
-}*/
-
-WebServer::WebServer(const Config& cfg)
-  : config_(&cfg) {
-    // For each port in this server’s Config, open a nonblocking listen socket
-    for (size_t i = 0; i < config_->getPorts().size(); ++i) {
-        int port = config_->getPorts()[i];
-        int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-        if (sockfd < 0) {
-            perror("socket");
-            continue;
-        }
-
-        // Make it non-blocking
-        if (fcntl(sockfd, F_SETFL, O_NONBLOCK) < 0) {
-            perror("fcntl");
-            close(sockfd);
-            continue;
-        }
-
-        // Allow quick reuse of the address
-        int opt = 1;
-        setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
-
-        // Bind to INADDR_ANY:port
         sockaddr_in addr;
         std::memset(&addr, 0, sizeof(addr));
         addr.sin_family = AF_INET;
         addr.sin_addr.s_addr = INADDR_ANY;
         addr.sin_port = htons(port);
 
-        if (bind(sockfd, (sockaddr*)&addr, sizeof(addr)) < 0) {
+        if (bind(sock, (sockaddr *)&addr, sizeof(addr)) < 0)
+        {
             perror("bind");
-            close(sockfd);
+            close(sock);
             continue;
         }
 
-        if (listen(sockfd, SOMAXCONN) < 0) {
+        if (listen(sock, SOMAXCONN) < 0)
+        {
             perror("listen");
-            close(sockfd);
+            close(sock);
             continue;
         }
 
         Logger::log(LOG_INFO, "WebServer",
                     "Server listening on http://localhost:" + to_str(port));
-        listening_sockets.push_back(sockfd);
+        listening_sockets.push_back(sock);
     }
 }
 
-WebServer::~WebServer() {
-    for (size_t i = 0; i < fds.size(); ++i)
-        close(fds[i].fd);
+WebServer::~WebServer()
+{
+    shutdown();
 }
 
-/*void WebServer::run() {
-    poll_loop();
-}
-
-void WebServer::setup_server_socket(int port) {
-    server_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (server_fd == -1)
-        throw std::runtime_error("Socket creation failed");
-
-    int opt = 1;
-    setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
-
-    sockaddr_in addr;
-    std::memset(&addr, 0, sizeof(addr));
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(port);
-    addr.sin_addr.s_addr = INADDR_ANY;
-
-    if (bind(server_fd, (struct sockaddr*)&addr, sizeof(addr)) < 0)
-        throw std::runtime_error("Bind failed");
-    if (listen(server_fd, 10) < 0)
-        throw std::runtime_error("Listen failed");
-
-    make_socket_non_blocking(server_fd);
-}*/
-
-void WebServer::make_socket_non_blocking(int fd) {
-    if (fcntl(fd, F_SETFL, O_NONBLOCK) == -1)
-        throw std::runtime_error("Failed to set O_NONBLOCK");
-}
-
-/*void WebServer::poll_loop() {
-    Logger::log(LOG_DEBUG, "WebServer", "poll_loop running, fds.size() = " + to_str(fds.size()));
-    fds.clear();
-
-    for (size_t i = 0; i < listening_sockets.size(); ++i) {
-        pollfd pfd;
-        pfd.fd = listening_sockets[i];
-        pfd.events = POLLIN;
-        pfd.revents = 0;
-        fds.push_back(pfd);
+void WebServer::shutdown()
+{
+    // close listeners
+    for (size_t i = 0; i < listening_sockets.size(); ++i)
+    {
+        ::close(listening_sockets[i]);
     }
+    listening_sockets.clear();
 
-    size_t listener_count = listening_sockets.size();
-    Logger::log(LOG_DEBUG, "WebServer", "Listening sockets count: " + to_str(listener_count));
-
-    while (true) {
-        int count = poll(&fds[0], fds.size(), -1);
-        if (count < 0) {
-            Logger::log(LOG_ERROR, "WebServer", "Poll failed");
-            break;
-        }
-
-        for (size_t i = 0; i < fds.size(); ++i) {
-            if (!(fds[i].revents & POLLIN))
-                continue;
-            if (i < listener_count) {
-                handle_new_connection(fds[i].fd);
-            } else {
-                handle_client_data(i--);
-            }
-        }
+    // close any open client sockets
+    for (std::map<int, Connection>::iterator it = conns_.begin();
+         it != conns_.end(); ++it)
+    {
+        ::close(it->first);
     }
-}*/
+    conns_.clear();
 
-void WebServer::handle_new_connection(int listen_fd) {
-    sockaddr_in client_addr;
-    socklen_t addr_len = sizeof(client_addr);
-
-    int client_fd = accept(listen_fd, (sockaddr*)&client_addr, &addr_len);
-    if (client_fd < 0) {
-        perror("accept");
-        return;
-    }
-
-    fcntl(client_fd, F_SETFL, O_NONBLOCK);
-
-    pollfd pfd;
-    pfd.fd = client_fd;
-    pfd.events = POLLIN;
-    pfd.revents = 0;
-    fds.push_back(pfd);
-
-    Logger::log(LOG_INFO, "WebServer", "New client connected: FD=" + to_str(client_fd));
-}
-
-void WebServer::cleanup_client(int fd, size_t i) {
-    close(fd);
-    if (i < fds.size()) {
-        fds.erase(fds.begin() + i);
-    }
-    client_buffers.erase(fd);
-    Logger::log(LOG_INFO, "WebServer", "Cleaned up client FD=" + to_str(fd));
-}
-
-void WebServer::shutdown() {
-    for (size_t i = 0; i < fds.size(); ++i) {
-        close(fds[i].fd);
-    }
-    fds.clear();
     Logger::log(LOG_INFO, "WebServer", "All sockets closed.");
 }
 
-void WebServer::handle_client_data(size_t i) {
-    int client_fd = fds[i].fd;
-    Logger::log(LOG_DEBUG, "WebServer", "handle_client_data: FD=" + to_str(client_fd));
+void WebServer::make_socket_non_blocking(int fd)
+{
+    int flags = fcntl(fd, F_GETFL, 0);
+    if (flags < 0 || fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0)
+        throw std::runtime_error("Failed to make socket non-blocking");
+}
 
-    if (!read_and_append_client_data(client_fd, i))
-        return;
+int WebServer::handleNewConnection(int listen_fd)
+{
+    sockaddr_in client_addr;
+    socklen_t addrlen = sizeof(client_addr);
+    int client_fd = accept(listen_fd, (sockaddr *)&client_addr, &addrlen);
+    if (client_fd < 0)
+    {
+        // EAGAIN/EWOULDBLOCK means no pending connection
+        if (errno != EAGAIN && errno != EWOULDBLOCK)
+            perror("accept");
+        return -1;
+    }
 
-    std::string& request_data = client_buffers[client_fd];
-    size_t header_end = find_header_end(request_data);
-    if (header_end == std::string::npos) {
-        Logger::log(LOG_DEBUG, "WebServer", "Incomplete headers. Waiting for more data...");
+    make_socket_non_blocking(client_fd);
+    conns_[client_fd];
+    Logger::log(LOG_INFO, "WebServer", "Accepted FD=" + to_str(client_fd));
+    return client_fd;
+}
+
+void WebServer::handleClientDataOn(int client_fd)
+{
+    char buf[4096];
+    ssize_t n = ::read(client_fd, buf, sizeof(buf));
+    if (n <= 0)
+    {
+        // client closed or error
+        ::close(client_fd);
+        conns_.erase(client_fd);
+        Logger::log(LOG_INFO, "WebServer", "Closed FD=" + to_str(client_fd));
         return;
     }
 
-    try {
-        Request request(request_data);
-        if (!is_full_body_received(request, request_data, header_end)) {
+    // append into our buffer
+    std::string &data = conns_[client_fd].readBuf;
+    data.append(buf, (size_t)n);
+
+    // do we have a complete header yet?
+    size_t hdr_end = find_header_end(data);
+    if (hdr_end == std::string::npos)
+        return;
+
+    // build Request, check body length, then dispatch
+    try
+    {
+        Request req(data);
+        if (!is_full_body_received(req, data, hdr_end))
             return;
-        }
 
-        process_request(request, client_fd, i);
-
-        client_buffers.erase(client_fd);
-        Logger::log(LOG_DEBUG, "WebServer", "Request processed and buffer erased.");
+        process_request(req, client_fd, 0);
+        // data.clear();;
     }
-    catch (const std::exception& e) {
-        Logger::log(LOG_ERROR, "WebServer", std::string("Request parsing failed: ") + e.what());
-        send_error_response(client_fd, 400, "Bad Request", i);
-        client_buffers.erase(client_fd);
+    catch (const std::exception &e)
+    {
+        Logger::log(LOG_ERROR, "WebServer",
+                    std::string("Request parse failed: ") + e.what());
+        send_error_response(client_fd, 400, "Bad Request", 0);
+        // data.clear();
     }
-	std::cout << std::endl <<std::endl;
 }
 
 // --- Helper: Process the request ---
-void WebServer::process_request(Request& request, int client_fd, size_t i) {
+void WebServer::process_request(Request &request, int client_fd, size_t i)
+{
+    std::string ver     = request.getVersion();
+    std::string connHdr = request.getHeader("Connection");
+    bool close_conn = (connHdr == "close") ||
+                      (ver == "HTTP/1.0" && connHdr != "keep-alive");
+    conns_[client_fd].shouldCloseAfterWrite = close_conn;
+
+    Logger::log(LOG_INFO, "POLICY",
+        "fd=" + to_str(client_fd) +
+        " path=" + request.getPath() +
+        " ver=" + ver +
+        " conn=" + (connHdr.empty() ? std::string("<none>") : connHdr) +
+        " closeAfter=" + (close_conn ? "true" : "false"));
+
     std::string method = request.getMethod();
     std::string uri = request.getPath();
-    const LocationConfig* loc = match_location(config_->getLocations(), uri);
+    const LocationConfig *loc = match_location(config_->getLocations(), uri);
 
     if (loc)
         Logger::log(LOG_DEBUG, "WebServer", "Matched location: " + loc->path);
@@ -247,98 +167,163 @@ void WebServer::process_request(Request& request, int client_fd, size_t i) {
         Logger::log(LOG_DEBUG, "WebServer", "No location matched!");
 
     // 501 Not Implemented
-    if (method != "GET" && method != "POST" && method != "DELETE") {
+    if (method != "GET" && method != "POST" && method != "DELETE")
+    {
         send_error_response(client_fd, 501, "Not Implemented", i);
         return;
     }
 
     // Decode chunked body if needed
-    if (request.isChunked()) {
+    if (request.isChunked())
+    {
         std::string decoded = decode_chunked_body(request.getBody());
         request.setBody(decoded);
     }
 
     // 413 Payload Too Large
-    if (request.getBody().size() > config_->getMaxBodySize()) {
+    if (request.getBody().size() > config_->getMaxBodySize())
+    {
+        conns_[client_fd].shouldCloseAfterWrite = true;
         send_error_response(client_fd, 413, "Payload Too Large", i);
         return;
     }
 
     // 405 Method Not Allowed
-    if (loc && std::find(loc->allowed_methods.begin(), loc->allowed_methods.end(), method) == loc->allowed_methods.end()) {
+    if (loc &&
+        std::find(loc->allowed_methods.begin(),
+                  loc->allowed_methods.end(),
+                  method) == loc->allowed_methods.end())
+    {
         send_error_response(client_fd, 405, "Method Not Allowed", i);
         return;
     }
 
     // CGI check
-   // int is_cgi = (loc ? is_cgi_request(*loc, request.getPath()) : 0);
-    int is_cgi = ( loc && !loc->cgi_extension.empty() && is_cgi_request(*loc, request.getPath()) ) ? 1: 0;
+    int is_cgi = (loc && !loc->cgi_extension.empty() &&
+                  is_cgi_request(*loc, request.getPath()))
+                     ? 1
+                     : 0;
     Logger::log(LOG_DEBUG, "WebServer", "is_cgi_request: " + to_str(is_cgi));
-    if (loc && is_cgi) {
+    if (loc && is_cgi)
+    {
         handle_cgi(loc, request, client_fd, i);
         return;
     }
 
-    // Dispatch to method handler
-    if (method == "GET") {
-        handle_get(request, loc, client_fd, i);
-    } else if (method == "POST") {
-        handle_post(request, loc, client_fd, i);
-    } else if (method == "DELETE") {
-        handle_delete(request, loc, client_fd, i);
-    }
-
-    // Connection: close logic
-    std::string connection_header = request.getHeader("Connection");
-    bool close_connection = (connection_header == "close" || request.getVersion() == "HTTP/1.0");
-    if (close_connection) {
-        cleanup_client(client_fd, i);
-    }
-}
-
-void WebServer::run_one_iteration() {
-    // On first call, seed fds[] with all listening sockets
-    if (fds.empty()) {
-        for (size_t idx = 0; idx < listening_sockets.size(); ++idx) {
-            int lsock = listening_sockets[idx];
-            pollfd pfd;
-            pfd.fd = lsock;
-            pfd.events = POLLIN;
-            pfd.revents = 0;
-            fds.push_back(pfd);
-        }
-    }
-
-    // Block until *any* socket is ready
-    int ready = poll(fds.data(), fds.size(), -1);
-    if (ready < 0) {
-        perror("poll");
+    if (loc && !loc->redirect_url.empty())
+    {
+        send_redirect_response(client_fd,
+                               loc->redirect_code == 0 ? 302 : loc->redirect_code,
+                               loc->redirect_url,
+                               i);
         return;
     }
 
-    // Number of listening sockets (they occupy the front of fds[])
-    size_t listener_count = listening_sockets.size();
+    Logger::log(LOG_INFO, "request",
+                "Ver=" + request.getVersion() + " ConnHdr=" + request.getHeader("Connection"));
 
-    // Iterate through fds; note that fds may grow or shrink in the loop
-    for (size_t i = 0; i < fds.size() && ready > 0; ++i) {
-        if (fds[i].revents == 0) 
-            continue;
-
-        --ready;  // one event to handle
-
-        // New incoming connection?
-        if ((fds[i].revents & POLLIN) && i < listener_count) {
-            handle_new_connection(fds[i].fd);
-        }
-        else if (fds[i].revents & POLLIN) {
-            // Data on an existing client socket
-            handle_client_data(i);
-        }
-        // (You could also watch for POLLOUT here if you buffer writes.)
-
-        // Clear the event flag so we don't handle it again
-        fds[i].revents = 0;
+    // Dispatch to method handler
+    if (method == "GET")
+    {
+        handle_get(request, loc, client_fd, i);
     }
+    else if (method == "POST")
+    {
+        Logger::log(LOG_DEBUG, "process_request",
+                    "POST " + request.getPath() +
+                        " matched to location " + (loc ? loc->path : "NULL") +
+                        " upload_dir=" + (loc ? loc->upload_dir : "<none>"));
+
+        handle_post(request, loc, client_fd, i);
+    }
+    else if (method == "DELETE")
+    {
+        handle_delete(request, loc, client_fd, i);
+    }
+    if (!conns_[client_fd].shouldCloseAfterWrite) {
+        conns_[client_fd].readBuf.clear();
+        Logger::log(LOG_DEBUG, "RESET",
+            "fd=" + to_str(client_fd) + " keeping alive; cleared readBuf");
+}
+    /*if (conns_[client_fd].shouldCloseAfterWrite)
+    {
+        cleanup_client(client_fd, i);
+    }*/
 }
 
+void WebServer::cleanup_client(int client_fd, int i)
+{
+    // closure + buffer cleanup
+    (void)i;
+    ::close(client_fd);
+    conns_.erase(client_fd); // remove from the new conns_ map
+    Logger::log(LOG_INFO, "WebServer", "Cleaned up client FD=" + to_str(client_fd));
+}
+
+void WebServer::handle_new_connection(int listen_fd)
+{
+    // simply call your new accept logic:
+    handleNewConnection(listen_fd);
+}
+
+void WebServer::queueResponse(int client_fd,
+                              const std::string &rawResponse)
+{
+    Connection &conn = conns_[client_fd];
+    conn.writeBuf += rawResponse;
+    //conn.shouldCloseAfterWrite = closeAfter;
+}
+
+// True if there’s any unsent bytes pending on that fd.
+bool WebServer::hasPendingWrite(int client_fd) const
+{
+    std::map<int, Connection>::const_iterator it = conns_.find(client_fd);
+    if (it == conns_.end())
+        return false;
+    return !it->second.writeBuf.empty();
+}
+
+// Try to write as much as possible from the pending buffer.
+// Called when poll() reports POLLOUT on client_fd.
+void WebServer::flushPendingWrites(int client_fd)
+{
+    std::map<int, Connection>::iterator it = conns_.find(client_fd);
+    if (it == conns_.end())
+        return;
+    Connection &conn = it->second;
+
+    // Attempt to write until EAGAIN or buffer drained
+    while (!conn.writeBuf.empty())
+    {
+        ssize_t n = ::write(client_fd,
+                            conn.writeBuf.data(),
+                            conn.writeBuf.size());
+        if (n > 0)
+        {
+            conn.writeBuf.erase(0, static_cast<size_t>(n));
+        }
+        else if (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK))
+        {
+            // Kernel buffer full for now
+            break;
+        }
+        else
+        {
+            // Fatal error or peer closed
+            cleanup_client(client_fd, 0);
+            return;
+        }
+    }
+
+    // If everything is sent and we should close, do so
+    if (conn.writeBuf.empty() && conn.shouldCloseAfterWrite)
+    {
+         Logger::log(LOG_DEBUG, "flush",
+                        "fd=" + to_str(client_fd) + " drained; closing");
+        ::shutdown(client_fd, SHUT_WR);
+        cleanup_client(client_fd, 0); }
+        else {
+        Logger::log(LOG_DEBUG, "flush", "fd=" + to_str(client_fd) + " drained; keeping open");
+    }
+}
 
