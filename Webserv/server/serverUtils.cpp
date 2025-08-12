@@ -87,18 +87,16 @@ bool WebServer::read_and_append_client_data(int client_fd, size_t i) {
     char buffer[8192];
     ssize_t bytes_read = recv(client_fd, buffer, sizeof(buffer), 0);
     if (bytes_read <= 0) {
-        // Client disconnected or error
         Logger::log(LOG_INFO, "read_and_append_client_data", "Client disconnected or error on FD=" + to_str(client_fd));
         cleanup_client(client_fd, i);
         return false;
     }
     conns_[client_fd].readBuf.append(buffer, static_cast<size_t>(bytes_read));
 
-    // Check if buffer is too large (AFTER appending)
     if (conns_[client_fd].readBuf.size() > config_->getMaxBodySize()) {
         Logger::log(LOG_ERROR, "read_and_append_client_data", "Payload Too Large for FD=" + to_str(client_fd));
         send_error_response(client_fd, 413, "Payload Too Large", i);
-        usleep(100000); // 100ms
+        usleep(100000); 
         return false;
     }
 

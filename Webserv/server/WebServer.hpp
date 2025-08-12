@@ -91,6 +91,11 @@ private:
     void   process_request          (Request&, int, size_t);
     static std::string timestamp();
     void handle_client_fd(int client_fd);
+
+    static bool isAbsoluteHttpUrl(const std::string& s);
+    static std::string hostportFromUrl(const std::string& url);
+    static bool iequals(const std::string& a, const std::string& b);
+    static bool isExternalRedirect(const std::string& location, const std::string& reqHost);
 };
 
 std::string extract_file_from_multipart(const std::string& body, std::string& filename);

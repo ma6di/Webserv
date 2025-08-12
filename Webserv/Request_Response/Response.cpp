@@ -74,6 +74,9 @@ std::map<std::string, std::string> redirect_headers(const std::string& url) {
     std::map<std::string, std::string> m;
     m["Location"] = url;
     m["Content-Type"] = "text/html";
+    m["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0";
+    m["Pragma"]        = "no-cache";
+    m["Expires"]       = "0";
     return m;
 }
 

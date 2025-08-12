@@ -6,7 +6,6 @@
 WebServer::WebServer(const Config &cfg)
     : config_(&cfg)
 {
-    // grab ports into a local vector for C++98 style iteration
     std::vector<int> ports = config_->getPorts();
     for (size_t idx = 0; idx < ports.size(); ++idx)
     {
@@ -56,14 +55,12 @@ WebServer::~WebServer()
 
 void WebServer::shutdown()
 {
-    // close listeners
     for (size_t i = 0; i < listening_sockets.size(); ++i)
     {
         ::close(listening_sockets[i]);
     }
     listening_sockets.clear();
 
-    // close any open client sockets
     for (std::map<int, Connection>::iterator it = conns_.begin();
          it != conns_.end(); ++it)
     {
@@ -88,7 +85,6 @@ int WebServer::handleNewConnection(int listen_fd)
     int client_fd = accept(listen_fd, (sockaddr *)&client_addr, &addrlen);
     if (client_fd < 0)
     {
-        // EAGAIN/EWOULDBLOCK means no pending connection
         if (errno != EAGAIN && errno != EWOULDBLOCK)
             perror("accept");
         return -1;
@@ -130,32 +126,30 @@ void WebServer::handleClientDataOn(int client_fd)
             return;
 
         process_request(req, client_fd, 0);
-        // data.clear();;
     }
     catch (const std::exception &e)
     {
         Logger::log(LOG_ERROR, "WebServer",
                     std::string("Request parse failed: ") + e.what());
         send_error_response(client_fd, 400, "Bad Request", 0);
-        // data.clear();
     }
 }
 
 // --- Helper: Process the request ---
 void WebServer::process_request(Request &request, int client_fd, size_t i)
 {
-    std::string ver     = request.getVersion();
+    std::string ver = request.getVersion();
     std::string connHdr = request.getHeader("Connection");
     bool close_conn = (connHdr == "close") ||
                       (ver == "HTTP/1.0" && connHdr != "keep-alive");
     conns_[client_fd].shouldCloseAfterWrite = close_conn;
 
     Logger::log(LOG_INFO, "POLICY",
-        "fd=" + to_str(client_fd) +
-        " path=" + request.getPath() +
-        " ver=" + ver +
-        " conn=" + (connHdr.empty() ? std::string("<none>") : connHdr) +
-        " closeAfter=" + (close_conn ? "true" : "false"));
+                "fd=" + to_str(client_fd) +
+                    " path=" + request.getPath() +
+                    " ver=" + ver +
+                    " conn=" + (connHdr.empty() ? std::string("<none>") : connHdr) +
+                    " closeAfter=" + (close_conn ? "true" : "false"));
 
     std::string method = request.getMethod();
     std::string uri = request.getPath();
@@ -210,19 +204,39 @@ void WebServer::process_request(Request &request, int client_fd, size_t i)
         return;
     }
 
+    // Handle redirects
     if (loc && !loc->redirect_url.empty())
     {
+        const std::string hostHdr = request.getHeader("Host"); 
+        const bool external = isExternalRedirect(loc->redirect_url, hostHdr);
+
+        if (external)
+        {
+            conns_[client_fd].shouldCloseAfterWrite = true;
+            Logger::log(LOG_INFO, "redirect",
+                        "External → " + loc->redirect_url + " (will close)");
+        }
+        else
+        {
+            Logger::log(LOG_INFO, "redirect",
+                        "Internal → " + loc->redirect_url + " (keep-alive)");
+        }
         send_redirect_response(client_fd,
-                               loc->redirect_code == 0 ? 302 : loc->redirect_code,
+                               loc->redirect_code == 0 ? 301 : loc->redirect_code,
                                loc->redirect_url,
                                i);
+        if (!conns_[client_fd].shouldCloseAfterWrite) {
+        conns_[client_fd].readBuf.clear();      
+        Logger::log(LOG_DEBUG, "RESET",
+                    "fd=" + to_str(client_fd) + " cleared readBuf after internal redirect");
+
+    }
         return;
     }
 
     Logger::log(LOG_INFO, "request",
                 "Ver=" + request.getVersion() + " ConnHdr=" + request.getHeader("Connection"));
 
-    // Dispatch to method handler
     if (method == "GET")
     {
         handle_get(request, loc, client_fd, i);
@@ -240,29 +254,24 @@ void WebServer::process_request(Request &request, int client_fd, size_t i)
     {
         handle_delete(request, loc, client_fd, i);
     }
-    if (!conns_[client_fd].shouldCloseAfterWrite) {
+    if (!conns_[client_fd].shouldCloseAfterWrite)
+    {
         conns_[client_fd].readBuf.clear();
         Logger::log(LOG_DEBUG, "RESET",
-            "fd=" + to_str(client_fd) + " keeping alive; cleared readBuf");
-}
-    /*if (conns_[client_fd].shouldCloseAfterWrite)
-    {
-        cleanup_client(client_fd, i);
-    }*/
+                    "fd=" + to_str(client_fd) + " keeping alive; cleared readBuf");
+    }
 }
 
 void WebServer::cleanup_client(int client_fd, int i)
 {
-    // closure + buffer cleanup
     (void)i;
     ::close(client_fd);
-    conns_.erase(client_fd); // remove from the new conns_ map
+    conns_.erase(client_fd); 
     Logger::log(LOG_INFO, "WebServer", "Cleaned up client FD=" + to_str(client_fd));
 }
 
 void WebServer::handle_new_connection(int listen_fd)
 {
-    // simply call your new accept logic:
     handleNewConnection(listen_fd);
 }
 
@@ -271,10 +280,8 @@ void WebServer::queueResponse(int client_fd,
 {
     Connection &conn = conns_[client_fd];
     conn.writeBuf += rawResponse;
-    //conn.shouldCloseAfterWrite = closeAfter;
 }
 
-// True if there’s any unsent bytes pending on that fd.
 bool WebServer::hasPendingWrite(int client_fd) const
 {
     std::map<int, Connection>::const_iterator it = conns_.find(client_fd);
@@ -283,8 +290,6 @@ bool WebServer::hasPendingWrite(int client_fd) const
     return !it->second.writeBuf.empty();
 }
 
-// Try to write as much as possible from the pending buffer.
-// Called when poll() reports POLLOUT on client_fd.
 void WebServer::flushPendingWrites(int client_fd)
 {
     std::map<int, Connection>::iterator it = conns_.find(client_fd);
@@ -292,7 +297,6 @@ void WebServer::flushPendingWrites(int client_fd)
         return;
     Connection &conn = it->second;
 
-    // Attempt to write until EAGAIN or buffer drained
     while (!conn.writeBuf.empty())
     {
         ssize_t n = ::write(client_fd,
@@ -304,26 +308,85 @@ void WebServer::flushPendingWrites(int client_fd)
         }
         else if (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK))
         {
-            // Kernel buffer full for now
             break;
         }
         else
         {
-            // Fatal error or peer closed
             cleanup_client(client_fd, 0);
             return;
         }
     }
 
-    // If everything is sent and we should close, do so
     if (conn.writeBuf.empty() && conn.shouldCloseAfterWrite)
     {
-         Logger::log(LOG_DEBUG, "flush",
-                        "fd=" + to_str(client_fd) + " drained; closing");
+        Logger::log(LOG_DEBUG, "flush",
+                    "fd=" + to_str(client_fd) + " drained; closing");
         ::shutdown(client_fd, SHUT_WR);
-        cleanup_client(client_fd, 0); }
-        else {
+        cleanup_client(client_fd, 0);
+    }
+    else
+    {
         Logger::log(LOG_DEBUG, "flush", "fd=" + to_str(client_fd) + " drained; keeping open");
     }
 }
 
+bool WebServer::isAbsoluteHttpUrl(const std::string &s)
+{
+    return (s.compare(0, 7, "http://") == 0) ||
+           (s.compare(0, 8, "https://") == 0) ||
+           (s.compare(0, 2, "//") == 0); 
+}
+
+std::string WebServer::hostportFromUrl(const std::string &url)
+{
+
+    std::string s = url;
+    size_t start = 0;
+    if (s.compare(0, 2, "//") == 0)
+    {
+        start = 2;
+    }
+    else
+    {
+        size_t p = s.find("://");
+        if (p != std::string::npos)
+            start = p + 3;
+    }
+    size_t end = s.find('/', start);
+    if (end == std::string::npos)
+        end = s.size();
+    return s.substr(start, end - start); 
+}
+
+bool WebServer::iequals(const std::string &a, const std::string &b)
+{
+    if (a.size() != b.size())
+        return false;
+    for (size_t i = 0; i < a.size(); ++i)
+    {
+        char ca = a[i], cb = b[i];
+        if ('A' <= ca && ca <= 'Z')
+            ca = char(ca - 'A' + 'a');
+        if ('A' <= cb && cb <= 'Z')
+            cb = char(cb - 'A' + 'a');
+        if (ca != cb)
+            return false;
+    }
+    return true;
+}
+
+bool WebServer::isExternalRedirect(const std::string &location, const std::string &reqHost)
+{
+    if (!location.empty() && location[0] == '/')
+        return false;
+
+    if (isAbsoluteHttpUrl(location))
+    {
+        std::string hp = hostportFromUrl(location);
+        if (reqHost.empty())
+            return true;
+        return !iequals(hp, reqHost);
+    }
+
+    return true;
+}
