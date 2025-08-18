@@ -259,7 +259,7 @@ bool WebServer::is_valid_upload_request(const Request& request, const LocationCo
     return request.getMethod() == "POST" && loc && !loc->upload_dir.empty();
 }
 
-void WebServer::process_upload_content(const Request& request, std::string& filename, std::string& content) {
+/*void WebServer::process_upload_content(const Request& request, std::string& filename, std::string& content) {
     std::string content_type = request.getHeader("Content-Type");
     if (content_type.find("multipart/form-data") != std::string::npos) {
         Logger::log(LOG_DEBUG, "process_upload_content", "Detected multipart upload");
@@ -272,10 +272,44 @@ void WebServer::process_upload_content(const Request& request, std::string& file
         content = request.getBody();
         filename = "upload";
     }
+}*/
+
+void WebServer::process_upload_content(const Request& request,
+                                       std::string& filename,
+                                       std::string& content)
+{
+    std::string content_type = request.getHeader("Content-Type");
+
+    if (content_type.find("multipart/form-data") != std::string::npos) {
+        Logger::log(LOG_DEBUG, "process_upload_content", "Detected multipart upload");
+        std::string boundary = get_boundary_from_content_type(content_type);
+
+        std::string fn, data;
+        if (extract_multipart_file_raw(request.getBody(), boundary, fn, data)) {
+            filename = fn.empty() ? "upload" : fn;   // keep original extension!
+            content  = data;                          // raw bytes
+        } else {
+            // Fallback: treat entire body as "raw"
+            Logger::log(LOG_ERROR, "process_upload_content", "Multipart parse failed; using raw body");
+            filename = "upload";
+            content  = request.getBody();
+        }
+    } else {
+        Logger::log(LOG_DEBUG, "process_upload_content", "Detected non-multipart upload");
+        filename = "upload";
+        content  = request.getBody(); // raw bytes already
+    }
 }
 
+
 std::string WebServer::make_upload_filename(const std::string& filename) {
-    return filename + "_" + timestamp() + ".txt";
+    std::string safe = sanitize_filename(filename.empty() ? "upload" : filename);
+
+    std::string base, ext;
+    split_basename_ext(safe, base, ext);
+
+    // Insert timestamp before the extension
+    return base + "_" + timestamp() + ext;
 }
 
 bool WebServer::write_upload_file(const std::string& full_path, const std::string& content) {
