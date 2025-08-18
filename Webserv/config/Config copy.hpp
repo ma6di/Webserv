@@ -3,6 +3,7 @@
 
 #include "LocationConfig.hpp"
 #include "../logger/Logger.hpp"
+#include "WebServer.hpp"
 #include <string>
 #include <vector>
 #include <map>
@@ -19,8 +20,7 @@
 class Config {
 public:
 
-	Config();
-    explicit Config(const std::string& filename);
+	Config(const std::string& filename);
 
     std::vector<int> ports;
     const std::vector<int>& getPorts() const;
@@ -30,10 +30,8 @@ public:
 	const std::string* getErrorPage(int code) const;
     size_t getMaxBodySize() const;
 
-    //Helper Validating functions
 	int parseListenDirective(const std::string& token);
 	bool pathExists(const std::string& path);
-    void parseServerBlock(std::ifstream& file);
 
 private:
     void handleListenDirective(std::istringstream& iss);
@@ -44,15 +42,13 @@ private:
     void handleLocationEnd(LocationConfig& currentLocation, bool& insideLocation);
     void handleLocationDirective(const std::string& keyword, std::istringstream& iss, LocationConfig& currentLocation);
 
-    int port;                                 // Port the server will listen on
-    std::string root;                         // Global root directory for the server
-    std::vector<LocationConfig> locations;    // List of all location blocks (e.g. "/cgi-bin", "/upload")
-    std::map<int, std::string> error_pages;   // Map of error codes to file paths (e.g., 404 → /404.html)
+    int port;                                 
+    std::string root;                         
+    std::vector<LocationConfig> locations;    
+    std::map<int, std::string> error_pages;   
 	size_t max_body_size;
 
+    void parseConfigFile(const std::string& filename);
 };
-
-std::vector<Config> parseConfigFile(const std::string& filename);
-
 
 #endif
