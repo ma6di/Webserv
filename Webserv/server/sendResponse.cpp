@@ -47,10 +47,10 @@ void WebServer::send_ok_response(int client_fd, const std::string &body, const s
     (void)i;
     Logger::log(LOG_INFO, "send_ok_response", "Sending 200 OK response.");
     Response resp(200, "OK", body, headers);
-     bool keepAlive = !conns_[client_fd].shouldCloseAfterWrite;
-
+    bool keepAlive = !conns_[client_fd].shouldCloseAfterWrite; // <----- photobook bug?
+	keepAlive = false; // <--- bug "fixed" because false
     // Apply our new helper:
-    resp.applyConnectionHeaders(keepAlive);
+    resp.applyConnectionHeaders(keepAlive);  // <----- photobook bug?
     std::string raw = resp.toString();
     // 2) Enqueue for non-blocking write; close after fully sent
     queueResponse(client_fd, raw);

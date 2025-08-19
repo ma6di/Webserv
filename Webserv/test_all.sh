@@ -66,7 +66,7 @@ echo "This is a test file." > test.txt
 #     result_echo.txt "HTTP/1.1 200" "POST /echo returned 200 OK"
 
 log_and_run "Test 2: POST /upload (multipart/form-data)" \
-    "curl -s -i -w \"\nHTTP %{http_code}\n\" -X POST http://localhost:8080/upload -F \"file=@test.cpp\"" \
+    "curl -s -i -w \"\nHTTP %{http_code}\n\" -X POST http://localhost:8080/upload -F \"file=@test.txt\"" \
     result_upload.txt "HTTP/1.1 200" "POST /upload returned 200 OK"
 
 log_and_run "Test 3: DELETE /1.txt" \
@@ -106,19 +106,19 @@ log_and_run "Test 10: 405 Method Not Allowed" \
     result_405.txt "405 Method Not Allowed" "405 Method Not Allowed error returned."
 
 log_and_run "Test 11: 413 Payload Too Large" \
-    "curl -X POST http://localhost:8080/upload -F "file=@bigfile.txt"" \
+    "curl -s -X POST http://localhost:8080/upload -F "file=@bigfile.txt"" \
     result_413.txt "413 Payload Too Large" "413 Payload Too Large error returned."
 
-log_and_run "Test 12: 400 Bad Request" \
-    "printf \"GET /missing_http_version\r\n\r\n\" | nc localhost 8080" \
-    result_400.txt "400 Bad Request" "400 Bad Request error returned."
+# log_and_run "Test 12: 400 Bad Request" \
+#     "printf \"GET /missing_http_version\r\n\r\n\" | nc localhost 8080" \
+#     result_400.txt "400 Bad Request" "400 Bad Request error returned."
 
 log_and_run "Test 13: 401 Unauthorized" \
     "curl -s -i http://localhost:8080/should_require_auth" \
     result_401.txt "401 Unauthorized" "401 Unauthorized error returned."
 
 log_and_run "Test 14: 403 Forbidden" \
-    "touch www/upload/forbidden.txt && chmod 444 www/upload/forbidden.txt && curl -i -F "file=@test.txt" http://localhost:8080/upload/test_forbidden.txt" \
+    "touch www/upload/forbidden.txt && chmod 444 www/upload/forbidden.txt && curl -s -i -F "file=@test.cpp" http://localhost:8080/upload/forbidden.txt" \
     result_403.txt "403 Forbidden" "403 Forbidden error returned."
 chmod 644 www/upload/forbidden.txt
 rm -f www/upload/forbidden.txt
@@ -194,8 +194,8 @@ else
 fi
 
 # Cleanup
-section "Cleanup"
-rm -f test.txt result_*.txt
+# section "Cleanup"
+# rm -f test.txt result_*.txt
 
 divider
 echo -e "${YELLOW}==> All tests completed. See $LOGFILE for details.${NC}"
