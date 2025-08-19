@@ -163,11 +163,11 @@ fi
 # Result Checks
 section "Checking Results"
 
-uploaded_file=$(ls www/upload/test.txt_* 2>/dev/null | head -n1)
+uploaded_file=$(ls www/upload/test_* 2>/dev/null | head -n1)
 if [ -n "$uploaded_file" ] && grep -q "This is a test file." "$uploaded_file"; then
     result_ok "File uploaded successfully as $uploaded_file."
 else
-    uploaded_file=$(ls www/upload/upload_* 2>/dev/null | head -n1)
+    uploaded_file=$(ls www/upload_* 2>/dev/null | head -n1)
     if [ -n "$uploaded_file" ]; then
         result_ok "Raw data uploaded as $uploaded_file."
     else
