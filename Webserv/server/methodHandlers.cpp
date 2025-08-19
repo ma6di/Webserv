@@ -1,45 +1,31 @@
 #include "WebServer.hpp"
 
-extern Config g_config;
-
 // --- GET Handler ---
-void WebServer::handle_get(const Request& request, const LocationConfig* loc, int client_fd, size_t i) {
-    std::string uri = request.getPath();
-    std::string path = resolve_path(uri, "GET", loc);
-    Logger::log(LOG_DEBUG, "handle_get", "uri=" + uri + " path=" + path);
 
-    if (loc && !loc->redirect_url.empty()) {
-        Logger::log(LOG_INFO, "handle_get", "Redirecting to: " + loc->redirect_url);
-        send_redirect_response(client_fd, loc->redirect_code, loc->redirect_url, i);
+void WebServer::handle_get(const Request& req,
+                           const LocationConfig* loc,
+                           int client_fd,
+                           size_t idx)
+{
+    std::string fs_path = resolve_path(req.getPath(),
+                                       req.getMethod(),
+                                       loc);
+
+    struct stat st;
+    if (stat(fs_path.c_str(), &st) < 0) {
+        send_error_response(client_fd, 404, "Not Found", idx);
         return;
     }
 
-    if (is_directory(path)) {
-        Logger::log(LOG_DEBUG, "handle_get", "Directory detected: " + path);
-        handle_directory_request(path, uri, loc, client_fd, i);
-        return;
+    if (S_ISDIR(st.st_mode)) {
+        handle_directory_request(fs_path, req.getPath(), loc, client_fd, idx);
     }
-
-    handle_file_request(path, client_fd, i);
+    else {
+        handle_file_request(fs_path, client_fd, idx);
+    }
 }
 
 // --- Directory Handler ---
-/*void WebServer::handle_directory_request(const std::string& path, const std::string& uri, const LocationConfig* loc, int client_fd, size_t i) {
-    std::string index_path = path + "/index.html";
-    if (file_exists(index_path)) {
-        Logger::log(LOG_DEBUG, "handle_directory_request", "Serving index: " + index_path);
-        send_file_response(client_fd, index_path, i);
-        return;
-    }
-    if (loc && loc->autoindex) {
-        Logger::log(LOG_DEBUG, "handle_directory_request", "Autoindex enabled for: " + path);
-        std::string html = generate_directory_listing(path, uri);
-        send_ok_response(client_fd, html, content_type_html(), i);
-        return;
-    }
-    Logger::log(LOG_ERROR, "handle_directory_request", "Forbidden: " + path);
-    send_error_response(client_fd, 403, "Forbidden", i);
-}*/
 
 void WebServer::handle_directory_request(const std::string& path, const std::string& uri, const LocationConfig* loc, int client_fd, size_t i) {
     // Use the configured index if set, otherwise default to index.html
@@ -212,7 +198,6 @@ std::string extract_file_from_multipart(const std::string& body, std::string& fi
             file_content << line << "\n";
     }
 
-    // Remove last newline
     std::string content = file_content.str();
     if (!content.empty() && content[content.size() - 1] == '\n')
         content.erase(content.size() - 1);
@@ -222,6 +207,10 @@ std::string extract_file_from_multipart(const std::string& body, std::string& fi
 
 bool WebServer::handle_upload(const Request& request, const LocationConfig* loc, int client_fd, size_t i) {
     if (!is_valid_upload_request(request, loc)) {
+        Logger::log(LOG_DEBUG, "is_valid_upload_request",
+  "method=" + request.getMethod() +
+  " upload_dir=" + (loc? loc->upload_dir : "<none>"));
+
         Logger::log(LOG_DEBUG, "handle_upload", "Not an upload request.");
         return false;
     }
@@ -270,7 +259,7 @@ bool WebServer::is_valid_upload_request(const Request& request, const LocationCo
     return request.getMethod() == "POST" && loc && !loc->upload_dir.empty();
 }
 
-void WebServer::process_upload_content(const Request& request, std::string& filename, std::string& content) {
+/*void WebServer::process_upload_content(const Request& request, std::string& filename, std::string& content) {
     std::string content_type = request.getHeader("Content-Type");
     if (content_type.find("multipart/form-data") != std::string::npos) {
         Logger::log(LOG_DEBUG, "process_upload_content", "Detected multipart upload");
@@ -283,10 +272,44 @@ void WebServer::process_upload_content(const Request& request, std::string& file
         content = request.getBody();
         filename = "upload";
     }
+}*/
+
+void WebServer::process_upload_content(const Request& request,
+                                       std::string& filename,
+                                       std::string& content)
+{
+    std::string content_type = request.getHeader("Content-Type");
+
+    if (content_type.find("multipart/form-data") != std::string::npos) {
+        Logger::log(LOG_DEBUG, "process_upload_content", "Detected multipart upload");
+        std::string boundary = get_boundary_from_content_type(content_type);
+
+        std::string fn, data;
+        if (extract_multipart_file_raw(request.getBody(), boundary, fn, data)) {
+            filename = fn.empty() ? "upload" : fn;   // keep original extension!
+            content  = data;                          // raw bytes
+        } else {
+            // Fallback: treat entire body as "raw"
+            Logger::log(LOG_ERROR, "process_upload_content", "Multipart parse failed; using raw body");
+            filename = "upload";
+            content  = request.getBody();
+        }
+    } else {
+        Logger::log(LOG_DEBUG, "process_upload_content", "Detected non-multipart upload");
+        filename = "upload";
+        content  = request.getBody(); // raw bytes already
+    }
 }
 
+
 std::string WebServer::make_upload_filename(const std::string& filename) {
-    return filename + "_" + timestamp() + ".txt";
+    std::string safe = sanitize_filename(filename.empty() ? "upload" : filename);
+
+    std::string base, ext;
+    split_basename_ext(safe, base, ext);
+
+    // Insert timestamp before the extension
+    return base + "_" + timestamp() + ext;
 }
 
 bool WebServer::write_upload_file(const std::string& full_path, const std::string& content) {

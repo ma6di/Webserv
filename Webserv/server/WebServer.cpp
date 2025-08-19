@@ -1,199 +1,206 @@
-/**
- * WebServer.cpp
- * -------------
- * Implements the WebServer class.
- * - Sets up listening sockets
- * - Accepts and manages client connections
- * - Handles HTTP requests, static files, uploads, and CGI
- * - Provides logging and error handling
- */
-
 #include "WebServer.hpp"
+#include "Config.hpp"
+#include <cstring>
+#include <errno.h>
 
-extern Config g_config;
-
-WebServer::WebServer(const std::vector<int>& ports) {
-    for (size_t i = 0; i < ports.size(); ++i) {
-        int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-        if (sockfd < 0) {
+WebServer::WebServer(const Config &cfg)
+    : config_(&cfg)
+{
+    std::vector<int> ports = config_->getPorts();
+    for (size_t idx = 0; idx < ports.size(); ++idx)
+    {
+        int port = ports[idx];
+        int sock = socket(AF_INET, SOCK_STREAM, 0);
+        if (sock < 0)
+        {
             perror("socket");
             continue;
         }
 
-        fcntl(sockfd, F_SETFL, O_NONBLOCK);
+        make_socket_non_blocking(sock);
 
         int opt = 1;
-        setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+        setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
         sockaddr_in addr;
         std::memset(&addr, 0, sizeof(addr));
         addr.sin_family = AF_INET;
         addr.sin_addr.s_addr = INADDR_ANY;
-        addr.sin_port = htons(ports[i]);
+        addr.sin_port = htons(port);
 
-        if (bind(sockfd, (sockaddr*)&addr, sizeof(addr)) < 0) {
+        if (bind(sock, (sockaddr *)&addr, sizeof(addr)) < 0)
+        {
             perror("bind");
-            close(sockfd);
+            close(sock);
             continue;
         }
 
-        if (listen(sockfd, SOMAXCONN) < 0) {
+        if (listen(sock, SOMAXCONN) < 0)
+        {
             perror("listen");
-            close(sockfd);
+            close(sock);
             continue;
         }
 
-        Logger::log(LOG_INFO, "WebServer", "Server running on http://localhost:" + to_str(ports[i]));
-        listening_sockets.push_back(sockfd);
+        Logger::log(LOG_INFO, "WebServer",
+                    "Server listening on http://localhost:" + to_str(port));
+        listening_sockets.push_back(sock);
     }
 }
 
-WebServer::~WebServer() {
-    for (size_t i = 0; i < fds.size(); ++i)
-        close(fds[i].fd);
+WebServer::~WebServer()
+{
+    shutdown();
 }
 
-void WebServer::run() {
-    poll_loop();
-}
-
-void WebServer::setup_server_socket(int port) {
-    server_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (server_fd == -1)
-        throw std::runtime_error("Socket creation failed");
-
-    int opt = 1;
-    setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
-
-    sockaddr_in addr;
-    std::memset(&addr, 0, sizeof(addr));
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(port);
-    addr.sin_addr.s_addr = INADDR_ANY;
-
-    if (bind(server_fd, (struct sockaddr*)&addr, sizeof(addr)) < 0)
-        throw std::runtime_error("Bind failed");
-    if (listen(server_fd, 10) < 0)
-        throw std::runtime_error("Listen failed");
-
-    make_socket_non_blocking(server_fd);
-}
-
-void WebServer::make_socket_non_blocking(int fd) {
-    if (fcntl(fd, F_SETFL, O_NONBLOCK) == -1)
-        throw std::runtime_error("Failed to set O_NONBLOCK");
-}
-
-void WebServer::poll_loop() {
-    Logger::log(LOG_DEBUG, "WebServer", "poll_loop running, fds.size() = " + to_str(fds.size()));
-    fds.clear();
-
-    for (size_t i = 0; i < listening_sockets.size(); ++i) {
-        pollfd pfd;
-        pfd.fd = listening_sockets[i];
-        pfd.events = POLLIN;
-        pfd.revents = 0;
-        fds.push_back(pfd);
+void WebServer::shutdown()
+{
+    for (size_t i = 0; i < listening_sockets.size(); ++i)
+    {
+        ::close(listening_sockets[i]);
     }
+    listening_sockets.clear();
 
-    size_t listener_count = listening_sockets.size();
-    Logger::log(LOG_DEBUG, "WebServer", "Listening sockets count: " + to_str(listener_count));
-
-    while (true) {
-        int count = poll(&fds[0], fds.size(), -1);
-        if (count < 0) {
-            Logger::log(LOG_ERROR, "WebServer", "Poll failed");
-            break;
-        }
-
-        for (size_t i = 0; i < fds.size(); ++i) {
-            if (!(fds[i].revents & POLLIN))
-                continue;
-            if (i < listener_count) {
-                handle_new_connection(fds[i].fd);
-            } else {
-                handle_client_data(i--);
-            }
-        }
+    for (std::map<int, Connection>::iterator it = conns_.begin();
+         it != conns_.end(); ++it)
+    {
+        ::close(it->first);
     }
-}
+    conns_.clear();
 
-void WebServer::handle_new_connection(int listen_fd) {
-    sockaddr_in client_addr;
-    socklen_t addr_len = sizeof(client_addr);
-
-    int client_fd = accept(listen_fd, (sockaddr*)&client_addr, &addr_len);
-    if (client_fd < 0) {
-        perror("accept");
-        return;
-    }
-
-    fcntl(client_fd, F_SETFL, O_NONBLOCK);
-
-    pollfd pfd;
-    pfd.fd = client_fd;
-    pfd.events = POLLIN;
-    pfd.revents = 0;
-    fds.push_back(pfd);
-
-    Logger::log(LOG_INFO, "WebServer", "New client connected: FD=" + to_str(client_fd));
-}
-
-void WebServer::cleanup_client(int fd, size_t i) {
-    close(fd);
-    if (i < fds.size()) {
-        fds.erase(fds.begin() + i);
-    }
-    client_buffers.erase(fd);
-    Logger::log(LOG_INFO, "WebServer", "Cleaned up client FD=" + to_str(fd));
-}
-
-void WebServer::shutdown() {
-    for (size_t i = 0; i < fds.size(); ++i) {
-        close(fds[i].fd);
-    }
-    fds.clear();
     Logger::log(LOG_INFO, "WebServer", "All sockets closed.");
 }
 
-void WebServer::handle_client_data(size_t i) {
-    int client_fd = fds[i].fd;
-    Logger::log(LOG_DEBUG, "WebServer", "handle_client_data: FD=" + to_str(client_fd));
+void WebServer::make_socket_non_blocking(int fd)
+{
+    int flags = fcntl(fd, F_GETFL, 0);
+    if (flags < 0 || fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0)
+        throw std::runtime_error("Failed to make socket non-blocking");
+}
 
-    if (!read_and_append_client_data(client_fd, i))
-        return;
+int WebServer::handleNewConnection(int listen_fd)
+{
+    sockaddr_in client_addr;
+    socklen_t addrlen = sizeof(client_addr);
+    int client_fd = accept(listen_fd, (sockaddr *)&client_addr, &addrlen);
+    if (client_fd < 0)
+    {
+        if (errno != EAGAIN && errno != EWOULDBLOCK)
+            perror("accept");
+        return -1;
+    }
 
-    std::string& request_data = client_buffers[client_fd];
-    size_t header_end = find_header_end(request_data);
-    if (header_end == std::string::npos) {
-        Logger::log(LOG_DEBUG, "WebServer", "Incomplete headers. Waiting for more data...");
+    make_socket_non_blocking(client_fd);
+    conns_[client_fd];
+    Logger::log(LOG_INFO, "WebServer", "Accepted FD=" + to_str(client_fd));
+    return client_fd;
+}
+
+void WebServer::handleClientDataOn(int client_fd)
+{
+    char buf[4096];
+    ssize_t n = ::read(client_fd, buf, sizeof(buf));
+    if (n <= 0)
+    {
+        // client closed or error
+        ::close(client_fd);
+        conns_.erase(client_fd);
+        Logger::log(LOG_INFO, "WebServer", "Closed FD=" + to_str(client_fd));
         return;
     }
 
-    try {
-        Request request(request_data);
-        if (!is_full_body_received(request, request_data, header_end)) {
+    // append into our buffer
+    std::string &data = conns_[client_fd].readBuf;
+    data.append(buf, (size_t)n);
+
+    // do we have a complete header yet?
+    /*size_t hdr_end = find_header_end(data);
+    if (hdr_end == std::string::npos)
+        return;
+
+    // build Request, check body length, then dispatch
+    try
+    {
+        Request req(data);
+        if (!is_full_body_received(req, data, hdr_end))
+            return;
+
+        process_request(req, client_fd, 0);
+    }
+    catch (const std::exception &e)
+    {
+        Logger::log(LOG_ERROR, "WebServer",
+                    std::string("Request parse failed: ") + e.what());
+        send_error_response(client_fd, 400, "Bad Request", 0);
+    }*/
+   for (;;) { // loop to handle pipelined requests in the same buffer
+        size_t hdr_end = find_header_end(data);
+        if (hdr_end == std::string::npos) {
+            // need more bytes for headers
             return;
         }
 
-        process_request(request, client_fd, i);
+        const size_t header_bytes = hdr_end + 4;
+        std::string headers = data.substr(0, header_bytes);
 
-        client_buffers.erase(client_fd);
-        Logger::log(LOG_DEBUG, "WebServer", "Request processed and buffer erased.");
+        size_t needed = header_bytes; // total request bytes needed
+        if (has_chunked_encoding(headers)) {
+            size_t endpos = find_chunked_terminator(data, header_bytes);
+            if (endpos == std::string::npos) {
+                // wait for the rest of the chunked body
+                return;
+            }
+            needed = endpos;
+        } else {
+            int len = parse_content_length(headers); // your helper
+            if (len < 0) len = 0;
+            if (data.size() < header_bytes + (size_t)len) {
+                // wait for more body bytes
+                return;
+            }
+            needed = header_bytes + (size_t)len;
+        }
+
+        // Slice exactly one full request frame
+        std::string frame = data.substr(0, needed);
+
+        try {
+            Request req(frame);                 // parse only the frame
+            process_request(req, client_fd, 0); // your existing function
+        } catch (const std::exception& e) {
+            Logger::log(LOG_ERROR, "WebServer",
+                        std::string("Request parse failed: ") + e.what());
+            send_error_response(client_fd, 400, "Bad Request", 0);
+        }
+
+        // Consume the bytes we just handled; if keep-alive and more data
+        // already arrived, loop to process the next request.
+        data.erase(0, needed);
+
+        if (data.empty()) return;
+        // else continue the for(;;) to try parse next request in buffer
     }
-    catch (const std::exception& e) {
-        Logger::log(LOG_ERROR, "WebServer", std::string("Request parsing failed: ") + e.what());
-        send_error_response(client_fd, 400, "Bad Request", i);
-        client_buffers.erase(client_fd);
-    }
-	std::cout << std::endl <<std::endl;
 }
 
 // --- Helper: Process the request ---
-void WebServer::process_request(Request& request, int client_fd, size_t i) {
+void WebServer::process_request(Request &request, int client_fd, size_t i)
+{
+    std::string ver = request.getVersion();
+    std::string connHdr = request.getHeader("Connection");
+    bool close_conn = (connHdr == "close") ||
+                      (ver == "HTTP/1.0" && connHdr != "keep-alive");
+    conns_[client_fd].shouldCloseAfterWrite = close_conn;
+
+    Logger::log(LOG_INFO, "POLICY",
+                "fd=" + to_str(client_fd) +
+                    " path=" + request.getPath() +
+                    " ver=" + ver +
+                    " conn=" + (connHdr.empty() ? std::string("<none>") : connHdr) +
+                    " closeAfter=" + (close_conn ? "true" : "false"));
+
     std::string method = request.getMethod();
     std::string uri = request.getPath();
-    const LocationConfig* loc = match_location(g_config.getLocations(), uri);
+    const LocationConfig *loc = match_location(config_->getLocations(), uri);
 
     if (loc)
         Logger::log(LOG_DEBUG, "WebServer", "Matched location: " + loc->path);
@@ -201,51 +208,232 @@ void WebServer::process_request(Request& request, int client_fd, size_t i) {
         Logger::log(LOG_DEBUG, "WebServer", "No location matched!");
 
     // 501 Not Implemented
-    if (method != "GET" && method != "POST" && method != "DELETE") {
+    if (method != "GET" && method != "POST" && method != "DELETE")
+    {
         send_error_response(client_fd, 501, "Not Implemented", i);
         return;
     }
 
     // Decode chunked body if needed
-    if (request.isChunked()) {
+    if (request.isChunked())
+    {
         std::string decoded = decode_chunked_body(request.getBody());
         request.setBody(decoded);
     }
 
     // 413 Payload Too Large
-    if (request.getBody().size() > g_config.getMaxBodySize()) {
+    if (request.getBody().size() > config_->getMaxBodySize())
+    {
+        conns_[client_fd].shouldCloseAfterWrite = true;
         send_error_response(client_fd, 413, "Payload Too Large", i);
         return;
     }
 
     // 405 Method Not Allowed
-    if (loc && std::find(loc->allowed_methods.begin(), loc->allowed_methods.end(), method) == loc->allowed_methods.end()) {
+    if (loc &&
+        std::find(loc->allowed_methods.begin(),
+                  loc->allowed_methods.end(),
+                  method) == loc->allowed_methods.end())
+    {
         send_error_response(client_fd, 405, "Method Not Allowed", i);
         return;
     }
 
     // CGI check
-    int is_cgi = (loc ? is_cgi_request(*loc, request.getPath()) : 0);
+    int is_cgi = (loc && !loc->cgi_extension.empty() &&
+                  is_cgi_request(*loc, request.getPath()))
+                     ? 1
+                     : 0;
     Logger::log(LOG_DEBUG, "WebServer", "is_cgi_request: " + to_str(is_cgi));
-    if (loc && is_cgi) {
+    if (loc && is_cgi)
+    {
         handle_cgi(loc, request, client_fd, i);
         return;
     }
 
-    // Dispatch to method handler
-    if (method == "GET") {
-        handle_get(request, loc, client_fd, i);
-    } else if (method == "POST") {
-        handle_post(request, loc, client_fd, i);
-    } else if (method == "DELETE") {
-        handle_delete(request, loc, client_fd, i);
+    // Handle redirects
+    if (loc && !loc->redirect_url.empty())
+    {
+        const std::string hostHdr = request.getHeader("Host"); 
+        const bool external = isExternalRedirect(loc->redirect_url, hostHdr);
+
+        if (external)
+        {
+            conns_[client_fd].shouldCloseAfterWrite = true;
+            Logger::log(LOG_INFO, "redirect",
+                        "External → " + loc->redirect_url + " (will close)");
+        }
+        else
+        {
+            Logger::log(LOG_INFO, "redirect",
+                        "Internal → " + loc->redirect_url + " (keep-alive)");
+        }
+        send_redirect_response(client_fd,
+                               loc->redirect_code == 0 ? 301 : loc->redirect_code,
+                               loc->redirect_url,
+                               i);
+        if (!conns_[client_fd].shouldCloseAfterWrite) {
+        conns_[client_fd].readBuf.clear();      
+        Logger::log(LOG_DEBUG, "RESET",
+                    "fd=" + to_str(client_fd) + " cleared readBuf after internal redirect");
+
+    }
+        return;
     }
 
-    // Connection: close logic
-    std::string connection_header = request.getHeader("Connection");
-    bool close_connection = (connection_header == "close" || request.getVersion() == "HTTP/1.0");
-    if (close_connection) {
-        cleanup_client(client_fd, i);
+    Logger::log(LOG_INFO, "request",
+                "Ver=" + request.getVersion() + " ConnHdr=" + request.getHeader("Connection"));
+
+    if (method == "GET")
+    {
+        handle_get(request, loc, client_fd, i);
+    }
+    else if (method == "POST")
+    {
+        Logger::log(LOG_DEBUG, "process_request",
+                    "POST " + request.getPath() +
+                        " matched to location " + (loc ? loc->path : "NULL") +
+                        " upload_dir=" + (loc ? loc->upload_dir : "<none>"));
+
+        handle_post(request, loc, client_fd, i);
+    }
+    else if (method == "DELETE")
+    {
+        handle_delete(request, loc, client_fd, i);
+    }
+    if (!conns_[client_fd].shouldCloseAfterWrite)
+    {
+        conns_[client_fd].readBuf.clear();
+        Logger::log(LOG_DEBUG, "RESET",
+                    "fd=" + to_str(client_fd) + " keeping alive; cleared readBuf");
     }
 }
 
+void WebServer::cleanup_client(int client_fd, int i)
+{
+    (void)i;
+    ::close(client_fd);
+    conns_.erase(client_fd); 
+    Logger::log(LOG_INFO, "WebServer", "Cleaned up client FD=" + to_str(client_fd));
+}
+
+void WebServer::handle_new_connection(int listen_fd)
+{
+    handleNewConnection(listen_fd);
+}
+
+void WebServer::queueResponse(int client_fd,
+                              const std::string &rawResponse)
+{
+    Connection &conn = conns_[client_fd];
+    conn.writeBuf += rawResponse;
+}
+
+bool WebServer::hasPendingWrite(int client_fd) const
+{
+    std::map<int, Connection>::const_iterator it = conns_.find(client_fd);
+    if (it == conns_.end())
+        return false;
+    return !it->second.writeBuf.empty();
+}
+
+void WebServer::flushPendingWrites(int client_fd)
+{
+    std::map<int, Connection>::iterator it = conns_.find(client_fd);
+    if (it == conns_.end())
+        return;
+    Connection &conn = it->second;
+
+    while (!conn.writeBuf.empty())
+    {
+        ssize_t n = ::write(client_fd,
+                            conn.writeBuf.data(),
+                            conn.writeBuf.size());
+        if (n > 0)
+        {
+            conn.writeBuf.erase(0, static_cast<size_t>(n));
+        }
+        else if (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK))
+        {
+            break;
+        }
+        else
+        {
+            cleanup_client(client_fd, 0);
+            return;
+        }
+    }
+
+    if (conn.writeBuf.empty() && conn.shouldCloseAfterWrite)
+    {
+        Logger::log(LOG_DEBUG, "flush",
+                    "fd=" + to_str(client_fd) + " drained; closing");
+        ::shutdown(client_fd, SHUT_WR);
+        cleanup_client(client_fd, 0);
+    }
+    else
+    {
+        Logger::log(LOG_DEBUG, "flush", "fd=" + to_str(client_fd) + " drained; keeping open");
+    }
+}
+
+bool WebServer::isAbsoluteHttpUrl(const std::string &s)
+{
+    return (s.compare(0, 7, "http://") == 0) ||
+           (s.compare(0, 8, "https://") == 0) ||
+           (s.compare(0, 2, "//") == 0); 
+}
+
+std::string WebServer::hostportFromUrl(const std::string &url)
+{
+
+    std::string s = url;
+    size_t start = 0;
+    if (s.compare(0, 2, "//") == 0)
+    {
+        start = 2;
+    }
+    else
+    {
+        size_t p = s.find("://");
+        if (p != std::string::npos)
+            start = p + 3;
+    }
+    size_t end = s.find('/', start);
+    if (end == std::string::npos)
+        end = s.size();
+    return s.substr(start, end - start); 
+}
+
+bool WebServer::iequals(const std::string &a, const std::string &b)
+{
+    if (a.size() != b.size())
+        return false;
+    for (size_t i = 0; i < a.size(); ++i)
+    {
+        char ca = a[i], cb = b[i];
+        if ('A' <= ca && ca <= 'Z')
+            ca = char(ca - 'A' + 'a');
+        if ('A' <= cb && cb <= 'Z')
+            cb = char(cb - 'A' + 'a');
+        if (ca != cb)
+            return false;
+    }
+    return true;
+}
+
+bool WebServer::isExternalRedirect(const std::string &location, const std::string &reqHost)
+{
+    if (!location.empty() && location[0] == '/')
+        return false;
+
+    if (isAbsoluteHttpUrl(location))
+    {
+        std::string hp = hostportFromUrl(location);
+        if (reqHost.empty())
+            return true;
+        return !iequals(hp, reqHost);
+    }
+
+    return true;
+}

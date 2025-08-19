@@ -1,137 +1,105 @@
 #include "Config.hpp"
 
-// Constructor: read and parse the config file immediately
-Config::Config(const std::string& filename) : max_body_size(1048576) { // 1MB default
+Config::Config() : port(0), root(""), max_body_size(1048576) 
+{
+}
+
+Config::Config(const std::string &filename) : max_body_size(1048576)
+{ 
     parseConfigFile(filename);
 }
 
-// Simple getter methods
-//int Config::getPort() const { return port; }
-const std::string& Config::getRoot() const { return root; }
-const std::vector<LocationConfig>& Config::getLocations() const { return locations; }
-const std::map<int, std::string>& Config::getErrorPages() const {
+const std::string &Config::getRoot() const { return root; }
+const std::vector<LocationConfig> &Config::getLocations() const { return locations; }
+const std::map<int, std::string> &Config::getErrorPages() const
+{
     return error_pages;
 }
 
-const std::string* Config::getErrorPage(int code) const {
+const std::string *Config::getErrorPage(int code) const
+{
     std::map<int, std::string>::const_iterator it = error_pages.find(code);
     if (it != error_pages.end())
         return &it->second;
     return NULL;
 }
 
-// Utility function to strip trailing semicolon
-static std::string stripSemicolon(const std::string& token) {
+static std::string stripSemicolon(const std::string &token)
+{
     if (!token.empty() && token[token.size() - 1] == ';')
         return token.substr(0, token.size() - 1);
     return token;
 }
 
-int Config::parseListenDirective(const std::string& token) {
+int Config::parseListenDirective(const std::string &token)
+{
     std::string portStr = stripSemicolon(token);
 
-    // ✅ Check digits only
     if (portStr.empty() || portStr.find_first_not_of("0123456789") != std::string::npos)
         throw std::runtime_error("Invalid listen port: not a number");
 
     int parsedPort = std::atoi(portStr.c_str());
 
-    // ✅ Check valid port range
     if (parsedPort <= 0 || parsedPort > 65535)
         throw std::runtime_error("Invalid listen port: must be between 1 and 65535");
 
     return parsedPort;
 }
 
-bool Config::pathExists(const std::string& path) {
+bool Config::pathExists(const std::string &path)
+{
     struct stat s;
     return stat(path.c_str(), &s) == 0 && S_ISDIR(s.st_mode);
 }
 
-// Main config parser
-void Config::parseConfigFile(const std::string& filename) {
-    std::ifstream file(filename.c_str());
-    if (!file.is_open())
-        throw std::runtime_error("Could not open config file: " + filename);
-
-    std::string line;
-    bool insideLocation = false;
-    LocationConfig currentLocation;
-
-    while (std::getline(file, line)) {
-        line.erase(0, line.find_first_not_of(" \t"));
-        if (line.empty() || line[0] == '#')
-            continue;
-        std::istringstream iss(line);
-        std::string keyword;
-        iss >> keyword;
-
-        if (keyword == "listen") {
-            handleListenDirective(iss);
-        }
-        else if (keyword == "root" && !insideLocation) {
-            handleRootDirective(iss);
-        }
-        else if (keyword == "error_page") {
-            handleErrorPageDirective(iss);
-        }
-        else if (keyword == "location") {
-            handleLocationStart(iss, currentLocation, insideLocation);
-        }
-        else if (keyword == "client_max_body_size") {
-            handleClientMaxBodySizeDirective(iss);
-        }
-        else if (keyword == "}") {
-            handleLocationEnd(currentLocation, insideLocation);
-        }
-        else if (insideLocation) {
-            handleLocationDirective(keyword, iss, currentLocation);
-        }
-    }
-
-    file.close();
-    Logger::log(LOG_INFO, "Config", "Loaded config file: " + filename);
-}
-
 // --- Helper functions ---
 
-void Config::handleListenDirective(std::istringstream& iss) {
+void Config::handleListenDirective(std::istringstream &iss)
+{
     std::string token;
     iss >> token;
     int parsed = parseListenDirective(token);
     ports.push_back(parsed);
     Logger::log(LOG_DEBUG, "Config", "listen port: " + to_str(parsed));
-    if (port == 0) {
-        port = parsed; // Set the first parsed port as the default
-    } else if (port != parsed) {
+    if (port == 0)
+    {
+        port = parsed; 
+    }
+    else if (port != parsed)
+    {
         Logger::log(LOG_DEBUG, "Config", "Multiple listen ports detected, using first: " + to_str(port));
     }
-    if (parsed < 1 || parsed > 65535) {
+    if (parsed < 1 || parsed > 65535)
+    {
         std::ostringstream oss;
         oss << "Invalid listen port: " << parsed;
         throw std::runtime_error(oss.str());
     }
 }
 
-void Config::handleRootDirective(std::istringstream& iss) {
+void Config::handleRootDirective(std::istringstream &iss)
+{
     std::string r;
     iss >> r;
     r = stripSemicolon(r);
-    if (!pathExists(r)) {
+    if (!pathExists(r))
+    {
         Logger::log(LOG_DEBUG, "Config", "root value: [" + root + "]");
         throw std::runtime_error("Invalid root path: " + r);
     }
     root = r;
 }
 
-void Config::handleErrorPageDirective(std::istringstream& iss) {
+void Config::handleErrorPageDirective(std::istringstream &iss)
+{
     std::string codeStr, path;
     iss >> codeStr >> path;
     int code = std::atoi(stripSemicolon(codeStr).c_str());
     error_pages[code] = stripSemicolon(path);
 }
 
-void Config::handleLocationStart(std::istringstream& iss, LocationConfig& currentLocation, bool& insideLocation) {
+void Config::handleLocationStart(std::istringstream &iss, LocationConfig &currentLocation, bool &insideLocation)
+{
     std::string location_path;
     iss >> location_path;
     currentLocation = LocationConfig();
@@ -139,16 +107,20 @@ void Config::handleLocationStart(std::istringstream& iss, LocationConfig& curren
     insideLocation = true;
 }
 
-void Config::handleClientMaxBodySizeDirective(std::istringstream& iss) {
+void Config::handleClientMaxBodySizeDirective(std::istringstream &iss)
+{
     std::string sizeStr;
     iss >> sizeStr;
     sizeStr = stripSemicolon(sizeStr);
     max_body_size = static_cast<size_t>(std::strtoull(sizeStr.c_str(), NULL, 10));
 }
 
-void Config::handleLocationEnd(LocationConfig& currentLocation, bool& insideLocation) {
-    if (insideLocation) {
-        if (currentLocation.index.empty()) {
+void Config::handleLocationEnd(LocationConfig &currentLocation, bool &insideLocation)
+{
+    if (insideLocation)
+    {
+        if (currentLocation.index.empty())
+        {
             Logger::log(LOG_INFO, "Config", "No index set for " + currentLocation.path + " → using default: index.html");
             currentLocation.index = "index.html";
         }
@@ -159,8 +131,10 @@ void Config::handleLocationEnd(LocationConfig& currentLocation, bool& insideLoca
     }
 }
 
-void Config::handleLocationDirective(const std::string& keyword, std::istringstream& iss, LocationConfig& currentLocation) {
-    if (keyword == "root") {
+void Config::handleLocationDirective(const std::string &keyword, std::istringstream &iss, LocationConfig &currentLocation)
+{
+    if (keyword == "root")
+    {
         std::string r;
         iss >> r;
         r = stripSemicolon(r);
@@ -168,44 +142,146 @@ void Config::handleLocationDirective(const std::string& keyword, std::istringstr
             throw std::runtime_error("Invalid location root path: " + r);
         currentLocation.root = r;
     }
-    else if (keyword == "index") {
+    else if (keyword == "index")
+    {
         std::string indexFile;
         iss >> indexFile;
         currentLocation.index = stripSemicolon(indexFile);
     }
-    else if (keyword == "methods") {
+    else if (keyword == "methods")
+    {
         std::string method;
         while (iss >> method)
             currentLocation.allowed_methods.push_back(stripSemicolon(method));
     }
-    else if (keyword == "cgi_extension") {
+    else if (keyword == "cgi_extension")
+    {
         std::string ext;
         iss >> ext;
         currentLocation.cgi_extension = stripSemicolon(ext);
     }
-    else if (keyword == "upload_dir") {
+    else if (keyword == "upload_dir")
+    {
         std::string dir;
         iss >> dir;
         currentLocation.upload_dir = stripSemicolon(dir);
     }
-    else if (keyword == "autoindex") {
+    else if (keyword == "autoindex")
+    {
         std::string value;
         iss >> value;
         value = stripSemicolon(value);
         currentLocation.autoindex = (value == "on");
     }
-    else if (keyword == "return") {
-    std::string code_str, url;
-    iss >> code_str >> url;
-    currentLocation.redirect_code = std::atoi(code_str.c_str());
-    currentLocation.redirect_url = stripSemicolon(url);
+    else if (keyword == "return")
+    {
+        std::string code_str, url;
+        iss >> code_str >> url;
+        currentLocation.redirect_code = std::atoi(code_str.c_str());
+        currentLocation.redirect_url = stripSemicolon(url);
     }
 }
 
-size_t Config::getMaxBodySize() const {
-    return max_body_size; // Make sure you have a member variable for this
+size_t Config::getMaxBodySize() const
+{
+    return max_body_size; 
 }
 
-const std::vector<int>& Config::getPorts() const {
+const std::vector<int> &Config::getPorts() const
+{
     return ports;
+}
+
+std::vector<Config> parseConfigFile(const std::string &filename)
+{
+    std::ifstream file(filename.c_str());
+    if (!file.is_open())
+        throw std::runtime_error("Could not open config file");
+
+    std::vector<Config> servers;
+    std::string line;
+    while (std::getline(file, line))
+    {
+        size_t start = line.find_first_not_of(" \t");
+        if (start == std::string::npos) 
+            continue;
+        std::string trimmed = line.substr(start);
+        if (trimmed.empty() || trimmed[0] == '#')
+            continue;
+        if (trimmed.rfind("server", 0) == 0 && trimmed.find("{") != std::string::npos)
+        {
+            Config cfg;
+            cfg.parseServerBlock(file);
+            servers.push_back(cfg);
+        }
+    }
+    return servers;
+}
+
+void Config::parseServerBlock(std::ifstream &file)
+{
+    bool insideLocation = false;
+    int braceDepth = 1;
+
+    LocationConfig currentLocation;
+
+    std::string line;
+    while (std::getline(file, line))
+    {
+
+        std::istringstream iss(line);
+        std::string keyword;
+        iss >> keyword;
+
+        if (keyword == "location")
+        {
+            handleLocationStart(iss, currentLocation, insideLocation);
+            braceDepth++;
+            continue;
+        }
+
+        if (insideLocation)
+        {
+            if (keyword == "{")
+            {
+                braceDepth++;
+            }
+            else if (keyword == "}")
+            {
+                handleLocationEnd(currentLocation, insideLocation);
+                braceDepth--;
+            }
+            else
+            {
+                handleLocationDirective(keyword, iss, currentLocation);
+            }
+            continue;
+        }
+
+        if (keyword == "{")
+        {
+            braceDepth++;
+        }
+        else if (keyword == "}")
+        {
+            braceDepth--;
+            if (braceDepth == 0)
+            {
+                break;
+            }
+        }
+        else
+        {
+            if (keyword == "listen")
+                handleListenDirective(iss);
+            else if (keyword == "root")
+                handleRootDirective(iss);
+            else if (keyword == "error_page")
+                handleErrorPageDirective(iss);
+            else if (keyword == "client_max_body_size")
+                handleClientMaxBodySizeDirective(iss);
+        }
+    }
+    if (!ports.empty())
+        port = ports.front();
 }

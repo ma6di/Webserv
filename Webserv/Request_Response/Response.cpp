@@ -1,38 +1,29 @@
 #include "Response.hpp"
+#include "Response.hpp"
+#include "../logger/Logger.hpp"
+#include <unistd.h>
+#include <sstream>
 
-//Default response: 200 OK
-//Content-Type: tells browser it's HTML
-//Connection: close: connection won't be reused
+
 Response::Response() : status_code(200), status_message("OK") {
     headers["Content-Type"] = "text/html";
     headers["Connection"] = "close";
 }
 
-// Response::Response(int code, const std::string& message)
-//     : status_code(code), status_message(message) {
-//     headers["Content-Type"] = "text/html";
-//     headers["Connection"] = "close";
-// }
-
-Response::Response(int client_fd, int code, const std::string& message, const std::string& body,
-                   const std::map<std::string, std::string>& extra_headers)
-    : status_code(code), status_message(message), body(body)
+Response::Response(int code,
+                   const std::string& status,
+                   const std::string& b,
+                   const std::map<std::string,std::string>& h)
+  : status_code(code)
+  , status_message(status)
+  , headers(h)
+  , body(b)
 {
-    headers["Content-Type"] = "text/html";
-    headers["Connection"] = "close";
-    std::ostringstream oss;
-    oss << body.size();
-    headers["Content-Length"] = oss.str();
-
-    // Add/override any extra headers
-    for (std::map<std::string, std::string>::const_iterator it = extra_headers.begin(); it != extra_headers.end(); ++it) {
-        headers[it->first] = it->second;
-    }
-
-    // Write response immediately
-    std::string raw = toString();
-    write(client_fd, raw.c_str(), raw.size());
+    headers["Content-Length"] = to_str(body.size());
+    if (headers.find("Connection") == headers.end())
+        headers["Connection"] = "close";
 }
+
 
 void Response::setStatus(int code, const std::string& message) {
     status_code = code;
@@ -67,25 +58,31 @@ std::map<std::string, std::string> single_header(const std::string& k, const std
     return m;
 }
 
-// Utility: Content-Type: text/html
 std::map<std::string, std::string> content_type_html() {
     std::map<std::string, std::string> m;
     m["Content-Type"] = "text/html";
     return m;
 }
 
-// Utility: Content-Type: application/json
 std::map<std::string, std::string> content_type_json() {
     std::map<std::string, std::string> m;
     m["Content-Type"] = "application/json";
     return m;
 }
 
-// Utility: Redirect headers (Location + Content-Type)
 std::map<std::string, std::string> redirect_headers(const std::string& url) {
     std::map<std::string, std::string> m;
     m["Location"] = url;
     m["Content-Type"] = "text/html";
+    m["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0";
+    m["Pragma"]        = "no-cache";
+    m["Expires"]       = "0";
     return m;
 }
 
+void Response::applyConnectionHeaders(bool keepAlive) {
+    setHeader("Connection", keepAlive ? "keep-alive" : "close");
+    if (keepAlive) {
+        setHeader("Keep-Alive", "timeout=5, max=100");
+    }
+}
