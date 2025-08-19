@@ -7,29 +7,9 @@
   document.addEventListener("DOMContentLoaded", () => {
     trigger405();
     trigger413();
-    trigger403();
     // waitingAnimation()
   });
 
-function trigger403() {
-  const btn = document.querySelector(".slide-one .trigger-btn");
-  if (!btn) return;
-
-  btn.addEventListener("click", async (e) => {
-    e.preventDefault();
-    try {
-      const res = await fetch("/cgi-bin/trigger_403.py", { cache: "no-store" });
-      if (!res.ok) {
-        console.error("CGI failed with status", res.status);
-        return; // Don’t navigate if CGI failed
-      }
-      // Now navigate to the forbidden file (IMPORTANT: leading slash)
-      window.location.href = "/images/uploads/forbidden.txt";
-    } catch (err) {
-      console.error("Failed to prepare forbidden file:", err);
-    }
-  });
-}
 
 
   // ---- 405: posts to a get only route in /scripts cgi -----------------------------------
