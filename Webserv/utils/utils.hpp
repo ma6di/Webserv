@@ -22,5 +22,11 @@ bool is_cgi_request(const LocationConfig &loc, const std::string &uri);
 std::string decode_chunked_body(const std::string &body);
 bool is_directory(const std::string &path);
 std::string generate_directory_listing(const std::string &dir_path, const std::string &uri_path);
+std::string sanitize_filename(const std::string& in);
+void split_basename_ext(const std::string& name, std::string& base, std::string& ext);
+std::string get_boundary_from_content_type(const std::string& contentType);
+bool extract_multipart_file_raw(const std::string& body, const std::string& boundary, std::string& outFilename, std::string& outContent);
+bool has_chunked_encoding(const std::string& headers);
+size_t find_chunked_terminator(const std::string& buf, size_t body_start);
 
 #endif

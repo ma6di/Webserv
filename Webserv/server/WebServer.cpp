@@ -114,7 +114,7 @@ void WebServer::handleClientDataOn(int client_fd)
     data.append(buf, (size_t)n);
 
     // do we have a complete header yet?
-    size_t hdr_end = find_header_end(data);
+    /*size_t hdr_end = find_header_end(data);
     if (hdr_end == std::string::npos)
         return;
 
@@ -132,6 +132,53 @@ void WebServer::handleClientDataOn(int client_fd)
         Logger::log(LOG_ERROR, "WebServer",
                     std::string("Request parse failed: ") + e.what());
         send_error_response(client_fd, 400, "Bad Request", 0);
+    }*/
+   for (;;) { // loop to handle pipelined requests in the same buffer
+        size_t hdr_end = find_header_end(data);
+        if (hdr_end == std::string::npos) {
+            // need more bytes for headers
+            return;
+        }
+
+        const size_t header_bytes = hdr_end + 4;
+        std::string headers = data.substr(0, header_bytes);
+
+        size_t needed = header_bytes; // total request bytes needed
+        if (has_chunked_encoding(headers)) {
+            size_t endpos = find_chunked_terminator(data, header_bytes);
+            if (endpos == std::string::npos) {
+                // wait for the rest of the chunked body
+                return;
+            }
+            needed = endpos;
+        } else {
+            int len = parse_content_length(headers); // your helper
+            if (len < 0) len = 0;
+            if (data.size() < header_bytes + (size_t)len) {
+                // wait for more body bytes
+                return;
+            }
+            needed = header_bytes + (size_t)len;
+        }
+
+        // Slice exactly one full request frame
+        std::string frame = data.substr(0, needed);
+
+        try {
+            Request req(frame);                 // parse only the frame
+            process_request(req, client_fd, 0); // your existing function
+        } catch (const std::exception& e) {
+            Logger::log(LOG_ERROR, "WebServer",
+                        std::string("Request parse failed: ") + e.what());
+            send_error_response(client_fd, 400, "Bad Request", 0);
+        }
+
+        // Consume the bytes we just handled; if keep-alive and more data
+        // already arrived, loop to process the next request.
+        data.erase(0, needed);
+
+        if (data.empty()) return;
+        // else continue the for(;;) to try parse next request in buffer
     }
 }
 
