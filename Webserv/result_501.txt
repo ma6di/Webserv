@@ -1,7 +1,0 @@
-HTTP/1.1 501 Not Implemented
-Connection: keep-alive
-Content-Length: 165
-Content-Type: text/html
-Keep-Alive: timeout=5, max=100
-
-<!DOCTYPE html><html><head><title>501 Not Implemented</title></head><body><h1>501 Not Implemented</h1><p>The server could not fulfill your request.</p></body></html>

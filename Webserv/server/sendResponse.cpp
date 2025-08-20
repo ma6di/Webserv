@@ -182,6 +182,60 @@ void WebServer::send_error_response(int client_fd,
     queueResponse(client_fd, raw);
 }
 
+void WebServer::send_bad_request_response(int client_fd, const std::string &details)
+{
+    std::ostringstream oss;
+    oss << "<!DOCTYPE html><html><head><title>400 Bad Request</title></head>"
+        << "<body><h1>400 Bad Request</h1>";
+
+    if (!details.empty())
+    {
+        oss << "<p>" << details << "</p>";
+    }
+    else
+    {
+        oss << "<p>Your request could not be understood by the server.</p>";
+    }
+
+    oss << "</body></html>";
+
+    std::string body = oss.str();
+    Response resp(400, "Bad Request", body, content_type_html());
+
+    bool keepAlive = conns_[client_fd].shouldCloseAfterWrite;
+    resp.applyConnectionHeaders(keepAlive);
+
+    std::string raw = resp.toString();
+    queueResponse(client_fd, raw);
+}
+
+void WebServer::send_length_required_response(int client_fd, const std::string &details)
+{
+    std::ostringstream oss;
+    oss << "<!DOCTYPE html><html><head><title>411 Length Required</title></head>"
+        << "<body><h1>411 Length Required</h1>";
+
+    if (!details.empty())
+    {
+        oss << "<p>" << details << "</p>";
+    }
+    else
+    {
+        oss << "<p>Your request could not be understood by the server.</p>";
+    }
+
+    oss << "</body></html>";
+
+    std::string body = oss.str();
+    Response resp(411, "Length Required", body, content_type_html());
+
+    bool keepAlive = conns_[client_fd].shouldCloseAfterWrite;
+    resp.applyConnectionHeaders(keepAlive);
+
+    std::string raw = resp.toString();
+    queueResponse(client_fd, raw);
+}
+
 void WebServer::send_request_timeout_response(int client_fd, size_t i) {
     (void)i;
     Logger::log(LOG_INFO, "send_request_timeout_response", 

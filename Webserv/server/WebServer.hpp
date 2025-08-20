@@ -50,8 +50,12 @@ public:
     void updateClientActivity(int client_fd);
     void closeClient(int client_fd);
 	void send_request_timeout_response(int client_fd, size_t i);
+	void send_bad_request_response(int client_fd, const std::string &details);
+	void send_length_required_response(int client_fd, const std::string &details);
+
 
 private:
+    bool validate_post_request(Request &request, int client_fd, size_t i);
     const Config*                 config_;
 
     std::vector<int>              listening_sockets;

@@ -1,6 +1,0 @@
-HTTP/1.1 200 OK
-Connection: close
-Content-Length: 56
-Content-Type: text/html
-
-<html><body>HelloWorldThisShouldBeIgnored</body></html>

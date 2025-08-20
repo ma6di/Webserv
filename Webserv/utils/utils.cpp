@@ -129,29 +129,66 @@ bool is_cgi_request(const LocationConfig& loc, const std::string& uri) {
     return valid;
 }
 
-std::string decode_chunked_body(const std::string& body) {
-    std::istringstream in(body);
-    std::string decoded, line;
+// std::string decode_chunked_body(const std::string& body) {
+//     std::istringstream in(body);
+//     std::string decoded, line;
+//     while (std::getline(in, line)) {
+//         // Remove trailing \r if present
+//         if (!line.empty() && line[line.size() - 1] == '\r')
+//             line.erase(line.size() - 1);
+//         if (line.empty())
+//             continue;
+//         // Parse chunk size (hex)
+//         size_t chunk_size = 0;
+//         std::istringstream chunk_size_stream(line);
+//         chunk_size_stream >> std::hex >> chunk_size;
+//         if (chunk_size == 0)
+//             break;
+//         // Read chunk data
+//         std::string chunk(chunk_size, '\0');
+//         in.read(&chunk[0], chunk_size);
+//         decoded += chunk;
+//         // Read the trailing \r\n after chunk data
+//         std::getline(in, line);
+//     }
+//     Logger::log(LOG_DEBUG, "decode_chunked_body", "Decoded chunked body, size=" + to_str(decoded.size()));
+//     return decoded;
+// }
+
+std::string decode_chunked_body(const std::string& raw) {
+    std::istringstream in(raw);
+    std::string decoded;
+    std::string line;
+
     while (std::getline(in, line)) {
         // Remove trailing \r if present
-        if (!line.empty() && line[line.size() - 1] == '\r')
+        if (!line.empty() && line[line.size() - 1] == '\r') 
             line.erase(line.size() - 1);
-        if (line.empty())
+
+        if (line.empty()) 
             continue;
-        // Parse chunk size (hex)
+
+        // Parse chunk size in hex
         size_t chunk_size = 0;
-        std::istringstream chunk_size_stream(line);
-        chunk_size_stream >> std::hex >> chunk_size;
-        if (chunk_size == 0)
+        std::istringstream iss(line);
+        iss >> std::hex >> chunk_size;
+        if (chunk_size == 0) 
             break;
+
         // Read chunk data
         std::string chunk(chunk_size, '\0');
         in.read(&chunk[0], chunk_size);
+        if (static_cast<size_t>(in.gcount()) < chunk_size) {
+            throw std::runtime_error("Incomplete chunked body");
+        }
+
         decoded += chunk;
-        // Read the trailing \r\n after chunk data
-        std::getline(in, line);
+
+        // Consume trailing \r\n after chunk data
+        if (!std::getline(in, line)) 
+            break;
     }
-    Logger::log(LOG_DEBUG, "decode_chunked_body", "Decoded chunked body, size=" + to_str(decoded.size()));
+
     return decoded;
 }
 

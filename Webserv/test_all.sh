@@ -189,6 +189,27 @@ else
     fi
 fi
 
+# Test 21: POST /upload with Transfer-Encoding: chunked (should return 400 Bad Request)
+log_and_run "Test 21: POST without Content_length" \
+    "curl -s -i -X POST http://localhost:8080/upload -H  --data "1236565465446"" \
+    result_411.txt "411 Length Required" "POST/ 411 Length Required"
+
+
+log_and_run "Test 22: double Content_length" \
+    "curl -i -s -H 'Content-Length: 3' -H 'Content-Length: 5' -d 'foo' http://localhost:8080/" \
+    result_double_Content_length.txt "400 Bad Request" "400 Bad Request"
+
+log_and_run "Test 23: Wrong Location" \
+    "curl -s -i "http://localhost:8080/%00test"/" \
+    result_Wrong_Location.txt "404 Not Found" "400 Not Found"
+
+log_and_run "Test 24: Wrong HTTP Version" \
+    "printf 'GET /upload HTTP/0.9\r\nHost: localhost:8080\r\n\r\n' | nc localhost 8080" \
+    result_Wrong_HTTP_Version.txt "400 Bad Request" "400 400 Bad Request"
+
+log_and_run "Test 25: Missing Colon in Content-Length Header" \
+    "printf 'POST /upload HTTP/1.1\r\nHost: localhost:8080\r\nContent-Length 5\r\n\r\nhello' | nc localhost 8080" \
+    result_Missing_Colon_Content_Length.txt "400 Bad Request" "400 Bad Request"
 
 # rm -f www/cgi-bin/hang.py
 
@@ -226,8 +247,8 @@ else
 fi
 
 # Cleanup
-# section "Cleanup"
-# rm -f test.txt result_*.txt
+section "Cleanup"
+rm -f test.txt result_*.txt
 
 divider
 echo -e "${YELLOW}==> All tests completed. See $LOGFILE for details.${NC}"

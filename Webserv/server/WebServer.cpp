@@ -174,7 +174,7 @@ void WebServer::handleClientDataOn(int client_fd)
         } catch (const std::exception& e) {
             Logger::log(LOG_ERROR, "WebServer",
                         std::string("Request parse failed: ") + e.what());
-            send_error_response(client_fd, 400, "Bad Request", 0);
+            send_bad_request_response(client_fd, "Bad Request");
         }
 
         // Consume the bytes we just handled; if keep-alive and more data
@@ -188,19 +188,19 @@ void WebServer::handleClientDataOn(int client_fd)
 
 // --- Helper: Process the request ---
 void WebServer::process_request(Request &request, int client_fd, size_t i)
+
 {
     std::string ver = request.getVersion();
     std::string connHdr = request.getHeader("Connection");
-    bool close_conn = (connHdr == "close") ||
-                      (ver == "HTTP/1.0" && connHdr != "keep-alive");
+    bool close_conn = (connHdr == "close") || (ver == "HTTP/1.0" && connHdr != "keep-alive");
     conns_[client_fd].shouldCloseAfterWrite = close_conn;
 
     Logger::log(LOG_INFO, "POLICY",
-                "fd=" + to_str(client_fd) +
-                    " path=" + request.getPath() +
-                    " ver=" + ver +
-                    " conn=" + (connHdr.empty() ? std::string("<none>") : connHdr) +
-                    " closeAfter=" + (close_conn ? "true" : "false"));
+        "fd=" + to_str(client_fd) +
+        " path=" + request.getPath() +
+        " ver=" + ver +
+        " conn=" + (connHdr.empty() ? std::string("<none>") : connHdr) +
+        " closeAfter=" + (close_conn ? "true" : "false"));
 
     std::string method = request.getMethod();
     std::string uri = request.getPath();
@@ -211,106 +211,103 @@ void WebServer::process_request(Request &request, int client_fd, size_t i)
     else
         Logger::log(LOG_DEBUG, "WebServer", "No location matched!");
 
-    // 501 Not Implemented
-    if (method != "GET" && method != "POST" && method != "DELETE")
-    {
+    // General error: 501 Not Implemented
+    if (method != "GET" && method != "POST" && method != "DELETE") {
         send_error_response(client_fd, 501, "Not Implemented", i);
         return;
     }
 
-    // Decode chunked body if needed
-    if (request.isChunked())
-    {
-        std::string decoded = decode_chunked_body(request.getBody());
-        request.setBody(decoded);
-    }
-
-    // 413 Payload Too Large
-    if (request.getBody().size() > config_->getMaxBodySize())
-    {
+    // General error: 413 Payload Too Large
+    if (request.getBody().size() > config_->getMaxBodySize()) {
         conns_[client_fd].shouldCloseAfterWrite = true;
         send_error_response(client_fd, 413, "Payload Too Large", i);
         return;
     }
 
-    // 405 Method Not Allowed
-    if (loc &&
-        std::find(loc->allowed_methods.begin(),
-                  loc->allowed_methods.end(),
-                  method) == loc->allowed_methods.end())
-    {
+    // General error: 405 Method Not Allowed
+    if (loc && std::find(loc->allowed_methods.begin(), loc->allowed_methods.end(), method) == loc->allowed_methods.end()) {
         send_error_response(client_fd, 405, "Method Not Allowed", i);
         return;
     }
 
     // CGI check
-    int is_cgi = (loc && !loc->cgi_extension.empty() &&
-                  is_cgi_request(*loc, request.getPath()))
-                     ? 1
-                     : 0;
+    int is_cgi = (loc && !loc->cgi_extension.empty() && is_cgi_request(*loc, request.getPath())) ? 1 : 0;
     Logger::log(LOG_DEBUG, "WebServer", "is_cgi_request: " + to_str(is_cgi));
-    if (loc && is_cgi)
-    {
+    if (loc && is_cgi) {
         handle_cgi(loc, request, client_fd, i);
         return;
     }
 
-    // Handle redirects
-    if (loc && !loc->redirect_url.empty())
-    {
-        const std::string hostHdr = request.getHeader("Host"); 
+    // Redirect check
+    if (loc && !loc->redirect_url.empty()) {
+        const std::string hostHdr = request.getHeader("Host");
         const bool external = isExternalRedirect(loc->redirect_url, hostHdr);
-
-        if (external)
-        {
+        if (external) {
             conns_[client_fd].shouldCloseAfterWrite = true;
-            Logger::log(LOG_INFO, "redirect",
-                        "External → " + loc->redirect_url + " (will close)");
+            Logger::log(LOG_INFO, "redirect", "External → " + loc->redirect_url + " (will close)");
+        } else {
+            Logger::log(LOG_INFO, "redirect", "Internal → " + loc->redirect_url + " (keep-alive)");
         }
-        else
-        {
-            Logger::log(LOG_INFO, "redirect",
-                        "Internal → " + loc->redirect_url + " (keep-alive)");
-        }
-        send_redirect_response(client_fd,
-                               loc->redirect_code == 0 ? 301 : loc->redirect_code,
-                               loc->redirect_url,
-                               i);
+        send_redirect_response(client_fd, loc->redirect_code == 0 ? 301 : loc->redirect_code, loc->redirect_url, i);
         if (!conns_[client_fd].shouldCloseAfterWrite) {
-        conns_[client_fd].readBuf.clear();      
-        Logger::log(LOG_DEBUG, "RESET",
-                    "fd=" + to_str(client_fd) + " cleared readBuf after internal redirect");
-
-    }
+            conns_[client_fd].readBuf.clear();
+            Logger::log(LOG_DEBUG, "RESET", "fd=" + to_str(client_fd) + " cleared readBuf after internal redirect");
+        }
         return;
     }
 
-    Logger::log(LOG_INFO, "request",
-                "Ver=" + request.getVersion() + " ConnHdr=" + request.getHeader("Connection"));
+    Logger::log(LOG_INFO, "request", "Ver=" + request.getVersion() + " ConnHdr=" + request.getHeader("Connection"));
 
-    if (method == "GET")
-    {
+    // Method-specific error checks and handling
+    if (method == "GET") {
         handle_get(request, loc, client_fd, i);
-    }
-    else if (method == "POST")
-    {
+    } else if (method == "POST") {
+        if (!validate_post_request(request, client_fd, i)) {
+			std::cout << "hereeee" << "\n";
+            return;
+        }
         Logger::log(LOG_DEBUG, "process_request",
-                    "POST " + request.getPath() +
-                        " matched to location " + (loc ? loc->path : "NULL") +
-                        " upload_dir=" + (loc ? loc->upload_dir : "<none>"));
-
+            "POST " + request.getPath() +
+            " matched to location " + (loc ? loc->path : "NULL") +
+            " upload_dir=" + (loc ? loc->upload_dir : "<none>"));
         handle_post(request, loc, client_fd, i);
-    }
-    else if (method == "DELETE")
-    {
+    } else if (method == "DELETE") {
         handle_delete(request, loc, client_fd, i);
     }
-    if (!conns_[client_fd].shouldCloseAfterWrite)
-    {
+    if (!conns_[client_fd].shouldCloseAfterWrite) {
         conns_[client_fd].readBuf.clear();
-        Logger::log(LOG_DEBUG, "RESET",
-                    "fd=" + to_str(client_fd) + " keeping alive; cleared readBuf");
+        Logger::log(LOG_DEBUG, "RESET", "fd=" + to_str(client_fd) + " keeping alive; cleared readBuf");
     }
+}
+
+// Helper for POST validation
+bool WebServer::validate_post_request(Request &request, int client_fd, size_t i) {
+    long contentLength = request.getContentLength();
+    std::string transferEncoding = request.getHeader("Transfer-Encoding");
+    bool isChunked = !transferEncoding.empty() && transferEncoding.find("chunked") != std::string::npos;
+    std::cout << "body size :" << request.getBody().size() << "\n";
+    std::cout << "content_lenght :" << contentLength << "\n";
+    // Must have either Content-Length or Transfer-Encoding: chunked, but not both
+    if (contentLength && isChunked) {
+        send_error_response(client_fd, 400, "Bad Request", i);
+        return false;
+    }
+    if (!contentLength && !isChunked) {
+        send_length_required_response(client_fd, "Length Required");
+        return false;
+    }
+
+    // If Content-Length, it must match body size
+    if (contentLength) {
+        if (contentLength < 0 || contentLength != static_cast<long>(request.getBody().size())) {
+            std::cout << "body size :" << request.getBody().size() << "\n";
+            std::cout << "content_lenght :" << contentLength << "\n";
+            send_bad_request_response(client_fd, "Bad Request");
+            return false;
+        }
+    }
+    // No chunked decoding here; handled in Request.cpp
+    return true;
 }
 
 void WebServer::cleanup_client(int client_fd, int i)
