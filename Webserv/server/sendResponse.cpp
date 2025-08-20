@@ -56,6 +56,25 @@ void WebServer::send_ok_response(int client_fd, const std::string &body, const s
     queueResponse(client_fd, raw);
 }
 
+
+void WebServer::send_created_response(int client_fd, 
+                                      const std::string &body, 
+                                      const std::map<std::string, std::string> &headers, 
+                                      size_t i)
+{
+    (void)i;
+    Logger::log(LOG_INFO, "send_created_response", "Sending 201 Created response.");
+    Response resp(201, "Created", body, headers);
+
+    bool keepAlive = !conns_[client_fd].shouldCloseAfterWrite;
+
+    // Apply connection headers (keep-alive/close)
+    resp.applyConnectionHeaders(keepAlive);
+
+    std::string raw = resp.toString();
+    queueResponse(client_fd, raw);
+}
+
 void WebServer::send_upload_success_response(int client_fd, const std::string &full_filename, size_t i)
 {
     std::ostringstream body;
@@ -70,8 +89,35 @@ void WebServer::send_upload_success_response(int client_fd, const std::string &f
          << "</body></html>";
 
     Logger::log(LOG_INFO, "send_upload_success_response", "Upload successful: " + full_filename);
-    send_ok_response(client_fd, body.str(), single_header("Content-Type", "text/html; charset=utf-8"), i);
+
+    // Add headers: Content-Type + Location
+    std::map<std::string, std::string> headers;
+    headers["Content-Type"] = "text/html; charset=utf-8";
+    headers["Location"] = full_filename;   // ideally relative URL, not filesystem path
+
+    send_created_response(client_fd, body.str(), headers, i);
 }
+
+void WebServer::send_no_content_response(int client_fd, size_t i)
+{
+    (void)i;
+    Logger::log(LOG_INFO, "send_no_content_response", "Sending 204 No Content response.");
+
+    // Empty headers (Content-Length/Content-Type not allowed for 204)
+    std::map<std::string, std::string> headers;
+
+    // Build response object
+    Response resp(204, "No Content", "", headers);
+
+    bool keepAlive = conns_[client_fd].shouldCloseAfterWrite;
+    resp.applyConnectionHeaders(keepAlive);
+
+    // Let Response::toString() handle proper formatting
+    std::string raw = resp.toString();
+
+    queueResponse(client_fd, raw);
+}
+
 
 static std::string resolve_error_page_path(const std::string &err_uri)
 {
@@ -134,4 +180,34 @@ void WebServer::send_error_response(int client_fd,
     resp.applyConnectionHeaders(keepAlive);
     std::string raw = resp.toString();
     queueResponse(client_fd, raw);
+}
+
+void WebServer::send_request_timeout_response(int client_fd, size_t i) {
+    (void)i;
+    Logger::log(LOG_INFO, "send_request_timeout_response", 
+                "Sending 408 Request Timeout response to fd=" + to_str(client_fd));
+
+    // Create a simple 408 response that we send immediately
+    const std::string response = 
+        "HTTP/1.1 408 Request Timeout\r\n"
+        "Content-Type: text/html; charset=utf-8\r\n"
+        "Connection: close\r\n"
+        "Content-Length: 234\r\n"
+        "\r\n"
+        "<!DOCTYPE html><html><head><title>408 Request Timeout</title></head>"
+        "<body><h1>408 Request Timeout</h1>"
+        "<p>Your request took too long to complete.</p>"
+        "<p><a href=\"/\">Go back to homepage</a></p>"
+        "</body></html>";
+    
+    // Send immediately without queuing (for timeout situations)
+    ssize_t n = ::write(client_fd, response.data(), response.size());
+    if (n < 0) {
+        Logger::log(LOG_ERROR, "send_request_timeout_response", 
+                   "Failed to send 408 response to fd=" + to_str(client_fd) + 
+                   " (errno=" + to_str(errno) + ")");
+    } else {
+        Logger::log(LOG_INFO, "send_request_timeout_response", 
+                   "Successfully sent 408 response (" + to_str(n) + " bytes) to fd=" + to_str(client_fd));
+    }
 }

@@ -1,0 +1,9 @@
+HTTP/1.1 201 Created
+Connection: keep-alive
+Content-Length: 502
+Content-Type: text/html; charset=utf-8
+Keep-Alive: timeout=5, max=100
+Location: www/upload/test_20250819_215118.txt
+
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Upload Successful</title></head><body style="font-family:sans-serif;text-align:center;margin-top:50px;"><h1>✅ File uploaded successfully!</h1><p>Saved as: <code>www/upload/test_20250819_215118.txt</code></p><br><br><a href="/" style="margin: 0 10px;"><button>Home</button></a><a href="/about" style="margin: 0 10px;"><button>About</button></a><a href="/upload" style="margin: 0 10px;"><button>Upload Another</button></a></body></html>
+HTTP 201

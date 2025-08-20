@@ -1,0 +1,21 @@
+HTTP/1.1 405 Method Not Allowed
+Connection: keep-alive
+Content-Length: 393
+Content-Type: text/html
+Keep-Alive: timeout=5, max=100
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>405 Method Not Allowed</title>
+    <style>
+        body { font-family: Arial; background: #fff0f0; color: #a00; text-align: center; margin-top: 5em; }
+        a { color: #3366cc; }
+    </style>
+</head>
+<body>
+    <h1>405 Method Not Allowed</h1>
+    <p>The method is not allowed for the requested URL.</p>
+    <a href="/">Go to Home</a>
+</body>
+</html>

@@ -67,11 +67,11 @@ echo "This is a test file." > test.txt
 
 log_and_run "Test 2: POST /upload (multipart/form-data)" \
     "curl -s -i -w \"\nHTTP %{http_code}\n\" -X POST http://localhost:8080/upload -F \"file=@test.txt\"" \
-    result_upload.txt "HTTP/1.1 200" "POST /upload returned 200 OK"
+    result_upload.txt "HTTP/1.1 201" "POST /upload returned 201 created"
 
 log_and_run "Test 3: DELETE /1.txt" \
     "curl -s -i -w \"\nHTTP %{http_code}\n\" -X DELETE http://localhost:8080/upload/1.txt" \
-    result_delete.txt "HTTP/1.1 200" "DELETE /1.txt returned 200 OK"
+    result_delete.txt "HTTP/1.1 204" "DELETE /1.txt returned 204 204 No Content"
 
 log_and_run "Test 4: GET /cgi-bin/test.py" \
     "curl -s -i -w \"\nHTTP %{http_code}\n\" http://localhost:8080/cgi-bin/test.py" \
@@ -127,9 +127,39 @@ log_and_run "Test 15: 404 Not Found" \
     "curl -s -i http://localhost:8080/doesnotexist.txt" \
     result_404.txt "404 Not Found" "404 Not Found error returned."
 
-section "Test 16: 408 Request Timeout (manual/visual)"
-echo "Manual/visual: To test 408, connect with 'telnet localhost 8080', send nothing, and wait for timeout." >> "$LOGFILE"
-result_ok "408 Request Timeout test: Please check server logs or implement timeout logic."
+
+
+section "Test 16: 408 Request Timeout"
+echo "Testing 408 Request Timeout by connecting but not sending data..." >> "$LOGFILE"
+# Connect to server and wait for server to respond or close after timeout
+nc localhost 8080 > result_408.txt 2>&1 &  # run in background
+nc_pid=$!
+
+# Wait slightly longer than server timeout (e.g., 12s) to ensure 408 triggers
+sleep 12
+
+# Kill nc if still running
+kill $nc_pid 2>/dev/null
+
+# Append result to log
+cat result_408.txt >> "$LOGFILE"
+
+# Check for 408 response
+if grep -q "408 Request Timeout" result_408.txt; then
+    result_ok "408 Request Timeout returned for idle connection."
+else
+    if [ -s result_408.txt ]; then
+        fail_line=$(grep -m1 -E "HTTP/|error|fail|not found|denied|forbidden|timeout" result_408.txt)
+        result_fail "408 Request Timeout missing for idle connection."
+        if [ -n "$fail_line" ]; then
+            echo -e "${YELLOW}Reason: $fail_line${NC}"
+        fi
+    else
+        result_fail "408 Request Timeout test: Connection failed or no response received."
+        echo -e "${YELLOW}Note: Make sure server is running and timeout is configured correctly.${NC}"
+    fi
+fi
+
 
 log_and_run "Test 17: 500 Internal Server Error" \
     "echo -e '#!/usr/bin/env python3\nimport sys\nsys.exit(1)' > www/cgi-bin/error500.py && chmod +x www/cgi-bin/error500.py && curl -s -i http://localhost:8080/cgi-bin/error500.py" \
@@ -158,6 +188,8 @@ else
         echo -e "${YELLOW}Reason: $fail_line${NC}"
     fi
 fi
+
+
 # rm -f www/cgi-bin/hang.py
 
 # Result Checks

@@ -10,6 +10,9 @@
 #include <unistd.h>
 #include <vector>
 #include <poll.h>
+#include <ctime>
+#include <sstream>
+#include <algorithm>
 
 // Global configuration object, initialized with config file
 /*Config g_config("default.conf");
@@ -69,6 +72,14 @@ int main(int argc, char** argv) {
     }
     return 0;
 }*/
+
+struct ClientState {
+    std::string buffer;
+    bool has_pending_write;
+    time_t last_active;
+    // maybe more...
+};
+
 
 volatile bool g_running = true;
 std::vector<WebServer *> g_servers;
@@ -177,7 +188,7 @@ int main(int argc, char **argv)
                 }
             }
 
-            int ret = poll(&fds[0], fds.size(), -1);
+            int ret = poll(&fds[0], fds.size(), 1000); // wait 1 second max
 
             if (ret < 0 && errno == EINTR)
             {
@@ -245,6 +256,31 @@ int main(int argc, char **argv)
                             srv->flushPendingWrites(p.fd);
                             break;
                         }
+                    }
+                }
+            }
+
+            // 3) Check for client timeouts (sweep idle clients)
+            time_t now = time(NULL);
+            int client_timeout = 10; // 10 seconds timeout for testing
+
+            for (size_t si = 0; si < g_servers.size(); ++si)
+            {
+                WebServer *srv = g_servers[si];
+                std::vector<int> cs = srv->getClientSockets();
+                
+                // Check each client for timeout (iterate backwards to safely remove)
+                for (int j = static_cast<int>(cs.size()) - 1; j >= 0; --j)
+                {
+                    int fd = cs[j];
+                    time_t last_active = srv->getClientLastActive(fd);
+                    if (last_active > 0 && (now - last_active) > client_timeout)
+                    {
+                        Logger::log(LOG_INFO, "main", 
+                                  "Client fd=" + to_str(fd) + " timed out after " + 
+                                  to_str(now - last_active) + " seconds");
+                        srv->send_request_timeout_response(fd, si);
+                        srv->closeClient(fd);
                     }
                 }
             }

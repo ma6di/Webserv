@@ -1,6 +1,7 @@
 #include "WebServer.hpp"
 #include "Config.hpp"
 #include <cstring>
+#include <ctime>
 #include <errno.h>
 
 WebServer::WebServer(const Config &cfg)
@@ -91,7 +92,7 @@ int WebServer::handleNewConnection(int listen_fd)
     }
 
     make_socket_non_blocking(client_fd);
-    conns_[client_fd];
+    conns_[client_fd]; // Create new connection (last_active already set in constructor)
     Logger::log(LOG_INFO, "WebServer", "Accepted FD=" + to_str(client_fd));
     return client_fd;
 }
@@ -108,6 +109,9 @@ void WebServer::handleClientDataOn(int client_fd)
         Logger::log(LOG_INFO, "WebServer", "Closed FD=" + to_str(client_fd));
         return;
     }
+
+    // Update client activity timestamp
+    updateClientActivity(client_fd);
 
     // append into our buffer
     std::string &data = conns_[client_fd].readBuf;
@@ -352,6 +356,8 @@ void WebServer::flushPendingWrites(int client_fd)
         if (n > 0)
         {
             conn.writeBuf.erase(0, static_cast<size_t>(n));
+            // Update activity timestamp when we successfully write data
+            updateClientActivity(client_fd);
         }
         else if (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK))
         {
@@ -374,6 +380,33 @@ void WebServer::flushPendingWrites(int client_fd)
     else
     {
         Logger::log(LOG_DEBUG, "flush", "fd=" + to_str(client_fd) + " drained; keeping open");
+    }
+}
+
+// Timeout management methods
+time_t WebServer::getClientLastActive(int client_fd) const
+{
+    std::map<int, Connection>::const_iterator it = conns_.find(client_fd);
+    if (it == conns_.end())
+        return 0;
+    return it->second.last_active;
+}
+
+void WebServer::updateClientActivity(int client_fd)
+{
+    std::map<int, Connection>::iterator it = conns_.find(client_fd);
+    if (it != conns_.end()) {
+        it->second.last_active = time(NULL);
+    }
+}
+
+void WebServer::closeClient(int client_fd)
+{
+    std::map<int, Connection>::iterator it = conns_.find(client_fd);
+    if (it != conns_.end()) {
+        ::close(client_fd);
+        conns_.erase(it);
+        Logger::log(LOG_INFO, "timeout", "Closed client fd=" + to_str(client_fd) + " due to timeout");
     }
 }
 
