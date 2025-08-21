@@ -5,20 +5,17 @@
 
 /* PARALLAX */
 .floating-star {
-  position: absolute;
-  font-size: 1.5rem;
-  color: white;
-  opacity: 0.04;
-  pointer-events: none;
-  z-index: 0;
-  transition: transform 0.3s ease-out;
-  user-select: none;
+    position: absolute;
+    font-size: 1.5rem;
+    color: white;
+    opacity: 0.04;
+    pointer-events: none;
+    z-index: 0;
+    transition: transform 0.3s ease-out;
+    user-select: none;
 }
 
 /* PAGE 1 */
-
-
-
 .scroll-arrow {
     margin-top: 20px;
     font-size: 2rem;
@@ -42,8 +39,8 @@
 }
 
 .container {
-  position: relative;
-  z-index: 1;
+    position: relative;
+    z-index: 1;
 }
 
 .page-1 {
@@ -112,20 +109,32 @@
     box-shadow: 0 0 15px rgba(255, 255, 255, 0.05);
     transition: background 0.3s ease, transform 0.2s ease;
     padding: 1rem;
+    height: 100%;
 }
 
-/* Hover pastel gradient */
+/* Hover pastel gradient animation */
 .feature-card:hover {
-    background: linear-gradient(135deg, rgba(255, 221, 244, 0.15), rgba(221, 240, 255, 0.15));
-    transform: translateY(-4px);
-    border-color: rgba(255, 255, 255, 0.5);
-    box-shadow: 0 0 25px rgba(255, 255, 255, 0.1);
+    background: linear-gradient(#44449e, #1A1A5C) padding-box,
+        linear-gradient(280deg, #7953cd , #00affa, #0190cd, #7953cd, #00affa, #0190cd, #7953cd, #00affa) border-box;
+    background-size: 400% 400%;
+    animation: rainbow 1s linear infinite alternate ;
+}
+
+@keyframes rainbow {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    100% {
+        background-position: 100% 50%;
+    }
 }
 
 /* Title style */
 .feature-card .card-title {
     font-size: 1.5rem;
     font-weight: 700;
+    text-align: center;
 }
 
 /* Description style */

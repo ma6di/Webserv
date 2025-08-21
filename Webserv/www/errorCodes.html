@@ -7,163 +7,31 @@
     <title>Error Card Carousel</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr" crossorigin="anonymous" />
+    <link rel="stylesheet" type="text/css" href="/styles/errorCodes.css" />
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-ndDqU0Gzau9qJ1lfW4pNLlhNTkCfHzAVBReH9diLvGRem5+R9g2FzA8ZGN954O5Q"
         crossorigin="anonymous"></script>
-    <script src="https://kit.fontawesome.com/ab519d0da2.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+        referrerpolicy="no-referrer">
+
 </head>
-<style>
-    @media screen and (orientation: landscape) {
-        .carousel img {
-            height: 100vh;
-        }
-    }
-
-    .back-button {
-        position: fixed;
-        top: 20px;
-        left: 20px;
-        z-index: 1000;
-        text-decoration: none;
-        transition: all 0.3s ease;
-        align-items: center;
-        backdrop-filter: blur(5px);
-        /* font-weight: 600; */
-        color: rgba(255, 255, 255, 0.589);
-        gap: 10px;
-        padding: 12px 24px;
-        /*
-            display: flex;
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid rgba(255, 255, 255, 0.6);
-            border-radius: 25px;
-            */
-    }
-
-    .back-button:hover {
-        /* background: rgba(255, 255, 255, 0.2); */
-        transform: translateY(-2px);
-        color: white;
-    }
-
-    .back-button i {
-        font-size: 0.9em;
-        transition: transform 0.5s ease;
-    }
-
-    .back-button:hover i {
-        animation: wiggleLeft 1s ease-in-out;
-        animation-iteration-count: infinite;
-    }
-
-    @keyframes wiggleLeft {
-
-        0%,
-        100% {
-            transform: translateX(0);
-        }
-
-        25% {
-            transform: translateX(-3px);
-        }
-
-        75% {
-            transform: translateX(-1px);
-        }
-    }
-
-    /* Round carousel indicators */
-    .carousel-indicators [data-bs-target] {
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        margin: 0 8px;
-        background-color: rgba(255, 255, 255, 0.5);
-        transition: all 0.3s ease;
-    }
-
-    .carousel-indicators .active {
-        background-color: #fff;
-        transform: scale(1.2);
-    }
-
-    .carousel-slide-bg {
-        background-color: #dc3545;
-        /* Soft coral red */
-        min-height: 100vh;
-        position: relative;
-        transition: all 0.3s ease;
-    }
-
-    .carousel-slide-bg::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        /* background-image: url("https://forum.plutonium.pw/assets/uploads/files/1650070506526-fire.gif"); */
-        background-image: url("https://upload.wikimedia.org/wikipedia/commons/2/22/Animated_fire_by_nevit.gif");
-        background-size: cover;
-        background-position: center;
-        opacity: 0;
-        transition: opacity 0.5s ease;
-        pointer-events: none;
-        z-index: 1;
-    }
-
-    .carousel-item .carousel-caption {
-        z-index: 2;
-    }
-
-    .trigger-btn:hover~.carousel-slide-bg::before,
-    .carousel-slide-bg:has(.trigger-btn:hover)::before {
-        opacity: 1;
-    }
-
-    /* Improved button styling */
-    .btn-outline-light {
-        text-transform: uppercase;
-    }
-
-    .carousel-caption h1 {
-        font-size: 150px;
-        text-transform: uppercase;
-    }
-
-    .carousel-caption p {
-        margin: 0 auto 30px;
-    }
-
-    .trigger-btn {
-        position: relative;
-        z-index: 3;
-        transition: all 0.3s ease;
-    }
-
-    .trigger-btn:hover {
-        color: #dc3545;
-
-        /* background: transparent; */
-        /* border-color: transparent; */
-        /* color: white; */
-        text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
-    }
-</style>
 
 <body class="bg-dark text-light">
-    <a href="/index.html#features" class="back-button">
-        <i class="fa-solid fa-chevron-left"></i>
-        Back to features
-    </a>
-    <section class="container py-5 text-center">
-        <p class="lead">
-            This page demonstrates common HTTP error codes using our
-            Webserv project.
-            Each slide shows the meaning of an error and provides a link
-            to trigger it on the server, so you can verify that the server
-            responds with the correct status.
-        </p>
+    <div>
+        <a href="/index.html#features" class="back-button">
+            <!-- <i class="fa-solid fa-chevron-left"></i> -->
+            <i class="fa-solid fa-angle-left"></i>
+            Back to features
+        </a>
+        <section class="container text-center">
+            <p class="lead mt-3">
+                This page demonstrates common HTTP error codes using our
+                Webserv project.
+                Each slide shows the meaning of an error and provides a link
+                to trigger it on the server, so you can verify that the server
+                responds with the correct status.
+            </p>
+    </div>
     </section>
     <div id="carouselExampleCaptions" class="carousel slide" data-bs-ride="carousel">
         <!-- Indicators -->
@@ -217,7 +85,7 @@
                         Triggered when the HTTP method is not supported for
                         this route.
                     </p>
-                    <a class="btn btn-outline-light px-4 py-2 trigger-btn">Need to implement ⚠️</a>
+                    <a class="btn btn-outline-light px-4 py-2 trigger-btn">Trigger me!</a>
                 </div>
             </div>
 
@@ -229,7 +97,7 @@
                         Triggered when the request body is larger than the
                         server allows.
                     </p>
-                    <a class="btn btn-outline-light px-4 py-2 trigger-btn">Need to implement ⚠️</a>
+                    <a class="btn btn-outline-light px-4 py-2 trigger-btn">Trigger me!</a>
                 </div>
             </div>
 
@@ -241,8 +109,7 @@
                         Triggered when the server encounters an unexpected
                         condition.
                     </p>
-                    <a href="/cgi-bin/test.php" class="btn btn-outline-light px-4 py-2 trigger-btn">Need to implement
-                        ⚠️</a>
+                    <a href="/cgi-bin/test.php" class="btn btn-outline-light px-4 py-2 trigger-btn">Trigger me!</a>
                 </div>
             </div>
 
@@ -254,8 +121,8 @@
                         Triggered when the server does not receive a timely
                         response from an upstream process.
                     </p>
-                    <a href="/cgi-bin/trigger_504.py" class="btn btn-outline-light px-4 py-2 trigger-btn">Need to
-                        implement ⚠️</a>
+                    <a href="/cgi-bin/trigger_504.py" class="btn btn-outline-light px-4 py-2 trigger-btn">Trigger
+                        me!</a>
                 </div>
             </div>
         </div>

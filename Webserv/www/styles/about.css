@@ -1,10 +1,4 @@
-/*
-  Note: typically .css, .scripts and .htmls should be kept separately in their own folder and not
-  mixed together to ensure the projectstructure.
-  However if we place these files outside the static folder they are not loaded correctly and
-  we get a 403 error, meaning we are having a server side path issue or even config issue.
-  I think that is something important to solve.
-*/
+@import url("style.css");
 
 h1 {
     text-align: center;
@@ -12,14 +6,6 @@ h1 {
     /* margin: 2rem 0; */
     width: 100%;
 }
-/* .team-intro {
-    text-align: center;
-    margin: auto;
-    font-size: 1.1rem;
-    color: #fff;
-    line-height: 1.6;
-    text-align: start;
-} */
 
 /* Team section styles */
 .team-container {
@@ -72,12 +58,6 @@ h1 {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* Front side styling */
-.flip-card-front {
-    /* background-color: #000000; */
-    /* color: #000; */
-}
-
 .flip-card-front h3 {
     position: absolute;
     bottom: 5px;
@@ -90,7 +70,13 @@ h1 {
 
 /* Back side styling */
 .flip-card-back {
-    text-align: start;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 16px;
+    background: #fff;
+    color: #28293c;
+    border-radius: 15px;
     background-color: #ffffff;
     color: #28293c;
     transform: rotateY(180deg);
@@ -98,18 +84,26 @@ h1 {
 }
 
 .flip-card-back-text {
-    font-size: 1.1rem;
-    line-height: 1.6;
     padding: 10px;
+    text-align: start;
+    line-height: 1.6;
+    flex: 1 1 auto;
+    margin: 0;
+    font-size: 1rem;
+    line-height: 1.6;
+    overflow: auto;
 }
 
 .social-links {
-    margin-top: auto;
-    text-align: end;
+    margin-top: 0;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 14px;
+    min-height: 40px;
 }
 
 .social-links a {
-    margin: 0 10px;
     color: #5d6180;
     font-size: 1.5rem;
     transition: color 0.3s ease;
