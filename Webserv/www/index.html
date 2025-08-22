@@ -1,313 +1,511 @@
 <!DOCTYPE html>
 <html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link
+            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css"
+            rel="stylesheet"
+            integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr"
+            crossorigin="anonymous" />
+        <script
+            src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-ndDqU0Gzau9qJ1lfW4pNLlhNTkCfHzAVBReH9diLvGRem5+R9g2FzA8ZGN954O5Q"
+            crossorigin="anonymous"></script>
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+            referrerpolicy="no-referrer" />
+        <link rel="stylesheet" type="text/css" href="/styles/index.css" />
+        <title>Webserv</title>
+    </head>
 
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet"
-        integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr" crossorigin="anonymous" />
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"
-        integrity="sha384-ndDqU0Gzau9qJ1lfW4pNLlhNTkCfHzAVBReH9diLvGRem5+R9g2FzA8ZGN954O5Q"
-        crossorigin="anonymous"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
-        referrerpolicy="no-referrer">
-    <link rel="stylesheet" type="text/css" href="/styles/index.css" />
-    <title>Webserv</title>
-</head>
-
-<body>
-    <nav id="mainNavbar" class="navbar navbar-expand-lg bg-body-tertiary">
-        <div class="container-fluid">
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarTogglerDemo01"
-                aria-controls="navbarTogglerDemo01" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarTogglerDemo01">
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                    <li class="nav-item">
-                        <a class="nav-link" href="javascript:void(0)" onclick="scrollToSection('home')">Home</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="javascript:void(0)" onclick="scrollToSection('features')">Features</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="javascript:void(0)" onclick="scrollToSection('about')">About</a>
-                    </li>
-                </ul>
+    <body>
+        <nav id="mainNavbar" class="navbar navbar-expand-lg bg-body-tertiary">
+            <div class="container-fluid">
+                <button
+                    class="navbar-toggler"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#navbarTogglerDemo01"
+                    aria-controls="navbarTogglerDemo01"
+                    aria-expanded="false"
+                    aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarTogglerDemo01">
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                        <li class="nav-item">
+                            <a
+                                class="nav-link"
+                                href="javascript:void(0)"
+                                onclick="scrollToSection('home')"
+                                >Home</a
+                            >
+                        </li>
+                        <li class="nav-item">
+                            <a
+                                class="nav-link"
+                                href="javascript:void(0)"
+                                onclick="scrollToSection('about')"
+                                >About</a
+                            >
+                        </li>
+                        <li class="nav-item">
+                            <a
+                                class="nav-link"
+                                href="javascript:void(0)"
+                                onclick="scrollToSection('features')"
+                                >Features</a
+                            >
+                        </li>
+                        <li class="nav-item">
+                            <a
+                                class="nav-link"
+                                href="javascript:void(0)"
+                                onclick="scrollToSection('team')"
+                                >Our team</a
+                            >
+                        </li>
+                    </ul>
+                </div>
             </div>
-        </div>
-    </nav>
+        </nav>
 
-    <!-- contains the area below navbar -->
-    <div class="container">
-        <!-- Presentation area -->
-        <div class="page-1" id="home">
-            <!-- Project title with animation -->
-            <h1 class="title">Webserv</h1>
-            <!-- Project description -->
-            <p class="lead subtitle">
-                A lightweight HTTP server built in C++ as a group project at
-                42 Berlin.
-            </p>
-        </div>
-
-        <!-- feature area -->
-        <div class="container page-2" id="features">
-            <h1>About the project</h1>
-            <div class="description">
-                <p class="text-light mb-4">
-                    Webserv is a modular, educational HTTP server built in
-                    C++ for the 42 Berlin curriculum. It demonstrates core
-                    web server concepts such as socket programming,
-                    non-blocking I/O, event-driven architecture, and CGI
-                    support. Webserv serves static files, executes CGI
-                    scripts, handles file uploads, and provides custom error
-                    pages. The server is configured using flexible location
-                    blocks, allowing for per-path settings and easy
-                    extensibility. This demo site showcases static content,
-                    team information and basic navigation, illustrating how
-                    Webserv can power modern web pages and assets.
+        <!-- contains the area below navbar -->
+        <div class="container">
+            <!-- Presentation area -->
+            <div class="page-1" id="home">
+                <!-- Project title with animation -->
+                <h1 class="title">Webserv</h1>
+                <!-- Project description -->
+                <p class="lead subtitle">
+                    A lightweight HTTP server built in C++ as a group project at
+                    42 Berlin.
                 </p>
             </div>
-            <p class="text-light mb-4">
-                Here we explain that we implemented some tests that will...
-            </p>
 
-            <!-- row 1 -->
-            <div class="row m-4">
-                <div class="col-md-4">
-                    <a href="/methods.html" class="card-link-wrapper">
-                        <div class="card feature-card text-white">
-                            <div class="card-body">
-                                <h5 class="card-title">
-                                    💬 Methods explained
-                                </h5>
-                                <p class="card-text">
-                                    An interactive demonstration of how GET, POST
-                                    and DELETE work.
-                                </p>
-                            </div>
-                        </div>
-                    </a>
-                </div>
+            <!-- about area -->
 
-                <div class="col-md-4">
-                    <a href="/photobook.html" class="card-link-wrapper">
-                        <div class="card feature-card text-white">
-                            <div class="card-body">
-                                <h5 class="card-title">📸 Photobook</h5>
-                                <p class="card-text">
-                                    A simple demonstration of how http
-                                    methods are used in a photobook
-                                    application.
-                                </p>
-                            </div>
-                        </div>
-                    </a>
-                </div>
+            <div class="container page-2 text-light" id="about">
+                <div class="intro_description mb-5">
+                    <h1>About</h1>
 
-                <div class="col-md-4">
-                    <a href="/errorCodes.html" class="card-link-wrapper">
-                        <div class="card feature-card text-white">
-                            <div class="card-body">
-                                <h5 class="card-title">
-                                    ⚠️ Trigger errors
-                                </h5>
-                                <p class="card-text">
-                                    A simple demonstration that guides the
-                                    user to show trigger errors
-                                </p>
+                    <section>
+                        <p>
+                            The web is the system that allows us to access
+                            information, applications, and services online. It
+                            is built on two sides working together:
+                        </p>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="p-3 h-100">
+                                    <h5>The Server</h5>
+                                    <p>
+                                        A program that listens for requests and
+                                        responds with the needed data. It runs
+                                        the backend: the code that determines
+                                        how data is stored, processed, and
+                                        updated.
+                                    </p>
+                                </div>
                             </div>
-                        </div>
-                    </a>
-                </div>
-            </div>
-            <!-- Next row of 3 -->
-            <div class="row m-4">
-                <!-- g-4 adds spacing between cards -->
-                <div class="col-md-4">
-                    <a href="javascript:void(0)" onclick="redirectionCountdown()" class="card-link-wrapper">
-                        <div class="card feature-card text-white">
-                            <div class="card-body">
-                                <h5 class="card-title">
-                                    📍 HTTP Redirection
-                                </h5>
-                                <p class="card-text">
-                                    A 301 redirection that permanently moves
-                                    a page to a new location.
-                                </p>
-                            </div>
-                        </div>
-                    </a>
-                </div>
 
-                <div class="col-md-4">
-                    <a href="/switch" class="card-link-wrapper">
-                        <div class="card feature-card text-white">
-                            <div class="card-body">
-                                <h5 class="card-title">🔌 Switch ports!</h5>
-                                <p class="card-text">
-                                    See what happens when we run our
-                                    webserve in another port!
-                                </p>
+                            <div class="col-md-6">
+                                <div class="p-3 h-100">
+                                    <h5>The Client</h5>
+                                    <p>
+                                        The interface the user sees and
+                                        interacts with, such as a website or
+                                        app. It runs the frontend: the code that
+                                        defines the layout and handles user
+                                        interactions.
+                                    </p>
+                                </div>
                             </div>
                         </div>
-                    </a>
+                        <p>
+                            Webserv, is an HTTP server written in C++ for the 42
+                            Berlin curriculum. Even though our assignment
+                            focused only on building a server, we wanted to
+                            build with both server and client in mind to make
+                            the web work:
+                        </p>
+                    </section>
                 </div>
-
-                <div class="col-md-4">
-                    <a href="/siege.html" class="card-link-wrapper">
-                        <div class="card feature-card text-white">
-                            <div class="card-body">
-                                <h5 class="card-title">💥 Siege test</h5>
-                                <p class="card-text">Check data on our server availability, latency, throughput, and
-                                    stability under stress</p>
-                            </div>
-                        </div>
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        <!-- about area -->
-        <div class="page-3" href="#about" id="about">
-            <h1>Meet our team</h1>
-            <p class="text-light mb-4">
-                We met at 42 Berlin at the very start of our journey, going
-                through the piscine together and building a friendship that
-                grew alongside our skills. Over time, we each followed our
-                own pace through the curriculum, shaped by different
-                priorities, life situations, and learning styles. Webserv
-                was finally the opportunity to bring us all together and
-                share our different strengths to create something meaningful
-                that marks an important step in our path toward becoming
-                developers.
-            </p>
-            <div class="team-container">
-                <!-- Tayfun -->
-                <div class="flip-card shadow">
-                    <div class="flip-card-inner">
-                        <div class="flip-card-front">
-                            <img src="/images/tayfun.jpeg" alt="Tayfun Kasapoglu" />
-                            <h3>Tayfun Kasapoglu</h3>
-                        </div>
-                        <div class="flip-card-back">
-                            <p class="flip-card-back-text">
-                                Tayfun contributed key features such as
-                                directory listing, upload handling, and
-                                multi-port support. Known for his strong
-                                work ethic, he consistently delivered solid
-                                functionality under tight deadlines. While
-                                balancing multiple projects, he brought
-                                structure to early implementations and
-                                provided essential backend groundwork for
-                                the server.
-                            </p>
-                            <div class="social-links">
-                                <a href="mailto:tkasapog@student.42berlin.de"><i class="fas fa-envelope"></i></a>
-                                <a href="https://www.linkedin.com/in/tayfun-kasapoglu/" target="_blank"><i
-                                        class="fab fa-linkedin"></i></a>
-                                <a href="https://github.com/tayfunkas" target="_blank"><i class="fab fa-github"></i></a>
-                            </div>
-                        </div>
+                <div class="row">
+                    <div class="col-md-6 border rounded webserv_description">
+                        <h2>About our Webserv</h2>
+                        <p>
+                            Built under strict constraints (C++98, no external
+                            libraries, non-blocking I/O), our server provides a
+                            practical look at how modern servers like NGINX work
+                            under the hood:
+                        </p>
+                        <ul>
+                            <li>
+                                Non-blocking I/O with socket programming and an
+                                event-driven loop.
+                            </li>
+                            <li>
+                                Support for HTTP methods: GET, POST, DELETE.
+                            </li>
+                            <li>
+                                Serves static files, manages file uploads, and
+                                executes CGI scripts.
+                            </li>
+                            <li>
+                                Delivers custom error pages and flexible
+                                per-path configuration blocks.
+                            </li>
+                            <li>
+                                Runs on multiple ports to serve different sites
+                                at the same time.
+                            </li>
+                        </ul>
                     </div>
-                </div>
 
-                <!-- Mahdi -->
-                <div class="flip-card shadow">
-                    <div class="flip-card-inner">
-                        <div class="flip-card-front">
-                            <img src="/images/mahdi.jpeg" alt="Mahdi Cheraghali" />
-                            <h3>Mahdi Cheraghali</h3>
-                        </div>
-                        <div class="flip-card-back">
-                            <p class="flip-card-back-text">
-                                Mahdi led the initial development effort,
-                                focusing on configuration parsing, HTTP
-                                request handling, and core response logic.
-                                He rapidly delivered working features across
-                                multiple areas of the project and ensured
-                                end-to-end flow was covered early. His speed
-                                helped push the project forward and create a
-                                testable baseline.
-                            </p>
-                            <div class="social-links">
-                                <a href="mailto:tmcheragh@student.42berlin.de"><i class="fas fa-envelope"></i></a>
-                                <a href="https://www.linkedin.com/in/mahdi-cheraghali/" target="_blank"><i
-                                        class="fab fa-linkedin"></i></a>
-                                <a href="https://github.com/ma6di" target="_blank"><i class="fab fa-github"></i></a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Jessica -->
-                <div class="flip-card shadow">
-                    <div class="flip-card-inner">
-                        <div class="flip-card-front">
-                            <img src="/images/jessica.jpeg" alt="Jessica Slusark" />
-                            <h3>Jessica Slusark</h3>
-                        </div>
-                        <div class="flip-card-back">
-                            <p class="flip-card-back-text">
-                                Jessica joined later and quickly closed the
-                                gap by clarifying team priorities and task
-                                division. With prior frontend experience,
-                                she used it not just to demonstrate the
-                                server's capabilities but also to uncover
-                                potential communication issues, structural
-                                inconsistencies and optimization
-                                opportunities.
-                            </p>
-                            <div class="social-links">
-                                <a href="mailto:jslusark@student.42berlin.de"><i class="fas fa-envelope"></i></a>
-                                <a href="https://www.linkedin.com/in/jessica-slusark/" target="_blank"><i
-                                        class="fab fa-linkedin"></i></a>
-                                <a href="https://github.com/jessicaslusark" target="_blank"><i
-                                        class="fab fa-github"></i></a>
-                            </div>
-                        </div>
+                    <div class="col-md-6 border rounded fronetnd_description">
+                        <h2>About our Frontend</h2>
+                        <p>
+                            We added a frontend to make the project a more
+                            complete and practical demo during evaluation. This
+                            layer allows us to:
+                        </p>
+                        <ul>
+                            <li>
+                                Verify the server works fully, not just in
+                                isolation, as expected in a professional
+                                environment.
+                            </li>
+                            <li>
+                                Expose hidden bugs or hardcoded behavior that
+                                might not be obvious when testing only the
+                                backend.
+                            </li>
+                            <li>
+                                Demonstrate how methods and responses work in
+                                practice, like on the websites we use every day.
+                            </li>
+                            <li>
+                                Give evaluators a clearer and more accessible
+                                way to test the project, regardless of their
+                                experience.
+                            </li>
+                        </ul>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-    <!-- redirection modal -->
-    <div class="modal fade" id="redirectModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
-        aria-labelledby="redirectModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content bg-dark text-light text-center p-4">
-                <div class="modal-header">
-                    <h1 class="modal-title fs-5">
-                        Simulated HTTP 301 Redirect
-                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
-                    </h1>
-                </div>
-                <div class="modal-body">
-                    <p class="small">
-                        A 301 redirect tells the browser that a page has
-                        permanently moved to a new location. This demo adds
-                        a delay for visualization. In real-world use, 301
-                        redirects happen instantly,<br />
-                        and the user is immediately sent to the new URL
-                        (like
-                        <code>https://42berlin.de</code>).
+
+            <!-- feature area -->
+            <div class="container page-3" id="features">
+                <h1>Features</h1>
+                <div class="description">
+                    <p class="text-light mb-4">
+                        Below is a series of features that you can use to test
+                        how our server connects to the frontend, we decided to
+                        add these features to better search for unexpected bugs
+                        and better demonstrate what curl and other method
+                        requests do on the backend Below is a series of features
+                        that you can use to test how our server connects to the
+                        frontend, we decided to add these features to better
+                        search for unexpected bugs and better demonstrate what
+                        curl and other method requests do on the backend
                     </p>
-                    <p class="mb-2">
-                        You will be redirected to
-                        <code>http://localhost:8080/42</code>
-                    </p>
-                    <p>in <span id="countdown">5</span> seconds</p>
+                </div>
+
+                <!-- row 1 -->
+                <div class="row m-4">
+                    <div class="col-md-4">
+                        <a href="/methods.html" class="card-link-wrapper">
+                            <div class="card feature-card text-white">
+                                <div class="card-body">
+                                    <h5 class="card-title">
+                                        💬 Methods explained
+                                    </h5>
+                                    <p class="card-text">
+                                        An interactive demonstration of how GET,
+                                        POST and DELETE work.
+                                    </p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+
+                    <div class="col-md-4">
+                        <a href="/photobook.html" class="card-link-wrapper">
+                            <div class="card feature-card text-white">
+                                <div class="card-body">
+                                    <h5 class="card-title">📸 Photobook</h5>
+                                    <p class="card-text">
+                                        A simple demonstration of how http
+                                        methods are used in a photobook
+                                        application.
+                                    </p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+
+                    <div class="col-md-4">
+                        <a href="/errorCodes.html" class="card-link-wrapper">
+                            <div class="card feature-card text-white">
+                                <div class="card-body">
+                                    <h5 class="card-title">
+                                        ⚠️ Trigger errors
+                                    </h5>
+                                    <p class="card-text">
+                                        A simple demonstration that guides the
+                                        user to show trigger errors
+                                    </p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+                <!-- Next row of 3 -->
+                <div class="row m-4">
+                    <!-- g-4 adds spacing between cards -->
+                    <div class="col-md-4">
+                        <a
+                            href="javascript:void(0)"
+                            onclick="redirectionCountdown()"
+                            class="card-link-wrapper">
+                            <div class="card feature-card text-white">
+                                <div class="card-body">
+                                    <h5 class="card-title">
+                                        📍 HTTP Redirection
+                                    </h5>
+                                    <p class="card-text">
+                                        A 301 redirection that permanently moves
+                                        a page to a new location.
+                                    </p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+
+                    <div class="col-md-4">
+                        <a
+                            href="http://localhost:8085/"
+                            class="card-link-wrapper">
+                            <div class="card feature-card text-white">
+                                <div class="card-body">
+                                    <h5 class="card-title">🔌 Switch ports!</h5>
+                                    <p class="card-text">
+                                        See what happens when we run our
+                                        webserve in another port!
+                                    </p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+
+                    <div class="col-md-4">
+                        <a href="/siege.html" class="card-link-wrapper">
+                            <div class="card feature-card text-white">
+                                <div class="card-body">
+                                    <h5 class="card-title">💥 Siege test</h5>
+                                    <p class="card-text">
+                                        Check data on our server availability,
+                                        latency, throughput, and stability under
+                                        stress
+                                    </p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- the team -->
+            <div class="page-4" href="#team" id="team">
+                <h1>Meet our team</h1>
+                <p class="text-light mb-4">
+                    We met at 42 Berlin at the very start of our journey, going
+                    through the piscine together and building a friendship that
+                    grew alongside our skills. Over time, we each followed our
+                    own pace through the curriculum, shaped by different
+                    priorities, life situations, and learning styles. Webserv
+                    was finally the opportunity to bring us all together and
+                    share our different strengths to create something meaningful
+                    that marks an important step in our path toward becoming
+                    developers.
+                </p>
+                <p class="text-light mb-4">
+                    Hover over the cards below to see details and contact
+                    information.
+                </p>
+                <div class="team-container">
+                    <!-- Tayfun -->
+                    <div class="flip-card shadow">
+                        <div class="flip-card-inner">
+                            <div class="flip-card-front">
+                                <img
+                                    src="/images/tayfun.jpeg"
+                                    alt="Tayfun Kasapoglu" />
+                                <h3>Tayfun Kasapoglu</h3>
+                            </div>
+                            <div class="flip-card-back">
+                                <p class="flip-card-back-text">
+                                    Tayfun contributed key features such as
+                                    directory listing, upload handling, and
+                                    multi-port support. Known for his strong
+                                    work ethic, he consistently delivered solid
+                                    functionality under tight deadlines. While
+                                    balancing multiple projects, he brought
+                                    structure to early implementations and
+                                    provided essential backend groundwork for
+                                    the server.
+                                </p>
+                                <div class="social-links">
+                                    <a
+                                        href="mailto:tkasapog@student.42berlin.de"
+                                        ><i class="fas fa-envelope"></i
+                                    ></a>
+                                    <a
+                                        href="https://www.linkedin.com/in/tayfun-kasapoglu/"
+                                        target="_blank"
+                                        ><i class="fab fa-linkedin"></i
+                                    ></a>
+                                    <a
+                                        href="https://github.com/tayfunkas"
+                                        target="_blank"
+                                        ><i class="fab fa-github"></i
+                                    ></a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mahdi -->
+                    <div class="flip-card shadow">
+                        <div class="flip-card-inner">
+                            <div class="flip-card-front">
+                                <img
+                                    src="/images/mahdi.jpeg"
+                                    alt="Mahdi Cheraghali" />
+                                <h3>Mahdi Cheraghali</h3>
+                            </div>
+                            <div class="flip-card-back">
+                                <p class="flip-card-back-text">
+                                    Mahdi led the initial development effort,
+                                    focusing on configuration parsing, HTTP
+                                    request handling, and core response logic.
+                                    He rapidly delivered working features across
+                                    multiple areas of the project and ensured
+                                    end-to-end flow was covered early. His speed
+                                    helped push the project forward and create a
+                                    testable baseline.
+                                </p>
+                                <div class="social-links">
+                                    <a
+                                        href="mailto:tmcheragh@student.42berlin.de"
+                                        ><i class="fas fa-envelope"></i
+                                    ></a>
+                                    <a
+                                        href="https://www.linkedin.com/in/mahdi-cheraghali/"
+                                        target="_blank"
+                                        ><i class="fab fa-linkedin"></i
+                                    ></a>
+                                    <a
+                                        href="https://github.com/ma6di"
+                                        target="_blank"
+                                        ><i class="fab fa-github"></i
+                                    ></a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Jessica -->
+                    <div class="flip-card shadow">
+                        <div class="flip-card-inner">
+                            <div class="flip-card-front">
+                                <img
+                                    src="/images/jessica.jpeg"
+                                    alt="Jessica Slusark" />
+                                <h3>Jessica Slusark</h3>
+                            </div>
+                            <div class="flip-card-back">
+                                <p class="flip-card-back-text">
+                                    Jessica joined later and quickly closed the
+                                    gap by clarifying team priorities and task
+                                    division. With prior frontend experience,
+                                    she used it not just to demonstrate the
+                                    server's capabilities but also to uncover
+                                    potential communication issues, structural
+                                    inconsistencies and optimization
+                                    opportunities.
+                                </p>
+                                <div class="social-links">
+                                    <a
+                                        href="mailto:jslusark@student.42berlin.de"
+                                        ><i class="fas fa-envelope"></i
+                                    ></a>
+                                    <a
+                                        href="https://www.linkedin.com/in/jessica-slusark/"
+                                        target="_blank"
+                                        ><i class="fab fa-linkedin"></i
+                                    ></a>
+                                    <a
+                                        href="https://github.com/jessicaslusark"
+                                        target="_blank"
+                                        ><i class="fab fa-github"></i
+                                    ></a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-    <footer id="endFooter" class="footer-message text-center text-white py-3">
-        <p>
-            A <i class="fa-solid fa-heart"></i> for sticking till the very end of the page.
-        </p>
-    </footer>
-    <script src="/scripts/app.js"></script>
-</body>
 
+        <!-- redirection modal -->
+        <div
+            class="modal fade"
+            id="redirectModal"
+            data-bs-backdrop="static"
+            data-bs-keyboard="false"
+            tabindex="-1"
+            aria-labelledby="redirectModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content bg-dark text-light text-center p-4">
+                    <div class="modal-header">
+                        <h1 class="modal-title fs-5">
+                            Simulated HTTP 301 Redirect
+                            <i
+                                class="fa-solid fa-arrow-up-right-from-square"></i>
+                        </h1>
+                    </div>
+                    <div class="modal-body">
+                        <p class="small">
+                            A 301 redirect tells the browser that a page has
+                            permanently moved to a new location. This demo adds
+                            a delay for visualization. In real-world use, 301
+                            redirects happen instantly,<br />
+                            and the user is immediately sent to the new URL
+                            (like
+                            <code>https://42berlin.de</code>).
+                        </p>
+                        <p class="mb-2">
+                            You will be redirected to
+                            <code>http://localhost:8080/42</code>
+                        </p>
+                        <p>in <span id="countdown">5</span> seconds</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <footer
+            id="endFooter"
+            class="footer-message text-center text-white py-3">
+            <p>
+                A <i class="fa-solid fa-heart"></i> for sticking till the very
+                end of the page.
+            </p>
+        </footer>
+        <script src="/scripts/app.js"></script>
+    </body>
 </html>

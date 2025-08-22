@@ -2,7 +2,6 @@
 @import url("style.css");
 @import url("about.css");
 
-
 /* PARALLAX */
 .floating-star {
     position: absolute;
@@ -27,7 +26,6 @@
 }
 
 @keyframes bounce {
-
     0%,
     100% {
         transform: translateY(0);
@@ -43,7 +41,10 @@
     z-index: 1;
 }
 
-.page-1 {
+.page-1,
+.page-2,
+.page-3,
+.page-4 {
     height: 100vh;
     display: flex;
     flex-direction: column;
@@ -53,15 +54,18 @@
     /* background: linear-gradient(to bottom, #f8f9fa, #e9ecef); */
 }
 
+/* Page 1 elements */
 .title {
     text-align: center;
     font-size: 200px;
     margin: 0px;
-    background: linear-gradient(to right,
-            #7953cd 20%,
-            #00affa 30%,
-            #0190cd 70%,
-            #764ada 80%);
+    background: linear-gradient(
+        to right,
+        #7953cd 20%,
+        #00affa 30%,
+        #0190cd 70%,
+        #764ada 80%
+    );
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -84,17 +88,7 @@
     }
 }
 
-/* PAGE 2 */
-
-.page2 {
-    padding: 60px 0;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-}
+/* PAGE 2 elements*/
 
 /* Wrapper makes the whole card clickable */
 .card-link-wrapper {
@@ -114,10 +108,21 @@
 
 /* Hover pastel gradient animation */
 .feature-card:hover {
-    background: linear-gradient(#44449e, #1A1A5C) padding-box,
-        linear-gradient(280deg, #7953cd , #00affa, #0190cd, #7953cd, #00affa, #0190cd, #7953cd, #00affa) border-box;
+    background: linear-gradient(#44449e, #1a1a5c) padding-box,
+        linear-gradient(
+                280deg,
+                #7953cd,
+                #00affa,
+                #0190cd,
+                #7953cd,
+                #00affa,
+                #0190cd,
+                #7953cd,
+                #00affa
+            )
+            border-box;
     background-size: 400% 400%;
-    animation: rainbow 1s linear infinite alternate ;
+    animation: rainbow 1s linear infinite alternate;
 }
 
 @keyframes rainbow {
@@ -144,17 +149,9 @@
     color: rgba(255, 255, 255, 0.85);
 }
 
-/* Page 3 */
-.page-3 {
-    padding: 60px 0;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-    /* background: linear-gradient(to bottom, #f8f9fa, #e9ecef); */
-}
+/* Page 3 Elements */
+
+/* Page 4 Elements */
 
 .footer-message {
     display: none;
