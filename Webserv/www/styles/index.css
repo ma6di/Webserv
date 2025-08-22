@@ -1,9 +1,11 @@
 /* imports the default style shared across all html pages */
 @import url("style.css");
 @import url("about.css");
+@import url("features.css");
+@import url("team.css");
 
 /* PARALLAX */
-.floating-star {
+/* .floating-star {
     position: absolute;
     font-size: 1.5rem;
     color: white;
@@ -12,20 +14,20 @@
     z-index: 0;
     transition: transform 0.3s ease-out;
     user-select: none;
-}
+} */
 
-/* PAGE 1 */
-.scroll-arrow {
+/* PAGE 1 - HOME*/
+/* .scroll-arrow {
     margin-top: 20px;
     font-size: 2rem;
     color: #333;
-}
+} */
 
-.bounce {
+/* .bounce {
     animation: bounce 2s infinite;
-}
+} */
 
-@keyframes bounce {
+/* @keyframes bounce {
     0%,
     100% {
         transform: translateY(0);
@@ -34,6 +36,12 @@
     50% {
         transform: translateY(10px);
     }
+} */
+
+html,
+body,
+div {
+    color: aliceblue;
 }
 
 .container {
@@ -55,7 +63,7 @@
 }
 
 /* Page 1 elements */
-.title {
+.hero_title {
     text-align: center;
     font-size: 200px;
     margin: 0px;
@@ -73,9 +81,10 @@
     animation: textShine 3s ease-in-out infinite alternate;
 }
 
-.subtitle {
+.hero_subtitle {
     margin: -30px 0 0 0;
-    color: rgb(97, 176, 245);
+    color: #5e90f5;
+    font-size: 20px;
 }
 
 @keyframes textShine {
@@ -88,70 +97,12 @@
     }
 }
 
-/* PAGE 2 elements*/
-
-/* Wrapper makes the whole card clickable */
-.card-link-wrapper {
-    text-decoration: none;
+h2 {
+    font-size: 80px;
+    padding: 20px 0;
+    color: #5e90f5;
+    margin: 0;
 }
-
-/* Main card appearance */
-.feature-card {
-    background-color: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 12px;
-    box-shadow: 0 0 15px rgba(255, 255, 255, 0.05);
-    transition: background 0.3s ease, transform 0.2s ease;
-    padding: 1rem;
-    height: 100%;
-}
-
-/* Hover pastel gradient animation */
-.feature-card:hover {
-    background: linear-gradient(#44449e, #1a1a5c) padding-box,
-        linear-gradient(
-                280deg,
-                #7953cd,
-                #00affa,
-                #0190cd,
-                #7953cd,
-                #00affa,
-                #0190cd,
-                #7953cd,
-                #00affa
-            )
-            border-box;
-    background-size: 400% 400%;
-    animation: rainbow 1s linear infinite alternate;
-}
-
-@keyframes rainbow {
-    0% {
-        background-position: 0% 50%;
-    }
-
-    100% {
-        background-position: 100% 50%;
-    }
-}
-
-/* Title style */
-.feature-card .card-title {
-    font-size: 1.5rem;
-    font-weight: 700;
-    text-align: center;
-}
-
-/* Description style */
-.feature-card .card-text {
-    font-size: 1rem;
-    font-weight: 300;
-    color: rgba(255, 255, 255, 0.85);
-}
-
-/* Page 3 Elements */
-
-/* Page 4 Elements */
 
 .footer-message {
     display: none;

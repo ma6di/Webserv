@@ -77,9 +77,9 @@
             <!-- Presentation area -->
             <div class="page-1" id="home">
                 <!-- Project title with animation -->
-                <h1 class="title">Webserv</h1>
+                <h1 class="hero_title">Webserv</h1>
                 <!-- Project description -->
-                <p class="lead subtitle">
+                <p class="hero_subtitle">
                     A lightweight HTTP server built in C++ as a group project at
                     42 Berlin.
                 </p>
@@ -87,20 +87,19 @@
 
             <!-- about area -->
 
-            <div class="container page-2 text-light" id="about">
-                <div class="intro_description mb-5">
-                    <h1>About</h1>
-
-                    <section>
+            <div class="container page-2" id="about">
+                <h2>About</h2>
+                <div class="about_sections">
+                    <section class="about_section_1">
                         <p>
                             The web is the system that allows us to access
                             information, applications, and services online. It
                             is built on two sides working together:
                         </p>
-                        <div class="row">
+                        <div class="row intro_section">
                             <div class="col-md-6">
-                                <div class="p-3 h-100">
-                                    <h5>The Server</h5>
+                                <div class="h-100 server_textbox">
+                                    <h6>The Server</h6>
                                     <p>
                                         A program that listens for requests and
                                         responds with the needed data. It runs
@@ -110,10 +109,9 @@
                                     </p>
                                 </div>
                             </div>
-
                             <div class="col-md-6">
-                                <div class="p-3 h-100">
-                                    <h5>The Client</h5>
+                                <div class="h-100 client_textbox">
+                                    <h6>The Client</h6>
                                     <p>
                                         The interface the user sees and
                                         interacts with, such as a website or
@@ -124,84 +122,96 @@
                                 </div>
                             </div>
                         </div>
+                    </section>
+                    <section class="about_section_1">
                         <p>
                             Webserv, is an HTTP server written in C++ for the 42
-                            Berlin curriculum. Even though our assignment
-                            focused only on building a server, we wanted to
-                            build with both server and client in mind to make
-                            the web work:
+                            Berlin curriculum.<br />
+                            Even though our assignment focused only on building
+                            a server, we wanted to build with both server and
+                            client in mind to make the web work:
                         </p>
-                    </section>
-                </div>
-                <div class="row">
-                    <div class="col-md-6 border rounded webserv_description">
-                        <h2>About our Webserv</h2>
-                        <p>
-                            Built under strict constraints (C++98, no external
-                            libraries, non-blocking I/O), our server provides a
-                            practical look at how modern servers like NGINX work
-                            under the hood:
-                        </p>
-                        <ul>
-                            <li>
-                                Non-blocking I/O with socket programming and an
-                                event-driven loop.
-                            </li>
-                            <li>
-                                Support for HTTP methods: GET, POST, DELETE.
-                            </li>
-                            <li>
-                                Serves static files, manages file uploads, and
-                                executes CGI scripts.
-                            </li>
-                            <li>
-                                Delivers custom error pages and flexible
-                                per-path configuration blocks.
-                            </li>
-                            <li>
-                                Runs on multiple ports to serve different sites
-                                at the same time.
-                            </li>
-                        </ul>
-                    </div>
+                        <div class="row explanation_section">
+                            <div class="col-md-6">
+                                <div class="h-100 webserv_textbox">
+                                    <h6>About our Webserv</h6>
+                                    <p>
+                                        Built under strict constraints (C++98,
+                                        no external libraries, non-blocking
+                                        I/O), our server provides a practical
+                                        look at how modern servers like NGINX
+                                        work under the hood:
+                                    </p>
+                                    <ul>
+                                        <li>
+                                            Non-blocking I/O with socket
+                                            programming and an event-driven
+                                            loop.
+                                        </li>
+                                        <li>
+                                            Support for HTTP methods: GET, POST,
+                                            DELETE.
+                                        </li>
+                                        <li>
+                                            Serves static files, manages file
+                                            uploads, and executes CGI scripts.
+                                        </li>
+                                        <li>
+                                            Delivers custom error pages and
+                                            flexible per-path configuration
+                                            blocks.
+                                        </li>
+                                        <li>
+                                            Runs on multiple ports to serve
+                                            different sites at the same time.
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
 
-                    <div class="col-md-6 border rounded fronetnd_description">
-                        <h2>About our Frontend</h2>
-                        <p>
-                            We added a frontend to make the project a more
-                            complete and practical demo during evaluation. This
-                            layer allows us to:
-                        </p>
-                        <ul>
-                            <li>
-                                Verify the server works fully, not just in
-                                isolation, as expected in a professional
-                                environment.
-                            </li>
-                            <li>
-                                Expose hidden bugs or hardcoded behavior that
-                                might not be obvious when testing only the
-                                backend.
-                            </li>
-                            <li>
-                                Demonstrate how methods and responses work in
-                                practice, like on the websites we use every day.
-                            </li>
-                            <li>
-                                Give evaluators a clearer and more accessible
-                                way to test the project, regardless of their
-                                experience.
-                            </li>
-                        </ul>
-                    </div>
+                            <div class="col-md-6">
+                                <div class="h-100 frontend_textbox">
+                                    <h6>About our Frontend</h6>
+                                    <p>
+                                        We added a frontend to make the project
+                                        a more complete and practical demo
+                                        during evaluation. This layer allows us
+                                        to:
+                                    </p>
+                                    <ul>
+                                        <li>
+                                            Verify the server works fully, not
+                                            just in isolation, as expected in a
+                                            professional environment.
+                                        </li>
+                                        <li>
+                                            Expose hidden bugs or hardcoded
+                                            behavior that might not be obvious
+                                            when testing only the backend.
+                                        </li>
+                                        <li>
+                                            Demonstrate how methods and
+                                            responses work in practice, like on
+                                            the websites we use every day.
+                                        </li>
+                                        <li>
+                                            Give evaluators a clearer and more
+                                            accessible way to test the project,
+                                            regardless of their experience.
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
                 </div>
             </div>
 
             <!-- feature area -->
             <div class="container page-3" id="features">
-                <h1>Features</h1>
+                <h2>Features</h2>
                 <div class="description">
-                    <p class="text-light mb-4">
+                    <p class="mb-4">
                         Below is a series of features that you can use to test
                         how our server connects to the frontend, we decided to
                         add these features to better search for unexpected bugs
@@ -320,7 +330,7 @@
 
             <!-- the team -->
             <div class="page-4" href="#team" id="team">
-                <h1>Meet our team</h1>
+                <h2>Meet our team</h2>
                 <p class="text-light mb-4">
                     We met at 42 Berlin at the very start of our journey, going
                     through the piscine together and building a friendship that
@@ -331,10 +341,10 @@
                     share our different strengths to create something meaningful
                     that marks an important step in our path toward becoming
                     developers.
-                </p>
-                <p class="text-light mb-4">
-                    Hover over the cards below to see details and contact
-                    information.
+                    <span class="text-light mb-4 team-hint">
+                        Hover over the cards below to see details and contact
+                        information.
+                    </span>
                 </p>
                 <div class="team-container">
                     <!-- Tayfun -->
@@ -471,13 +481,13 @@
             aria-labelledby="redirectModalLabel"
             aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content bg-dark text-light text-center p-4">
+                <div class="modal-content bg-dark text-center p-4">
                     <div class="modal-header">
-                        <h1 class="modal-title fs-5">
+                        <h2 class="modal-title fs-5">
                             Simulated HTTP 301 Redirect
                             <i
                                 class="fa-solid fa-arrow-up-right-from-square"></i>
-                        </h1>
+                        </h2>
                     </div>
                     <div class="modal-body">
                         <p class="small">
