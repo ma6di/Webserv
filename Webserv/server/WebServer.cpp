@@ -140,6 +140,7 @@ void WebServer::handleClientDataOn(int client_fd)
         } else {
             int len = parse_content_length(headers);
             if (len < 0) len = 0;
+            // Wait for exactly Content-Length bytes before parsing
             if (data.size() < header_bytes + (size_t)len) {
                 // wait for more body bytes
                 return;
@@ -295,6 +296,7 @@ bool WebServer::validate_post_request(Request &request, int client_fd, size_t i)
     bool isChunked = request.isChunked();
     // Must have either Content-Length or Transfer-Encoding: chunked, but not both
     if (contentLength && isChunked) {
+		std::cout << "both\n";
         send_error_response(client_fd, 400, "Bad Request", i);
         flushPendingWrites(client_fd);
         return false;
@@ -307,7 +309,8 @@ bool WebServer::validate_post_request(Request &request, int client_fd, size_t i)
     // If Content-Length, it must match body size
     if (contentLength) {
         if (contentLength < 0 || contentLength != static_cast<long>(request.getBody().size())) {
-            send_error_response(client_fd, 400, "Bad Request", i);
+            std::cout << "cn pro\n";
+			send_error_response(client_fd, 400, "Bad Request", i);
             return false;
         }
     }

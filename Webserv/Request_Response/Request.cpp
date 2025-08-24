@@ -92,8 +92,8 @@ void Request::parseRequest(const std::string& raw_data) {
 
             headers[key] = value;
 
-            // Parse Content-Length if present
-            if (key == "Content-Length") {
+            // Parse Content-Length if present (case-insensitive)
+            if (strcasecmp(key.c_str(), "Content-Length") == 0) {
                 std::istringstream iss(value);
                 if (!(iss >> content_length))
                     throw std::runtime_error("Invalid Content-Length value");
@@ -114,7 +114,8 @@ void Request::parseRequest(const std::string& raw_data) {
         // Handle chunked transfer encoding and body extraction
         if (isChunked()) {
             body = decode_chunked_body(raw_body);
-        } else if (content_length > 0) {
+        } else if (strcasecmp(getHeader("Content-Length").c_str(), "") != 0) {
+            // Content-Length header is present (any value, including zero)
             if (static_cast<int>(raw_body.size()) < content_length)
                 throw std::runtime_error("Incomplete body");
             body = raw_body.substr(0, content_length);

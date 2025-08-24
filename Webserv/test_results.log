@@ -32,9 +32,9 @@ Connection: keep-alive
 Content-Length: 502
 Content-Type: text/html; charset=utf-8
 Keep-Alive: timeout=5, max=100
-Location: www/upload/test_20250824_211739.txt
+Location: www/upload/test_20250824_214709.txt
 
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Upload Successful</title></head><body style="font-family:sans-serif;text-align:center;margin-top:50px;"><h1>✅ File uploaded successfully!</h1><p>Saved as: <code>www/upload/test_20250824_211739.txt</code></p><br><br><a href="/" style="margin: 0 10px;"><button>Home</button></a><a href="/about" style="margin: 0 10px;"><button>About</button></a><a href="/upload" style="margin: 0 10px;"><button>Upload Another</button></a></body></html>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Upload Successful</title></head><body style="font-family:sans-serif;text-align:center;margin-top:50px;"><h1>✅ File uploaded successfully!</h1><p>Saved as: <code>www/upload/test_20250824_214709.txt</code></p><br><br><a href="/" style="margin: 0 10px;"><button>Home</button></a><a href="/about" style="margin: 0 10px;"><button>About</button></a><a href="/upload" style="margin: 0 10px;"><button>Upload Another</button></a></body></html>
 HTTP 201
 
 [OK] POST /upload returned 201 created
@@ -403,6 +403,18 @@ Content-Type: text/html
 == Transfer-Encoding: chunked Edge Cases ==
 ------------------------------------------------------------
 ------------------------------------------------------------
+== Test XX: CONTENT-LENGTH all caps ==
+------------------------------------------------------------
+>> curl -s -i -X POST -H 'CONTENT_LENGTH: 5' --data 'abcde' http://localhost:8080/cgi-bin/echo_body.py
+HTTP/1.1 200 OK
+Connection: close
+Content-Length: 6
+Content-Type: text/plain
+
+abcde
+
+[OK] CONTENT-LENGTH (all caps) header accepted and parsed
+------------------------------------------------------------
 == Test 26: Valid chunked encoding (curl automatic) ==
 ------------------------------------------------------------
 >> curl -s -i -X POST -H 'Transfer-Encoding: chunked' --data-binary 'hello world' http://localhost:8080/cgi-bin/echo_body.py
@@ -659,9 +671,9 @@ Connection: keep-alive
 Content-Length: 500
 Content-Type: text/html; charset=utf-8
 Keep-Alive: timeout=5, max=100
-Location: www/upload/upload_20250824_211811
+Location: www/upload/upload_20250824_214741
 
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Upload Successful</title></head><body style="font-family:sans-serif;text-align:center;margin-top:50px;"><h1>✅ File uploaded successfully!</h1><p>Saved as: <code>www/upload/upload_20250824_211811</code></p><br><br><a href="/" style="margin: 0 10px;"><button>Home</button></a><a href="/about" style="margin: 0 10px;"><button>About</button></a><a href="/upload" style="margin: 0 10px;"><button>Upload Another</button></a></body></html>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Upload Successful</title></head><body style="font-family:sans-serif;text-align:center;margin-top:50px;"><h1>✅ File uploaded successfully!</h1><p>Saved as: <code>www/upload/upload_20250824_214741</code></p><br><br><a href="/" style="margin: 0 10px;"><button>Home</button></a><a href="/about" style="margin: 0 10px;"><button>About</button></a><a href="/upload" style="margin: 0 10px;"><button>Upload Another</button></a></body></html>
 [OK] Chunked POST to upload endpoint returned 201 Created
 ------------------------------------------------------------
 == Test 47: Chunked with Connection: close ==
@@ -678,9 +690,12 @@ connection test
 ------------------------------------------------------------
 == Checking Results ==
 ------------------------------------------------------------
-[OK] File uploaded successfully as www/upload/test_20250824_205436.txt.
+[OK] File uploaded successfully as www/upload/test_20250824_212834.txt.
 [OK] File deleted successfully.
 [OK] CGI GET returned Content-Type header.
 [OK] CGI POST returned Content-Type header.
+------------------------------------------------------------
+== Cleanup ==
+------------------------------------------------------------
 ------------------------------------------------------------
 ------------------------------------------------------------

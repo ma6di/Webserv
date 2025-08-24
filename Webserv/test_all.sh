@@ -213,6 +213,11 @@ log_and_run "Test 25: Missing Colon in Content-Length Header" \
 # Transfer-Encoding: chunked edge cases
 section "Transfer-Encoding: chunked Edge Cases"
 
+# Test: CONTENT-LENGTH in all caps
+log_and_run "Test XX: CONTENT-LENGTH all caps" \
+    "curl -s -i -X POST -H 'CONTENT_LENGTH: 5' --data 'abcde' http://localhost:8080/cgi-bin/echo_body.py" \
+    result_content_length_caps.txt "HTTP/1.1 200" "CONTENT-LENGTH (all caps) header accepted and parsed"
+
 log_and_run "Test 26: Valid chunked encoding (curl automatic)" \
     "curl -s -i -X POST -H 'Transfer-Encoding: chunked' --data-binary 'hello world' http://localhost:8080/cgi-bin/echo_body.py" \
     result_chunked_valid.txt "hello world" "Valid chunked encoding processed correctly"
@@ -349,8 +354,8 @@ else
 fi
 
 # Cleanup
-# section "Cleanup"
-# rm -f test.txt result_*.txt
+section "Cleanup"
+rm -f test.txt result_*.txt
 
 divider
 echo -e "${YELLOW}==> All tests completed. See $LOGFILE for details.${NC}"
