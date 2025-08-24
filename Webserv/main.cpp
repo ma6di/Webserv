@@ -171,9 +171,6 @@ static void handlePollIn(int fd)
     }
 }
 
-/**
- * Handle ready to write events
- */
 static void handlePollOut(int fd)
 {
     // Find which server owns this fd and flush its buffer
@@ -198,7 +195,6 @@ static void handlePollEvents(const std::vector<struct pollfd> &fds)
     for (size_t pi = 0; pi < fds.size(); ++pi)
     {
         const struct pollfd &p = fds[pi];
-
         // 1) Incoming connection or data?
         if (p.revents & POLLIN)
         {

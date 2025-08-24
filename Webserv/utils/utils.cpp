@@ -156,7 +156,6 @@ bool is_cgi_request(const LocationConfig& loc, const std::string& uri) {
 // }
 
 std::string decode_chunked_body(const std::string& raw) {
-	std::cout << "decode_chunked_body \n";
     std::istringstream in(raw);
     std::string decoded;
     std::string line;

@@ -116,28 +116,10 @@ void WebServer::handleClientDataOn(int client_fd)
     // append into our buffer
     std::string &data = conns_[client_fd].readBuf;
     data.append(buf, (size_t)n);
+    // ...existing code...
 
     // do we have a complete header yet?
-    /*size_t hdr_end = find_header_end(data);
-    if (hdr_end == std::string::npos)
-        return;
-
-    // build Request, check body length, then dispatch
-    try
-    {
-        Request req(data);
-        if (!is_full_body_received(req, data, hdr_end))
-            return;
-
-        process_request(req, client_fd, 0);
-    }
-    catch (const std::exception &e)
-    {
-        Logger::log(LOG_ERROR, "WebServer",
-                    std::string("Request parse failed: ") + e.what());
-        send_error_response(client_fd, 400, "Bad Request", 0);
-    }*/
-   for (;;) { // loop to handle pipelined requests in the same buffer
+    for (;;) { // loop to handle pipelined requests in the same buffer
         size_t hdr_end = find_header_end(data);
         if (hdr_end == std::string::npos) {
             // need more bytes for headers
@@ -149,7 +131,6 @@ void WebServer::handleClientDataOn(int client_fd)
 
         size_t needed = header_bytes;
         if (has_chunked_encoding(headers)) {
-            // For chunked, just wait for at least one line of body after headers
             if (data.size() <= header_bytes) {
                 // wait for some body
                 return;
@@ -195,18 +176,16 @@ void WebServer::handleClientDataOn(int client_fd)
         // Consume the bytes we just handled; if keep-alive and more data
         // already arrived, loop to process the next request.
         data.erase(0, needed);
-
-        if (data.empty()) return;
+        if (data.empty()) {
+            return;
+        }
         // else continue the for(;;) to try parse next request in buffer
     }
 }
 
 // --- Helper: Process the request ---
 void WebServer::process_request(Request &request, int client_fd, size_t i)
-
 {
-    std::cout << "process_request \n";
-
     std::string ver = request.getVersion();
     std::string connHdr = request.getHeader("Connection");
     bool close_conn = (connHdr == "close") || (ver == "HTTP/1.0" && connHdr != "keep-alive");
@@ -313,10 +292,7 @@ void WebServer::process_request(Request &request, int client_fd, size_t i)
 // Helper for POST validation
 bool WebServer::validate_post_request(Request &request, int client_fd, size_t i) {
     long contentLength = request.getContentLength();
-    std::string transferEncoding = request.getHeader("Transfer-Encoding");
-    bool isChunked = !transferEncoding.empty() && transferEncoding.find("chunked") != std::string::npos;
-    // std::cout << "body size :" << request.getBody().size() << "\n";
-    // std::cout << "content_lenght :" << contentLength << "\n";
+    bool isChunked = request.isChunked();
     // Must have either Content-Length or Transfer-Encoding: chunked, but not both
     if (contentLength && isChunked) {
         send_error_response(client_fd, 400, "Bad Request", i);
@@ -331,8 +307,6 @@ bool WebServer::validate_post_request(Request &request, int client_fd, size_t i)
     // If Content-Length, it must match body size
     if (contentLength) {
         if (contentLength < 0 || contentLength != static_cast<long>(request.getBody().size())) {
-            std::cout << "body size :" << request.getBody().size() << "\n";
-            std::cout << "content_lenght :" << contentLength << "\n";
             send_error_response(client_fd, 400, "Bad Request", i);
             return false;
         }

@@ -21,8 +21,12 @@ std::string Request::getVersion() const { return version; }
 
 // Returns the value of a header by key, or empty string if not found
 std::string Request::getHeader(const std::string& key) const {
-    std::map<std::string, std::string>::const_iterator it = headers.find(key);
-    if (it != headers.end()) return it->second;
+    // Case-insensitive header lookup
+    for (std::map<std::string, std::string>::const_iterator it = headers.begin(); it != headers.end(); ++it) {
+        if (strcasecmp(it->first.c_str(), key.c_str()) == 0) {
+            return it->second;
+        }
+    }
     return "";
 }
 
@@ -33,7 +37,6 @@ std::string Request::getBody() const { return body; }
 
 // Parses the raw HTTP request string into method, path, version, headers, and body
 void Request::parseRequest(const std::string& raw_data) {
-	std::cout << "parseRequest \n";
 
     std::istringstream stream(raw_data);
     std::string line;
@@ -96,6 +99,13 @@ void Request::parseRequest(const std::string& raw_data) {
                     throw std::runtime_error("Invalid Content-Length value");
             }
         }
+        // Debug: print all parsed headers
+        Logger::log(LOG_INFO, "Request::parseRequest", "\033[1;33m[Request] Parsed headers:\033[0m");
+        for (std::map<std::string, std::string>::const_iterator it = headers.begin(); it != headers.end(); ++it) {
+            std::ostringstream oss;
+            oss << "  '" << it->first << "': '" << it->second << "'";
+            Logger::log(LOG_INFO, "Request::parseRequest", std::string("\033[1;33m") + oss.str() + "\033[0m");
+        }
 
         // --- Read body ---
         std::string raw_body;
@@ -113,8 +123,6 @@ void Request::parseRequest(const std::string& raw_data) {
         }
 
     } catch (const std::runtime_error& e) {
-		std::cout << "exeption in parse \n";
-
         Logger::log(LOG_ERROR, "Request::parseRequest", e.what());
         throw; // propagate exception to server to send 400 response
     }
@@ -131,7 +139,6 @@ int Request::getContentLength() const { return content_length; }
 
 // Returns true if Transfer-Encoding is chunked
 bool Request::isChunked() const {
-	std::cout << "isChunked \n";
 
     std::string te = getHeader("Transfer-Encoding");
     if (te.empty()) return false;
@@ -149,10 +156,16 @@ bool Request::isChunked() const {
     if (encodings.size() > 1) {
         throw std::runtime_error("501: Multiple Transfer-Encoding values: " + te);
     }
-    if (encodings.size() == 1 && encodings[0] != "chunked") {
-        throw std::runtime_error("501: Unsupported Transfer-Encoding: " + te);
+    if (encodings.size() == 1) {
+        std::string val = encodings[0];
+        // Lowercase for comparison
+        for (size_t i = 0; i < val.size(); ++i) val[i] = std::tolower(val[i]);
+        if (val != "chunked") {
+            throw std::runtime_error("501: Unsupported Transfer-Encoding: " + te);
+        }
+        return true;
     }
-    return encodings.size() == 1 && encodings[0] == "chunked";
+    return false;
 }
 
 

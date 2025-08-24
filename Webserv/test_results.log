@@ -32,9 +32,9 @@ Connection: keep-alive
 Content-Length: 502
 Content-Type: text/html; charset=utf-8
 Keep-Alive: timeout=5, max=100
-Location: www/upload/test_20250824_195933.txt
+Location: www/upload/test_20250824_211739.txt
 
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Upload Successful</title></head><body style="font-family:sans-serif;text-align:center;margin-top:50px;"><h1>✅ File uploaded successfully!</h1><p>Saved as: <code>www/upload/test_20250824_195933.txt</code></p><br><br><a href="/" style="margin: 0 10px;"><button>Home</button></a><a href="/about" style="margin: 0 10px;"><button>About</button></a><a href="/upload" style="margin: 0 10px;"><button>Upload Another</button></a></body></html>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Upload Successful</title></head><body style="font-family:sans-serif;text-align:center;margin-top:50px;"><h1>✅ File uploaded successfully!</h1><p>Saved as: <code>www/upload/test_20250824_211739.txt</code></p><br><br><a href="/" style="margin: 0 10px;"><button>Home</button></a><a href="/about" style="margin: 0 10px;"><button>About</button></a><a href="/upload" style="margin: 0 10px;"><button>Upload Another</button></a></body></html>
 HTTP 201
 
 [OK] POST /upload returned 201 created
@@ -365,7 +365,7 @@ Content-Type: text/html
 </body>
 </html>
 
-[OK] 400 Not Found
+[OK] 404 Not Found
 ------------------------------------------------------------
 == Test 24: Unsupported HTTP Version (HTTP/0.9) ==
 ------------------------------------------------------------
@@ -484,18 +484,19 @@ Content-Length: 157
 Content-Type: text/html
 
 <!DOCTYPE html><html><head><title>400 Bad Request</title></head><body><h1>400 Bad Request</h1><p>The server could not fulfill your request.</p></body></html>
-[FAIL] Content-Length ignored when chunked encoding used
+[OK] Content-Length ignored when chunked encoding used
 ------------------------------------------------------------
 == Test 33: Transfer-Encoding case insensitive ==
 ------------------------------------------------------------
 >> curl -s -i -X POST -H 'TRANSFER-ENCODING: CHUNKED' --data-binary 'case test' http://localhost:8080/cgi-bin/echo_body.py
-HTTP/1.1 411 Length Required
+HTTP/1.1 200 OK
 Connection: close
-Content-Length: 165
-Content-Type: text/html
+Content-Length: 10
+Content-Type: text/plain
 
-<!DOCTYPE html><html><head><title>411 Length Required</title></head><body><h1>411 Length Required</h1><p>The server could not fulfill your request.</p></body></html>
-[FAIL] Transfer-Encoding is case insensitive
+case test
+
+[OK] Transfer-Encoding is case insensitive
 ------------------------------------------------------------
 == Invalid Transfer-Encoding Edge Cases ==
 ------------------------------------------------------------
@@ -547,8 +548,13 @@ Content-Type: text/html
 == Test 38: Malformed chunked claim with plain body ==
 ------------------------------------------------------------
 >> printf 'POST /cgi-bin/echo_body.py HTTP/1.1\r\nHost: localhost:8080\r\nTransfer-Encoding: chunked\r\n\r\nhello world without chunks\r\n\r\n' | nc -w 3 localhost 8080
+HTTP/1.1 400 Bad Request
+Connection: close
+Content-Length: 157
+Content-Type: text/html
 
-[FAIL] Claiming chunked but sending plain body
+<!DOCTYPE html><html><head><title>400 Bad Request</title></head><body><h1>400 Bad Request</h1><p>The server could not fulfill your request.</p></body></html>
+[OK] Claiming chunked but sending plain body
 ------------------------------------------------------------
 == Expect Header Tests ==
 ------------------------------------------------------------
@@ -587,9 +593,92 @@ ExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectData
 
 [OK] Large POST with Expect: 100-continue handled correctly
 ------------------------------------------------------------
+== Manual chunked encoding edge cases ==
+------------------------------------------------------------
+------------------------------------------------------------
+== Test 41: Invalid chunk size (non-hex) ==
+------------------------------------------------------------
+>> printf 'POST /cgi-bin/echo_body.py HTTP/1.1\r\nHost: localhost:8080\r\nTransfer-Encoding: chunked\r\n\r\nGG\r\nhello\r\n0\r\n\r\n' | nc -w 3 localhost 8080
+HTTP/1.1 400 Bad Request
+Connection: close
+Content-Length: 157
+Content-Type: text/html
+
+<!DOCTYPE html><html><head><title>400 Bad Request</title></head><body><h1>400 Bad Request</h1><p>The server could not fulfill your request.</p></body></html>
+[OK] Invalid chunk size returns 400 Bad Request
+------------------------------------------------------------
+== Test 42: Missing final chunk (0) ==
+------------------------------------------------------------
+>> printf 'POST /cgi-bin/echo_body.py HTTP/1.1\r\nHost: localhost:8080\r\nTransfer-Encoding: chunked\r\n\r\n5\r\nhello\r\n' | nc -w 3 localhost 8080
+HTTP/1.1 400 Bad Request
+Connection: close
+Content-Length: 157
+Content-Type: text/html
+
+<!DOCTYPE html><html><head><title>400 Bad Request</title></head><body><h1>400 Bad Request</h1><p>The server could not fulfill your request.</p></body></html>
+[OK] Missing final chunk returns 400 Bad Request
+------------------------------------------------------------
+== Test 43: Chunk size larger than actual data ==
+------------------------------------------------------------
+>> printf 'POST /cgi-bin/echo_body.py HTTP/1.1\r\nHost: localhost:8080\r\nTransfer-Encoding: chunked\r\n\r\nA\r\nhello\r\n0\r\n\r\n' | nc -w 3 localhost 8080
+HTTP/1.1 400 Bad Request
+Connection: close
+Content-Length: 157
+Content-Type: text/html
+
+<!DOCTYPE html><html><head><title>400 Bad Request</title></head><body><h1>400 Bad Request</h1><p>The server could not fulfill your request.</p></body></html>
+[OK] Chunk size mismatch returns 400 Bad Request
+------------------------------------------------------------
+== Test 44: Invalid Transfer-Encoding (not chunked) ==
+------------------------------------------------------------
+>> curl -s -i -X POST -H 'Transfer-Encoding: gzip' --data-binary 'test' http://localhost:8080/cgi-bin/echo_body.py
+HTTP/1.1 501 Not Implemented
+Connection: close
+Content-Length: 165
+Content-Type: text/html
+
+<!DOCTYPE html><html><head><title>501 Not Implemented</title></head><body><h1>501 Not Implemented</h1><p>The server could not fulfill your request.</p></body></html>
+[OK] Non-chunked Transfer-Encoding returns 501
+------------------------------------------------------------
+== Test 45: Very long chunk size line ==
+------------------------------------------------------------
+>> printf 'POST /cgi-bin/echo_body.py HTTP/1.1\r\nHost: localhost:8080\r\nTransfer-Encoding: chunked\r\n\r\n%s\r\nhello\r\n0\r\n\r\n' "55555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555" | nc -w 3 localhost 8080
+HTTP/1.1 400 Bad Request
+Connection: close
+Content-Length: 157
+Content-Type: text/html
+
+<!DOCTYPE html><html><head><title>400 Bad Request</title></head><body><h1>400 Bad Request</h1><p>The server could not fulfill your request.</p></body></html>
+[OK] Very long chunk size line returns 400 Bad Request
+------------------------------------------------------------
+== Test 46: Chunked POST to upload endpoint ==
+------------------------------------------------------------
+>> curl -s -i -X POST -H 'Transfer-Encoding: chunked' --data-binary 'file content here' http://localhost:8080/upload
+HTTP/1.1 201 Created
+Connection: keep-alive
+Content-Length: 500
+Content-Type: text/html; charset=utf-8
+Keep-Alive: timeout=5, max=100
+Location: www/upload/upload_20250824_211811
+
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Upload Successful</title></head><body style="font-family:sans-serif;text-align:center;margin-top:50px;"><h1>✅ File uploaded successfully!</h1><p>Saved as: <code>www/upload/upload_20250824_211811</code></p><br><br><a href="/" style="margin: 0 10px;"><button>Home</button></a><a href="/about" style="margin: 0 10px;"><button>About</button></a><a href="/upload" style="margin: 0 10px;"><button>Upload Another</button></a></body></html>
+[OK] Chunked POST to upload endpoint returned 201 Created
+------------------------------------------------------------
+== Test 47: Chunked with Connection: close ==
+------------------------------------------------------------
+>> curl -s -i -X POST -H 'Transfer-Encoding: chunked' -H 'Connection: close' --data-binary 'connection test' http://localhost:8080/cgi-bin/echo_body.py
+HTTP/1.1 200 OK
+Connection: close
+Content-Length: 16
+Content-Type: text/plain
+
+connection test
+
+[OK] Chunked with Connection: close handled correctly
+------------------------------------------------------------
 == Checking Results ==
 ------------------------------------------------------------
-[OK] File uploaded successfully as www/upload/test_20250824_170704.txt.
+[OK] File uploaded successfully as www/upload/test_20250824_205436.txt.
 [OK] File deleted successfully.
 [OK] CGI GET returned Content-Type header.
 [OK] CGI POST returned Content-Type header.
