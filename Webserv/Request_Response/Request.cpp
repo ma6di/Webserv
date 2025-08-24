@@ -6,22 +6,32 @@
 #include <iterator>
 #include <iomanip>
 
+
+// Constructor: Parses the raw HTTP request data
 Request::Request(const std::string& raw_data) : content_length(0) {
     parseRequest(raw_data);
 }
 
+
+// Getters for HTTP method, path, and version
 std::string Request::getMethod() const { return method; }
 std::string Request::getPath() const { return path; }
 std::string Request::getVersion() const { return version; }
 
+
+// Returns the value of a header by key, or empty string if not found
 std::string Request::getHeader(const std::string& key) const {
     std::map<std::string, std::string>::const_iterator it = headers.find(key);
     if (it != headers.end()) return it->second;
     return "";
 }
 
+
+// Returns the request body
 std::string Request::getBody() const { return body; }
 
+
+// Parses the raw HTTP request string into method, path, version, headers, and body
 void Request::parseRequest(const std::string& raw_data) {
     std::istringstream stream(raw_data);
     std::string line;
@@ -66,7 +76,7 @@ void Request::parseRequest(const std::string& raw_data) {
             std::string key = line.substr(0, colon);
             std::string value = line.substr(colon + 1);
 
-            // Trim whitespace
+            // Trim whitespace from key and value
             key.erase(0, key.find_first_not_of(" \t"));
             key.erase(key.find_last_not_of(" \t") + 1);
             value.erase(0, value.find_first_not_of(" \t"));
@@ -89,6 +99,7 @@ void Request::parseRequest(const std::string& raw_data) {
         std::string raw_body;
         raw_body.assign(std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>());
 
+        // Handle chunked transfer encoding and body extraction
         if (isChunked()) {
             body = decode_chunked_body(raw_body);
         } else if (content_length > 0) {
@@ -107,14 +118,22 @@ void Request::parseRequest(const std::string& raw_data) {
 }
 
 
+
+// Sets the request body
 void Request::setBody(const std::string& newBody) { body = newBody; }
+
+// Returns the Content-Length value
 int Request::getContentLength() const { return content_length; }
 
+
+// Returns true if Transfer-Encoding is chunked
 bool Request::isChunked() const {
     std::string te = getHeader("Transfer-Encoding");
     return !te.empty() && te == "chunked";
 }
 
+
+// Checks if the HTTP version string is valid (format: HTTP/x.y)
 bool Request::isValidHttpVersionFormat(const std::string& version) const {
     // Check basic format: "HTTP/x.y"
     if (version.length() < 8)  // minimum "HTTP/x.y" is 8 chars
@@ -140,6 +159,8 @@ bool Request::isValidHttpVersionFormat(const std::string& version) const {
     return true;
 }
 
+
+// Returns true if the Expect header is "100-continue" (case-insensitive)
 bool Request::hasExpectContinue() const {
     std::string expect = getHeader("Expect");
     // Convert to lowercase for case-insensitive comparison
@@ -150,4 +171,3 @@ bool Request::hasExpectContinue() const {
     }
     return expect == "100-continue";
 }
-

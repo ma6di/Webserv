@@ -20,6 +20,8 @@ class Config {
 public:
 
 	Config();
+	//explicit keyword before a constructor prevents the compiler from using that constructor 
+	//for implicit conversions and copy-initialization.
     explicit Config(const std::string& filename);
 
     std::vector<int> ports;
@@ -53,6 +55,5 @@ private:
 };
 
 std::vector<Config> parseConfigFile(const std::string& filename);
-
 
 #endif

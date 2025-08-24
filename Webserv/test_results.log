@@ -32,9 +32,9 @@ Connection: keep-alive
 Content-Length: 502
 Content-Type: text/html; charset=utf-8
 Keep-Alive: timeout=5, max=100
-Location: www/upload/test_20250824_140943.txt
+Location: www/upload/test_20250824_163002.txt
 
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Upload Successful</title></head><body style="font-family:sans-serif;text-align:center;margin-top:50px;"><h1>✅ File uploaded successfully!</h1><p>Saved as: <code>www/upload/test_20250824_140943.txt</code></p><br><br><a href="/" style="margin: 0 10px;"><button>Home</button></a><a href="/about" style="margin: 0 10px;"><button>About</button></a><a href="/upload" style="margin: 0 10px;"><button>Upload Another</button></a></body></html>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Upload Successful</title></head><body style="font-family:sans-serif;text-align:center;margin-top:50px;"><h1>✅ File uploaded successfully!</h1><p>Saved as: <code>www/upload/test_20250824_163002.txt</code></p><br><br><a href="/" style="margin: 0 10px;"><button>Home</button></a><a href="/about" style="margin: 0 10px;"><button>About</button></a><a href="/upload" style="margin: 0 10px;"><button>Upload Another</button></a></body></html>
 HTTP 201
 
 [OK] POST /upload returned 201 created
@@ -76,3 +76,503 @@ Content-Type: text/html
 
 <html><body>HelloWorldThisShouldBeIgnored</body></html>
 
+[OK] CGI with Content-Length returns only specified bytes.
+------------------------------------------------------------
+== Test 5: GET /cgi-bin/test.py with raw data ==
+------------------------------------------------------------
+>> curl -s -i -X GET http://localhost:8080/cgi-bin/test.py -H "Content-Type: application/x-www-form-urlencoded" -d "name=test"
+HTTP/1.1 200 OK
+Connection: close
+Content-Length: 33
+Content-Type: text/html
+
+
+<html><body>Hello</body></html>
+
+[OK] CGI GET with data returned 200 OK
+------------------------------------------------------------
+== Test 6: POST /cgi-bin/cgi_post.py with file upload ==
+------------------------------------------------------------
+>> curl -s -i -X POST http://localhost:8080/cgi-bin/cgi_post.py -F "file=@test.cpp"
+HTTP/1.1 200 OK
+Connection: close
+Content-Length: 118
+Content-Type: text/html
+
+<h1>File 'test.cpp' uploaded successfully to /Users/mahdicheraghali/Desktop/webserv/Webserv/www/upload/test.cpp!</h1>
+
+[OK] CGI POST (file) returned 200 OK
+------------------------------------------------------------
+== Test 7: GET /cgi-bin/cgi_path_info.py/foo/bar (PATH_INFO test) ==
+------------------------------------------------------------
+>> curl -s -i -w "\nHTTP %{http_code}\n" http://localhost:8080/cgi-bin/cgi_path_info.py/foo/bar
+HTTP/1.1 200 OK
+Connection: close
+Content-Length: 79
+Content-Type: text/html
+
+<html><body>
+<h1>PATH_INFO Test</h1>
+<p>PATH_INFO: /foo/bar</p>
+</body></html>
+
+HTTP 200
+
+[OK] CGI PATH_INFO correctly set and returned.
+------------------------------------------------------------
+== Test 8: POST /cgi-bin/echo_body.py with chunked encoding ==
+------------------------------------------------------------
+>> curl -s -i -X POST http://localhost:8080/cgi-bin/echo_body.py -H "Transfer-Encoding: chunked" -d "ChunkedBodyTest"
+HTTP/1.1 200 OK
+Connection: close
+Content-Length: 16
+Content-Type: text/plain
+
+ChunkedBodyTest
+
+[OK] CGI received and echoed chunked body correctly.
+------------------------------------------------------------
+== Test 9: 501 Not Implemented ==
+------------------------------------------------------------
+>> curl -s -i -X PATCH http://localhost:8080/
+HTTP/1.1 501 Not Implemented
+Connection: keep-alive
+Content-Length: 165
+Content-Type: text/html
+Keep-Alive: timeout=5, max=100
+
+<!DOCTYPE html><html><head><title>501 Not Implemented</title></head><body><h1>501 Not Implemented</h1><p>The server could not fulfill your request.</p></body></html>
+[OK] 501 Not Implemented error returned.
+------------------------------------------------------------
+== Test 10: 405 Method Not Allowed ==
+------------------------------------------------------------
+>> curl -s -i -X DELETE http://localhost:8080/
+HTTP/1.1 405 Method Not Allowed
+Connection: keep-alive
+Content-Length: 393
+Content-Type: text/html
+Keep-Alive: timeout=5, max=100
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>405 Method Not Allowed</title>
+    <style>
+        body { font-family: Arial; background: #fff0f0; color: #a00; text-align: center; margin-top: 5em; }
+        a { color: #3366cc; }
+    </style>
+</head>
+<body>
+    <h1>405 Method Not Allowed</h1>
+    <p>The method is not allowed for the requested URL.</p>
+    <a href="/">Go to Home</a>
+</body>
+</html>
+
+[OK] 405 Method Not Allowed error returned.
+------------------------------------------------------------
+== Test 11: 413 Payload Too Large ==
+------------------------------------------------------------
+>> curl -s -X POST http://localhost:8080/upload -F file=@bigfile.txt
+<!DOCTYPE html>
+<html>
+<head>
+    <title>413 Payload Too Large</title>
+    <style>
+        body { font-family: Arial; background: #fff0f0; color: #a00; text-align: center; margin-top: 5em; }
+        a { color: #3366cc; }
+    </style>
+</head>
+<body>
+    <h1>413 Payload Too Large</h1>
+    <p>The request is too large for the server to handle.</p>
+    <a href="/">Go to Home</a>
+</body>
+</html>
+
+[OK] 413 Payload Too Large error returned.
+------------------------------------------------------------
+== Test 12: 400 Bad Request ==
+------------------------------------------------------------
+>> printf "GET /missing_http_version\r\n\r\n" | nc localhost 8080
+
+[FAIL] 400 Bad Request error returned.
+------------------------------------------------------------
+== Test 14: 403 Forbidden ==
+------------------------------------------------------------
+>> touch www/upload/forbidden.txt && chmod 444 www/upload/forbidden.txt && curl -s -i -F file=@test.cpp http://localhost:8080/upload/forbidden.txt
+HTTP/1.1 403 Forbidden
+Connection: keep-alive
+Content-Length: 378
+Content-Type: text/html
+Keep-Alive: timeout=5, max=100
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>403 Forbidden</title>
+    <style>
+        body { font-family: Arial; background: #fff0f0; color: #a00; text-align: center; margin-top: 5em; }
+        a { color: #3366cc; }
+    </style>
+</head>
+<body>
+    <h1>403 Forbidden</h1>
+    <p>You do not have permission to access this resource.</p>
+    <a href="/">Go to Home</a>
+</body>
+</html>
+
+[OK] 403 Forbidden error returned.
+------------------------------------------------------------
+== Test 15: 404 Not Found ==
+------------------------------------------------------------
+>> curl -s -i http://localhost:8080/doesnotexist.txt
+HTTP/1.1 404 Not Found
+Connection: keep-alive
+Content-Length: 483
+Content-Type: text/html
+Keep-Alive: timeout=5, max=100
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>404 Not Found</title>
+    <style>
+        body { font-family: Arial; background: #fff0f0; color: #a00; text-align: center; margin-top: 5em; }
+        a { color: #3366cc; }
+    </style>
+</head>
+<body>
+    <h1>404 Not Found</h1>
+    <p>The requested resource could not be found on this server.</p>
+    <p>If you believe this is an error, please <a href="mailto:your@email.com">contact us</a>.</p>
+    <a href="/">Go to Home</a>
+</body>
+</html>
+
+[OK] 404 Not Found error returned.
+------------------------------------------------------------
+== Test 16: 408 Request Timeout ==
+------------------------------------------------------------
+Testing 408 Request Timeout by connecting but not sending data...
+[FAIL] 408 Request Timeout test: Connection failed or no response received.
+------------------------------------------------------------
+== Test 17: 500 Internal Server Error ==
+------------------------------------------------------------
+>> echo -e '#!/usr/bin/env python3\nimport sys\nsys.exit(1)' > www/cgi-bin/error500.py && chmod +x www/cgi-bin/error500.py && curl -s -i http://localhost:8080/cgi-bin/error500.py
+HTTP/1.1 500 Internal Server Error
+Connection: keep-alive
+Content-Length: 389
+Content-Type: text/html
+Keep-Alive: timeout=5, max=100
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>500 Internal Server Error</title>
+    <style>
+        body { font-family: Arial; background: #fff0f0; color: #a00; text-align: center; margin-top: 5em; }
+        a { color: #3366cc; }
+    </style>
+</head>
+<body>
+    <h1>500 Internal Server Error</h1>
+    <p>Oops! Something went wrong on our end.</p>
+    <a href="/">Go to Home</a>
+</body>
+</html>
+
+[OK] 500 Internal Server Error returned.
+------------------------------------------------------------
+== Test 18: 502 Bad Gateway (manual/visual) ==
+------------------------------------------------------------
+Manual/visual: To test 502, configure your server as a proxy to a dead upstream.
+[OK] 502 Bad Gateway test: Please check server logs or proxy config.
+------------------------------------------------------------
+== Test 19: 503 Service Unavailable (manual/visual) ==
+------------------------------------------------------------
+Manual/visual: To test 503, simulate server overload or maintenance mode.
+[OK] 503 Service Unavailable test: Please check server logs or maintenance mode.
+------------------------------------------------------------
+== Test 20: 504 Gateway Timeout (CGI timeout test) ==
+------------------------------------------------------------
+HTTP/1.1 504 Gateway Timeout
+Connection: keep-alive
+Content-Length: 375
+Content-Type: text/html
+Keep-Alive: timeout=5, max=100
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>504 Gateway Timeout</title>
+    <style>
+        body { font-family: Arial; background: #fff0f0; color: #a00; text-align: center; margin-top: 5em; }
+        a { color: #3366cc; }
+    </style>
+</head>
+<body>
+    <h1>504 Gateway Timeout</h1>
+    <p>The server took too long to respond.</p>
+    <a href="/">Go to Home</a>
+</body>
+</html>
+[OK] 504 Gateway Timeout error returned for CGI timeout.
+------------------------------------------------------------
+== Test 21: POST without Content_length ==
+------------------------------------------------------------
+>> curl -s -i -X POST http://localhost:8080/upload -H  --data 1236565465446
+HTTP/1.1 411 Length Required
+Connection: close
+Content-Length: 138
+Content-Type: text/html
+
+<!DOCTYPE html><html><head><title>411 Length Required</title></head><body><h1>411 Length Required</h1><p>Length Required</p></body></html>
+[OK] POST/ 411 Length Required
+------------------------------------------------------------
+== Test 22: double Content_length ==
+------------------------------------------------------------
+>> curl -i -s -H 'Content-Length: 3' -H 'Content-Length: 5' -d 'foo' http://localhost:8080/
+HTTP/1.1 400 Bad Request
+Connection: close
+Content-Length: 126
+Content-Type: text/html
+
+<!DOCTYPE html><html><head><title>400 Bad Request</title></head><body><h1>400 Bad Request</h1><p>Bad Request</p></body></html>
+[OK] 400 Bad Request
+------------------------------------------------------------
+== Test 23: Wrong Location ==
+------------------------------------------------------------
+>> curl -s -i http://localhost:8080/%00test/
+HTTP/1.1 404 Not Found
+Connection: keep-alive
+Content-Length: 483
+Content-Type: text/html
+Keep-Alive: timeout=5, max=100
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>404 Not Found</title>
+    <style>
+        body { font-family: Arial; background: #fff0f0; color: #a00; text-align: center; margin-top: 5em; }
+        a { color: #3366cc; }
+    </style>
+</head>
+<body>
+    <h1>404 Not Found</h1>
+    <p>The requested resource could not be found on this server.</p>
+    <p>If you believe this is an error, please <a href="mailto:your@email.com">contact us</a>.</p>
+    <a href="/">Go to Home</a>
+</body>
+</html>
+
+[OK] 400 Not Found
+------------------------------------------------------------
+== Test 24: Unsupported HTTP Version (HTTP/0.9) ==
+------------------------------------------------------------
+>> printf 'GET /upload HTTP/0.9\r\nHost: localhost:8080\r\n\r\n' | nc localhost 8080
+
+[FAIL] 505 HTTP Version Not Supported
+------------------------------------------------------------
+== Test 24b: Malformed HTTP Version ==
+------------------------------------------------------------
+>> printf 'GET /upload HTTP/ABC\r\nHost: localhost:8080\r\n\r\n' | nc localhost 8080
+
+[FAIL] 400 Bad Request for malformed version
+------------------------------------------------------------
+== Test 25: Missing Colon in Content-Length Header ==
+------------------------------------------------------------
+>> printf 'POST /upload HTTP/1.1\r\nHost: localhost:8080\r\nContent-Length 5\r\n\r\nhello' | nc localhost 8080
+
+[FAIL] 400 Bad Request
+------------------------------------------------------------
+== Transfer-Encoding: chunked Edge Cases ==
+------------------------------------------------------------
+------------------------------------------------------------
+== Test 26: Valid chunked encoding (curl automatic) ==
+------------------------------------------------------------
+>> curl -s -i -X POST -H 'Transfer-Encoding: chunked' --data-binary 'hello world' http://localhost:8080/cgi-bin/echo_body.py
+HTTP/1.1 200 OK
+Connection: close
+Content-Length: 12
+Content-Type: text/plain
+
+hello world
+
+[OK] Valid chunked encoding processed correctly
+------------------------------------------------------------
+== Test 27: Large chunked data ==
+------------------------------------------------------------
+>> curl -s -i -X POST -H 'Transfer-Encoding: chunked' --data-binary "$(python3 -c 'print("A" * 1000)')" http://localhost:8080/cgi-bin/echo_body.py
+HTTP/1.1 200 OK
+Connection: close
+Content-Length: 1001
+Content-Type: text/plain
+
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+
+[OK] Large chunked data processed correctly
+------------------------------------------------------------
+== Test 28: Empty chunked body ==
+------------------------------------------------------------
+>> curl -s -i -X POST -H 'Transfer-Encoding: chunked' --data-binary '' http://localhost:8080/cgi-bin/echo_body.py
+HTTP/1.1 200 OK
+Connection: close
+Content-Length: 1
+Content-Type: text/plain
+
+
+
+[OK] Empty chunked body handled correctly
+------------------------------------------------------------
+== Test 29: Multiple small chunks (automatic) ==
+------------------------------------------------------------
+>> curl -s -i -X POST -H 'Transfer-Encoding: chunked' --data-binary 'chunk1chunk2chunk3' http://localhost:8080/cgi-bin/echo_body.py
+HTTP/1.1 200 OK
+Connection: close
+Content-Length: 19
+Content-Type: text/plain
+
+chunk1chunk2chunk3
+
+[OK] Multiple chunks processed correctly
+------------------------------------------------------------
+== Test 30: Chunked with special characters ==
+------------------------------------------------------------
+>> curl -s -i -X POST -H 'Transfer-Encoding: chunked' --data-binary 'Hello\nWorld\r\nTest!' http://localhost:8080/cgi-bin/echo_body.py
+HTTP/1.1 200 OK
+Connection: close
+Content-Length: 22
+Content-Type: text/plain
+
+Hello\nWorld\r\nTest!
+
+[OK] Chunked data with special characters handled correctly
+------------------------------------------------------------
+== Test 31: Chunked with binary data ==
+------------------------------------------------------------
+>> curl -s -i -X POST -H 'Transfer-Encoding: chunked' --data-binary $'\x00\x01\x02\x03\xFF' http://localhost:8080/cgi-bin/echo_body.py
+HTTP/1.1 200 OK
+Connection: close
+Content-Length: 1
+Content-Type: text/plain
+
+
+
+[OK] Chunked binary data handled correctly
+------------------------------------------------------------
+== Test 32: Chunked with Content-Length header (should ignore CL) ==
+------------------------------------------------------------
+>> curl -s -i -X POST -H 'Transfer-Encoding: chunked' -H 'Content-Length: 999' --data-binary 'test data' http://localhost:8080/cgi-bin/echo_body.py
+HTTP/1.1 200 OK
+Connection: close
+Content-Length: 10
+Content-Type: text/plain
+
+test data
+
+[OK] Content-Length ignored when chunked encoding used
+------------------------------------------------------------
+== Test 33: Transfer-Encoding case insensitive ==
+------------------------------------------------------------
+>> curl -s -i -X POST -H 'TRANSFER-ENCODING: CHUNKED' --data-binary 'case test' http://localhost:8080/cgi-bin/echo_body.py
+HTTP/1.1 200 OK
+Connection: close
+Content-Length: 1
+Content-Type: text/plain
+
+
+
+[OK] Transfer-Encoding is case insensitive
+------------------------------------------------------------
+== Invalid Transfer-Encoding Edge Cases ==
+------------------------------------------------------------
+------------------------------------------------------------
+== Test 34: Unsupported Transfer-Encoding (gzip) ==
+------------------------------------------------------------
+>> curl -s -i -X POST -H 'Transfer-Encoding: gzip' --data-binary 'test data' http://localhost:8080/cgi-bin/echo_body.py
+HTTP/1.1 200 OK
+Connection: close
+Content-Length: 10
+Content-Type: text/plain
+
+test data
+
+[FAIL] Unsupported Transfer-Encoding handled (might accept or reject)
+------------------------------------------------------------
+== Test 35: Invalid Transfer-Encoding value ==
+------------------------------------------------------------
+>> curl -s -i -X POST -H 'Transfer-Encoding: invalid-encoding' --data-binary 'test data' http://localhost:8080/cgi-bin/echo_body.py
+HTTP/1.1 200 OK
+Connection: close
+Content-Length: 10
+Content-Type: text/plain
+
+test data
+
+[FAIL] Invalid Transfer-Encoding value handled
+------------------------------------------------------------
+== Test 36: Multiple Transfer-Encoding headers ==
+------------------------------------------------------------
+>> curl -s -i -X POST -H 'Transfer-Encoding: gzip' -H 'Transfer-Encoding: chunked' --data-binary 'test data' http://localhost:8080/cgi-bin/echo_body.py
+HTTP/1.1 408 Request Timeout
+Content-Type: text/html; charset=utf-8
+Connection: close
+Content-Length: 234
+
+<!DOCTYPE html><html><head><title>408 Request Timeout</title></head><body><h1>408 Request Timeout</h1><p>Your request took too long to complete.</p><p><a href="/">Go back to homepage</a></p></body></html>
+[FAIL] Multiple Transfer-Encoding headers handled
+------------------------------------------------------------
+== Test 37: Transfer-Encoding with both chunked and Content-Length ==
+------------------------------------------------------------
+>> printf 'POST /cgi-bin/echo_body.py HTTP/1.1\r\nHost: localhost:8080\r\nTransfer-Encoding: chunked\r\nContent-Length: 5\r\n\r\nhello' | nc -w 3 localhost 8080
+
+[FAIL] Both Transfer-Encoding and Content-Length headers handled
+------------------------------------------------------------
+== Test 38: Malformed chunked claim with plain body ==
+------------------------------------------------------------
+>> printf 'POST /cgi-bin/echo_body.py HTTP/1.1\r\nHost: localhost:8080\r\nTransfer-Encoding: chunked\r\n\r\nhello world without chunks\r\n\r\n' | nc -w 3 localhost 8080
+
+[FAIL] Claiming chunked but sending plain body
+------------------------------------------------------------
+== Expect Header Tests ==
+------------------------------------------------------------
+------------------------------------------------------------
+== Test 39: Expect 100-continue with POST ==
+------------------------------------------------------------
+>> curl -s -i -X POST -H 'Expect: 100-continue' --data-binary 'test data for expect continue' http://localhost:8080/cgi-bin/echo_body.py
+HTTP/1.1 100 Continue
+
+HTTP/1.1 200 OK
+Connection: close
+Content-Length: 30
+Content-Type: text/plain
+
+test data for expect continue
+
+[OK] Expect: 100-continue handled correctly
+------------------------------------------------------------
+== Test 40: Large POST with Expect 100-continue ==
+------------------------------------------------------------
+>> curl -s -i -X POST -H 'Expect: 100-continue' --data-binary "$(python3 -c 'print("ExpectData" * 100)')" http://localhost:8080/cgi-bin/echo_body.py
+HTTP/1.1 100 Continue
+
+HTTP/1.1 200 OK
+Connection: close
+Content-Length: 1001
+Content-Type: text/plain
+
+ExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectData
+
+[OK] Large POST with Expect: 100-continue handled correctly
+------------------------------------------------------------
+== Checking Results ==
+------------------------------------------------------------
+[OK] File uploaded successfully as www/upload/test_20250824_162140.txt.
+[OK] File deleted successfully.
+[OK] CGI GET returned Content-Type header.
+[OK] CGI POST returned Content-Type header.
+------------------------------------------------------------
+------------------------------------------------------------

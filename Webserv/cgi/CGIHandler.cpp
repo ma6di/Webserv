@@ -120,13 +120,8 @@ void CGIHandler::log_cgi_debug(int status, int ret, const std::string& output, c
     Logger::log(LOG_DEBUG, "CGIHandler", "WIFEXITED: " + to_str(WIFEXITED(status)) + ", WEXITSTATUS: " + to_str(WEXITSTATUS(status)));
     Logger::log(LOG_DEBUG, "CGIHandler", "WIFSIGNALED: " + to_str(WIFSIGNALED(status)) + ", WTERMSIG: " + to_str(WTERMSIG(status)));
 
-    std::ostringstream hex;
-    hex << "[CGI DEBUG] Raw CGI output (hex):\n";
-    for (size_t i = 0; i < output.size(); ++i)
-        hex << std::hex << (int)(unsigned char)output[i] << " ";
-    hex << "\n[END HEX]\n";
-    Logger::log(LOG_DEBUG, "CGIHandler", hex.str());
     Logger::log(LOG_DEBUG, "CGIHandler", "[CGI DEBUG] CGI ERROR output:\n" + error_output + "\n[END]");
+    (void)output;
 }
 
 // --- Static helpers for CGI logic ---
