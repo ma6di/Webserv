@@ -1,42 +1,42 @@
-        @import url("style.css");
-        @import url("index.css");
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 1rem;
-        }
+@import url("style.css");
+@import url("index.css");
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+}
 
-        .metric-card {
-            background: rgba(255, 255, 255, 0.06);
-            border-radius: 12px;
-            padding: 14px 16px;
-            border: 1px solid rgba(255, 255, 255, 0.12);
-        }
+.metric-card {
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 14px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
 
-        .metric-label {
-            font-size: .9rem;
-            color: #9aa0b4;
-            text-transform: uppercase;
-            margin-bottom: 4px;
-        }
+.metric-label {
+    font-size: 0.9rem;
+    color: #9aa0b4;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
 
-        .metric-value {
-            font-size: 1.6rem;
-            font-weight: 700;
-        }
+.metric-value {
+    font-size: 1.6rem;
+    font-weight: 700;
+}
 
-        .metric-target {
-            margin-top: 8px;
-            font-size: .85rem;
-            padding: 6px 8px;
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.08);
-        }
+.metric-target {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    padding: 6px 8px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.08);
+}
 
-        .good .metric-value {
-            color: #3cd278;
-        }
+.good .metric-value {
+    color: #3cd278;
+}
 
-        .bad .metric-value {
-            color: #ff6b6b;
-        }
+.bad .metric-value {
+    color: #ff6b6b;
+}

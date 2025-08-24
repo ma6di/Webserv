@@ -41,7 +41,17 @@
 html,
 body,
 div {
-    color: aliceblue;
+    /* color: #86aeff; */
+    color: #cdd6f4;
+}
+body p {
+    /* font-family: "Roboto", sans-serif; */
+
+    text-align: start;
+}
+
+body {
+    font-family: "Roboto", sans-serif;
 }
 
 .container {
@@ -64,6 +74,10 @@ div {
 
 /* Page 1 elements */
 .hero_title {
+    /* font-family: "Roboto", sans-serif; */
+    font-weight: 800;
+    /* letter-spacing: -0.02em;
+    line-height: 1.05; */
     text-align: center;
     font-size: 200px;
     margin: 0px;
@@ -100,13 +114,13 @@ div {
 h2 {
     font-size: 80px;
     padding: 20px 0;
-    color: #5e90f5;
+    color: #dbe4ff;
     margin: 0;
 }
 
 .footer-message {
     display: none;
-    background: linear-gradient(to right, #28293d, #1e1f2f);
+    background: #0d0a1c;
     position: fixed;
     bottom: 0;
     left: 0;
@@ -116,6 +130,7 @@ h2 {
     font-weight: 400;
     opacity: 0;
     transition: opacity 0.4s ease-in-out;
+    text-align: center;
 }
 
 .footer-message.show {

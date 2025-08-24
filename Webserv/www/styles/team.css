@@ -109,7 +109,7 @@ h1 {
 }
 
 .social-links a:hover {
-    color: #ef6d58;
+    color: #7278ff;
 }
 
 /* Left-align + fun accent */
@@ -140,42 +140,3 @@ h1 {
         background-position: 100% 50%;
     }
 }
-
-/* .team-hint {
-    text-align: left;
-    position: relative;
-    margin: 0 0 1.2rem;
-    padding-left: 18px;
-    color: #e8f0ff;
-    line-height: 1.6;
-    font-weight: 500;
-}
-.team-hint::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 0.35em;
-    width: 6px;
-    height: 1.2em;
-    border-radius: 6px;
-    background: linear-gradient(180deg, #00affa, #7953cd);
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.08) inset;
-}
-.team-hint::after {
-    content: "";
-    position: absolute;
-    left: 18px;
-    right: 0;
-    bottom: -4px;
-    height: 3px;
-    border-radius: 3px;
-    opacity: 0.6;
-    background: linear-gradient(90deg, #7953cd, #00affa, #0190cd);
-    background-size: 200% 100%;
-    animation: sweep 2s linear infinite;
-}
-@keyframes sweep {
-    to {
-        background-position: 200% 0;
-    }
-} */
