@@ -52,6 +52,7 @@ public:
 	void send_request_timeout_response(int client_fd, size_t i);
 	void send_bad_request_response(int client_fd, const std::string &details);
 	void send_length_required_response(int client_fd, const std::string &details);
+	void send_continue_response(int client_fd);
 
 
 private:

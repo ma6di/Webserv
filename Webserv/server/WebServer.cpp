@@ -172,9 +172,16 @@ void WebServer::handleClientDataOn(int client_fd)
             Request req(frame);                 // parse only the frame
             process_request(req, client_fd, 0); // your existing function
         } catch (const std::exception& e) {
+            std::string error_msg = e.what();
             Logger::log(LOG_ERROR, "WebServer",
-                        std::string("Request parse failed: ") + e.what());
-            send_bad_request_response(client_fd, "Bad Request");
+                        std::string("Request parse failed: ") + error_msg);
+            
+            // Check if it's an HTTP version issue
+            if (error_msg.find("HTTP Version Not Supported") != std::string::npos) {
+                send_error_response(client_fd, 505, "HTTP Version Not Supported", 0);
+            } else {
+                send_bad_request_response(client_fd, "Bad Request");
+            }
         }
 
         // Consume the bytes we just handled; if keep-alive and more data
@@ -201,6 +208,14 @@ void WebServer::process_request(Request &request, int client_fd, size_t i)
         " ver=" + ver +
         " conn=" + (connHdr.empty() ? std::string("<none>") : connHdr) +
         " closeAfter=" + (close_conn ? "true" : "false"));
+
+    // Handle Expect: 100-continue header
+    if (request.hasExpectContinue()) {
+        Logger::log(LOG_INFO, "WebServer", "Client expects 100-continue, sending 100 Continue response");
+        send_continue_response(client_fd);
+        // Note: Client will send the body after receiving 100 Continue
+        // The request body should already be parsed by the Request constructor
+    }
 
     std::string method = request.getMethod();
     std::string uri = request.getPath();

@@ -348,9 +348,63 @@ bool has_chunked_encoding(const std::string& headers) {
 
 // 2) Find the end of a chunked body quickly (looks for the 0-chunk terminator)
 size_t find_chunked_terminator(const std::string& buf, size_t body_start) {
-    const std::string endMarker = "\r\n0\r\n\r\n";
-    size_t pos = buf.find(endMarker, body_start);
-    if (pos == std::string::npos) return std::string::npos;
-    return pos + endMarker.size(); // absolute end index for the whole request
+    size_t pos = body_start;
+    
+    while (pos < buf.size()) {
+        // Find the next chunk size line
+        size_t line_end = buf.find("\r\n", pos);
+        if (line_end == std::string::npos) {
+            return std::string::npos; // need more data
+        }
+        
+        // Extract chunk size line
+        std::string chunk_line = buf.substr(pos, line_end - pos);
+        
+        // Parse chunk size (ignore chunk extensions after semicolon)
+        size_t semicolon_pos = chunk_line.find(';');
+        if (semicolon_pos != std::string::npos) {
+            chunk_line = chunk_line.substr(0, semicolon_pos);
+        }
+        
+        // Convert hex chunk size
+        size_t chunk_size = 0;
+        std::istringstream iss(chunk_line);
+        iss >> std::hex >> chunk_size;
+        
+        if (iss.fail()) {
+            return std::string::npos; // invalid chunk size
+        }
+        
+        // If chunk size is 0, this is the final chunk
+        if (chunk_size == 0) {
+            // Look for the final \r\n\r\n after possible trailing headers
+            size_t final_pos = line_end + 2; // after chunk size line
+            
+            // Skip any trailing headers
+            while (final_pos < buf.size()) {
+                size_t header_end = buf.find("\r\n", final_pos);
+                if (header_end == std::string::npos) {
+                    return std::string::npos; // need more data
+                }
+                
+                // If we found an empty line, we're done
+                if (header_end == final_pos) {
+                    return header_end + 2; // return position after final \r\n
+                }
+                
+                final_pos = header_end + 2;
+            }
+            return std::string::npos; // need more data for final \r\n
+        }
+        
+        // Skip to after this chunk's data and trailing \r\n
+        pos = line_end + 2 + chunk_size + 2; // chunk_size + data + \r\n
+        
+        if (pos > buf.size()) {
+            return std::string::npos; // need more data
+        }
+    }
+    
+    return std::string::npos; // need more data
 }
 

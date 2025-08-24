@@ -45,8 +45,12 @@ void Request::parseRequest(const std::string& raw_data) {
         request_line >> method >> path >> version;
         if (method.empty() || path.empty() || version.empty())
             throw std::runtime_error("Malformed request line");
-        if (version.compare(0, 8, "HTTP/1.1") != 0)
+        
+        // Validate HTTP version format and support
+        if (!isValidHttpVersionFormat(version))
             throw std::runtime_error("Invalid HTTP version");
+        if (version.compare(0, 8, "HTTP/1.1") != 0)
+            throw std::runtime_error("HTTP Version Not Supported");
 
         // --- Parse headers ---
         while (std::getline(stream, line)) {
@@ -109,5 +113,41 @@ int Request::getContentLength() const { return content_length; }
 bool Request::isChunked() const {
     std::string te = getHeader("Transfer-Encoding");
     return !te.empty() && te == "chunked";
+}
+
+bool Request::isValidHttpVersionFormat(const std::string& version) const {
+    // Check basic format: "HTTP/x.y"
+    if (version.length() < 8)  // minimum "HTTP/x.y" is 8 chars
+        return false;
+    
+    if (version.substr(0, 5) != "HTTP/")
+        return false;
+    
+    if (version.length() < 8 || version[6] != '.')
+        return false;
+    
+    // Check if major and minor versions are digits
+    char major = version[5];
+    char minor = version[7];
+    
+    if (!std::isdigit(major) || !std::isdigit(minor))
+        return false;
+    
+    // Check for extra characters after x.y
+    if (version.length() > 8)
+        return false;
+    
+    return true;
+}
+
+bool Request::hasExpectContinue() const {
+    std::string expect = getHeader("Expect");
+    // Convert to lowercase for case-insensitive comparison
+    for (size_t i = 0; i < expect.length(); ++i) {
+        if (expect[i] >= 'A' && expect[i] <= 'Z') {
+            expect[i] = expect[i] - 'A' + 'a';
+        }
+    }
+    return expect == "100-continue";
 }
 

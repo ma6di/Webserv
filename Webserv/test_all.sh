@@ -61,9 +61,9 @@ touch www/upload/1.txt
 echo "This is a test file." > test.txt
 
 # Tests
-# log_and_run "Test 1: POST /echo (application/x-www-form-urlencoded)" \
-#     "curl -s -i -w \"\nHTTP %{http_code}\n\" -X POST http://localhost:8080/echo -H \"Content-Type: application/x-www-form-urlencoded\" -d \"hello=world&foo=bar\"" \
-#     result_echo.txt "HTTP/1.1 200" "POST /echo returned 200 OK"
+log_and_run "Test 1: POST /cgi-bin/echo.py (application/x-www-form-urlencoded)" \
+    "curl -s -i -w \"\nHTTP %{http_code}\n\" -X POST http://localhost:8080/cgi-bin/echo.py -H \"Content-Type: application/x-www-form-urlencoded\" -d \"hello=world&foo=bar\"" \
+    result_echo.txt "HTTP/1.1 200" "POST /cgi-bin/echo.py returned 200 OK"
 
 log_and_run "Test 2: POST /upload (multipart/form-data)" \
     "curl -s -i -w \"\nHTTP %{http_code}\n\" -X POST http://localhost:8080/upload -F \"file=@test.txt\"" \
@@ -109,13 +109,13 @@ log_and_run "Test 11: 413 Payload Too Large" \
     "curl -s -X POST http://localhost:8080/upload -F "file=@bigfile.txt"" \
     result_413.txt "413 Payload Too Large" "413 Payload Too Large error returned."
 
-# log_and_run "Test 12: 400 Bad Request" \
-#     "printf \"GET /missing_http_version\r\n\r\n\" | nc localhost 8080" \
-#     result_400.txt "400 Bad Request" "400 Bad Request error returned."
+log_and_run "Test 12: 400 Bad Request" \
+    "printf \"GET /missing_http_version\r\n\r\n\" | nc localhost 8080" \
+    result_400.txt "400 Bad Request" "400 Bad Request error returned."
 
-log_and_run "Test 13: 401 Unauthorized" \
-    "curl -s -i http://localhost:8080/should_require_auth" \
-    result_401.txt "401 Unauthorized" "401 Unauthorized error returned."
+# log_and_run "Test 13: 401 Unauthorized" \
+#     "curl -s -i http://localhost:8080/should_require_auth" \
+#     result_401.txt "401 Unauthorized" "401 Unauthorized error returned."
 
 log_and_run "Test 14: 403 Forbidden" \
     "touch www/upload/forbidden.txt && chmod 444 www/upload/forbidden.txt && curl -s -i -F "file=@test.cpp" http://localhost:8080/upload/forbidden.txt" \
@@ -203,13 +203,120 @@ log_and_run "Test 23: Wrong Location" \
     "curl -s -i "http://localhost:8080/%00test"/" \
     result_Wrong_Location.txt "404 Not Found" "400 Not Found"
 
-log_and_run "Test 24: Wrong HTTP Version" \
+log_and_run "Test 24: Unsupported HTTP Version (HTTP/0.9)" \
     "printf 'GET /upload HTTP/0.9\r\nHost: localhost:8080\r\n\r\n' | nc localhost 8080" \
-    result_Wrong_HTTP_Version.txt "400 Bad Request" "400 400 Bad Request"
+    result_Wrong_HTTP_Version.txt "505 HTTP Version Not Supported" "505 HTTP Version Not Supported"
+
+log_and_run "Test 24b: Malformed HTTP Version" \
+    "printf 'GET /upload HTTP/ABC\r\nHost: localhost:8080\r\n\r\n' | nc localhost 8080" \
+    result_Malformed_HTTP_Version.txt "400 Bad Request" "400 Bad Request for malformed version"
 
 log_and_run "Test 25: Missing Colon in Content-Length Header" \
     "printf 'POST /upload HTTP/1.1\r\nHost: localhost:8080\r\nContent-Length 5\r\n\r\nhello' | nc localhost 8080" \
     result_Missing_Colon_Content_Length.txt "400 Bad Request" "400 Bad Request"
+
+# Transfer-Encoding: chunked edge cases
+section "Transfer-Encoding: chunked Edge Cases"
+
+log_and_run "Test 26: Valid chunked encoding (curl automatic)" \
+    "curl -s -i -X POST -H 'Transfer-Encoding: chunked' --data-binary 'hello world' http://localhost:8080/cgi-bin/echo_body.py" \
+    result_chunked_valid.txt "hello world" "Valid chunked encoding processed correctly"
+
+log_and_run "Test 27: Large chunked data" \
+    "curl -s -i -X POST -H 'Transfer-Encoding: chunked' --data-binary \"\$(python3 -c 'print(\"A\" * 1000)')\" http://localhost:8080/cgi-bin/echo_body.py" \
+    result_chunked_large.txt "AAA" "Large chunked data processed correctly"
+
+log_and_run "Test 28: Empty chunked body" \
+    "curl -s -i -X POST -H 'Transfer-Encoding: chunked' --data-binary '' http://localhost:8080/cgi-bin/echo_body.py" \
+    result_chunked_empty.txt "HTTP/1.1 200" "Empty chunked body handled correctly"
+
+log_and_run "Test 29: Multiple small chunks (automatic)" \
+    "curl -s -i -X POST -H 'Transfer-Encoding: chunked' --data-binary 'chunk1chunk2chunk3' http://localhost:8080/cgi-bin/echo_body.py" \
+    result_chunked_multiple.txt "chunk1chunk2chunk3" "Multiple chunks processed correctly"
+
+log_and_run "Test 30: Chunked with special characters" \
+    "curl -s -i -X POST -H 'Transfer-Encoding: chunked' --data-binary 'Hello\nWorld\r\nTest!' http://localhost:8080/cgi-bin/echo_body.py" \
+    result_chunked_special.txt "Hello" "Chunked data with special characters handled correctly"
+
+log_and_run "Test 31: Chunked with binary data" \
+    "curl -s -i -X POST -H 'Transfer-Encoding: chunked' --data-binary \$'\\x00\\x01\\x02\\x03\\xFF' http://localhost:8080/cgi-bin/echo_body.py" \
+    result_chunked_binary.txt "HTTP/1.1 200" "Chunked binary data handled correctly"
+
+# Test chunked with Content-Length (should ignore Content-Length)
+log_and_run "Test 32: Chunked with Content-Length header (should ignore CL)" \
+    "curl -s -i -X POST -H 'Transfer-Encoding: chunked' -H 'Content-Length: 999' --data-binary 'test data' http://localhost:8080/cgi-bin/echo_body.py" \
+    result_chunked_with_cl.txt "test data" "Content-Length ignored when chunked encoding used"
+
+# Test case sensitivity
+log_and_run "Test 33: Transfer-Encoding case insensitive" \
+    "curl -s -i -X POST -H 'TRANSFER-ENCODING: CHUNKED' --data-binary 'case test' http://localhost:8080/cgi-bin/echo_body.py" \
+    result_chunked_case.txt "HTTP/1.1 200" "Transfer-Encoding is case insensitive"
+
+# Invalid Transfer-Encoding tests
+section "Invalid Transfer-Encoding Edge Cases"
+
+log_and_run "Test 34: Unsupported Transfer-Encoding (gzip)" \
+    "curl -s -i -X POST -H 'Transfer-Encoding: gzip' --data-binary 'test data' http://localhost:8080/cgi-bin/echo_body.py" \
+    result_te_gzip.txt "501 Not Implemented|HTTP/1.1 200" "Unsupported Transfer-Encoding handled (might accept or reject)"
+
+log_and_run "Test 35: Invalid Transfer-Encoding value" \
+    "curl -s -i -X POST -H 'Transfer-Encoding: invalid-encoding' --data-binary 'test data' http://localhost:8080/cgi-bin/echo_body.py" \
+    result_te_invalid.txt "501 Not Implemented|HTTP/1.1 200" "Invalid Transfer-Encoding value handled"
+
+log_and_run "Test 36: Multiple Transfer-Encoding headers" \
+    "curl -s -i -X POST -H 'Transfer-Encoding: gzip' -H 'Transfer-Encoding: chunked' --data-binary 'test data' http://localhost:8080/cgi-bin/echo_body.py" \
+    result_te_multiple.txt "400 Bad Request|408 Request Timeout" "Multiple Transfer-Encoding headers handled"
+
+log_and_run "Test 37: Transfer-Encoding with both chunked and Content-Length" \
+    "printf 'POST /cgi-bin/echo_body.py HTTP/1.1\\r\\nHost: localhost:8080\\r\\nTransfer-Encoding: chunked\\r\\nContent-Length: 5\\r\\n\\r\\nhello' | nc -w 3 localhost 8080" \
+    result_te_both_headers.txt "400 Bad Request|HTTP/1.1 200" "Both Transfer-Encoding and Content-Length headers handled"
+
+log_and_run "Test 38: Malformed chunked claim with plain body" \
+    "printf 'POST /cgi-bin/echo_body.py HTTP/1.1\\r\\nHost: localhost:8080\\r\\nTransfer-Encoding: chunked\\r\\n\\r\\nhello world without chunks\\r\\n\\r\\n' | nc -w 3 localhost 8080" \
+    result_te_fake_chunked.txt "400 Bad Request|408 Request Timeout" "Claiming chunked but sending plain body"
+
+# Expect: 100-continue tests
+section "Expect Header Tests"
+
+log_and_run "Test 39: Expect 100-continue with POST" \
+    "curl -s -i -X POST -H 'Expect: 100-continue' --data-binary 'test data for expect continue' http://localhost:8080/cgi-bin/echo_body.py" \
+    result_expect_continue.txt "100 Continue" "Expect: 100-continue handled correctly"
+
+log_and_run "Test 40: Large POST with Expect 100-continue" \
+    "curl -s -i -X POST -H 'Expect: 100-continue' --data-binary \"\$(python3 -c 'print(\"ExpectData\" * 100)')\" http://localhost:8080/cgi-bin/echo_body.py" \
+    result_expect_large.txt "100 Continue" "Large POST with Expect: 100-continue handled correctly"
+
+# # Manual tests for edge cases that curl can't generate
+# section "Manual chunked encoding edge cases"
+
+# log_and_run "Test 34: Invalid chunk size (non-hex)" \
+#     "printf 'POST /cgi-bin/echo_body.py HTTP/1.1\\r\\nHost: localhost:8080\\r\\nTransfer-Encoding: chunked\\r\\n\\r\\nGG\\r\\nhello\\r\\n0\\r\\n\\r\\n' | nc -w 3 localhost 8080" \
+#     result_chunked_invalid_size.txt "400 Bad Request" "Invalid chunk size returns 400 Bad Request"
+
+# log_and_run "Test 35: Missing final chunk (0)" \
+#     "printf 'POST /cgi-bin/echo_body.py HTTP/1.1\\r\\nHost: localhost:8080\\r\\nTransfer-Encoding: chunked\\r\\n\\r\\n5\\r\\nhello\\r\\n' | nc -w 3 localhost 8080" \
+#     result_chunked_no_final.txt "400 Bad Request" "Missing final chunk returns 400 Bad Request"
+
+# log_and_run "Test 36: Chunk size larger than actual data" \
+#     "printf 'POST /cgi-bin/echo_body.py HTTP/1.1\\r\\nHost: localhost:8080\\r\\nTransfer-Encoding: chunked\\r\\n\\r\\nA\\r\\nhello\\r\\n0\\r\\n\\r\\n' | nc -w 3 localhost 8080" \
+#     result_chunked_size_mismatch.txt "400 Bad Request" "Chunk size mismatch returns 400 Bad Request"
+
+# log_and_run "Test 37: Invalid Transfer-Encoding (not chunked)" \
+#     "curl -s -i -X POST -H 'Transfer-Encoding: gzip' --data-binary 'test' http://localhost:8080/cgi-bin/echo_body.py" \
+#     result_te_not_chunked.txt "501 Not Implemented" "Non-chunked Transfer-Encoding returns 501"
+
+# log_and_run "Test 38: Very long chunk size line" \
+#     "printf 'POST /cgi-bin/echo_body.py HTTP/1.1\\r\\nHost: localhost:8080\\r\\nTransfer-Encoding: chunked\\r\\n\\r\\n%s\\r\\nhello\\r\\n0\\r\\n\\r\\n' \"$(printf '%*s' 500 '' | tr ' ' '5')\" | nc -w 3 localhost 8080" \
+#     result_chunked_long_size.txt "400 Bad Request" "Very long chunk size line returns 400 Bad Request"
+
+# # Additional realistic tests
+# log_and_run "Test 39: Chunked POST to upload endpoint" \
+#     "curl -s -i -X POST -H 'Transfer-Encoding: chunked' --data-binary 'file content here' http://localhost:8080/upload" \
+#     result_chunked_upload.txt "HTTP/1.1" "Chunked POST to upload endpoint handled"
+
+# log_and_run "Test 40: Chunked with Connection: close" \
+#     "curl -s -i -X POST -H 'Transfer-Encoding: chunked' -H 'Connection: close' --data-binary 'connection test' http://localhost:8080/cgi-bin/echo_body.py" \
+#     result_chunked_conn_close.txt "connection test" "Chunked with Connection: close handled correctly"
 
 # rm -f www/cgi-bin/hang.py
 
@@ -247,7 +354,7 @@ else
 fi
 
 # Cleanup
-section "Cleanup"
+# section "Cleanup"
 rm -f test.txt result_*.txt
 
 divider

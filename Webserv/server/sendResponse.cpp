@@ -265,3 +265,18 @@ void WebServer::send_request_timeout_response(int client_fd, size_t i) {
                    "Successfully sent 408 response (" + to_str(n) + " bytes) to fd=" + to_str(client_fd));
     }
 }
+
+void WebServer::send_continue_response(int client_fd)
+{
+    std::string response = "HTTP/1.1 100 Continue\r\n\r\n";
+    
+    ssize_t n = send(client_fd, response.c_str(), response.length(), MSG_NOSIGNAL);
+    if (n == -1) {
+        Logger::log(LOG_ERROR, "send_continue_response", 
+                   "Failed to send 100 Continue response to fd=" + to_str(client_fd) + 
+                   " (errno=" + to_str(errno) + ")");
+    } else {
+        Logger::log(LOG_INFO, "send_continue_response", 
+                   "Successfully sent 100 Continue response (" + to_str(n) + " bytes) to fd=" + to_str(client_fd));
+    }
+}
