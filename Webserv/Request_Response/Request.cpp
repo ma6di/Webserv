@@ -33,6 +33,8 @@ std::string Request::getBody() const { return body; }
 
 // Parses the raw HTTP request string into method, path, version, headers, and body
 void Request::parseRequest(const std::string& raw_data) {
+	std::cout << "parseRequest \n";
+
     std::istringstream stream(raw_data);
     std::string line;
 
@@ -109,9 +111,10 @@ void Request::parseRequest(const std::string& raw_data) {
         } else {
             body = raw_body;
         }
-        // All chunked decoding is handled here only
 
     } catch (const std::runtime_error& e) {
+		std::cout << "exeption in parse \n";
+
         Logger::log(LOG_ERROR, "Request::parseRequest", e.what());
         throw; // propagate exception to server to send 400 response
     }
@@ -128,8 +131,28 @@ int Request::getContentLength() const { return content_length; }
 
 // Returns true if Transfer-Encoding is chunked
 bool Request::isChunked() const {
+	std::cout << "isChunked \n";
+
     std::string te = getHeader("Transfer-Encoding");
-    return !te.empty() && te == "chunked";
+    if (te.empty()) return false;
+
+    // Split by comma and trim spaces
+    std::vector<std::string> encodings;
+    std::istringstream iss(te);
+    std::string part;
+    while (std::getline(iss, part, ',')) {
+        part.erase(0, part.find_first_not_of(" \t"));
+        part.erase(part.find_last_not_of(" \t") + 1);
+        if (!part.empty()) encodings.push_back(part);
+    }
+
+    if (encodings.size() > 1) {
+        throw std::runtime_error("501: Multiple Transfer-Encoding values: " + te);
+    }
+    if (encodings.size() == 1 && encodings[0] != "chunked") {
+        throw std::runtime_error("501: Unsupported Transfer-Encoding: " + te);
+    }
+    return encodings.size() == 1 && encodings[0] == "chunked";
 }
 
 

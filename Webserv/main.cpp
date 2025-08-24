@@ -236,8 +236,9 @@ static void checkClientTimeouts()
                 Logger::log(LOG_INFO, "main", 
                           "Client fd=" + to_str(fd) + " timed out after " + 
                           to_str(now - last_active) + " seconds");
-                srv->send_request_timeout_response(fd, si);
-                srv->closeClient(fd);
+                srv->send_error_response(fd, 408, "Request Timeout", si);
+                srv->flushPendingWrites(fd);
+				srv->closeClient(fd);
             }
         }
     }

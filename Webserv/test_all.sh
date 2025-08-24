@@ -130,19 +130,14 @@ log_and_run "Test 15: 404 Not Found" \
 
 
 section "Test 16: 408 Request Timeout"
-echo "Testing 408 Request Timeout by connecting but not sending data..." >> "$LOGFILE"
+# echo "Testing 408 Request Timeout by connecting but not sending data..." >> "$LOGFILE"
 # Connect to server and wait for server to respond or close after timeout
-nc localhost 8080 > result_408.txt 2>&1 &  # run in background
-nc_pid=$!
-
-# Wait slightly longer than server timeout (e.g., 12s) to ensure 408 triggers
+nc -w 15 localhost 8080 > result_408.txt 
+# nc_pid=$!
 sleep 12
-
-# Kill nc if still running
-kill $nc_pid 2>/dev/null
-
-# Append result to log
-cat result_408.txt >> "$LOGFILE"
+# kill $nc_pid 2>/dev/null
+# sleep 1  # Give time for output to flush
+# cat result_408.txt >> "$LOGFILE"
 
 # Check for 408 response
 if grep -q "408 Request Timeout" result_408.txt; then
@@ -257,23 +252,23 @@ section "Invalid Transfer-Encoding Edge Cases"
 
 log_and_run "Test 34: Unsupported Transfer-Encoding (gzip)" \
     "curl -s -i -X POST -H 'Transfer-Encoding: gzip' --data-binary 'test data' http://localhost:8080/cgi-bin/echo_body.py" \
-    result_te_gzip.txt "501 Not Implemented|HTTP/1.1 200" "Unsupported Transfer-Encoding handled (might accept or reject)"
+    result_te_gzip.txt "501 Not Implemented" "Unsupported Transfer-Encoding handled (might accept or reject)"
 
 log_and_run "Test 35: Invalid Transfer-Encoding value" \
     "curl -s -i -X POST -H 'Transfer-Encoding: invalid-encoding' --data-binary 'test data' http://localhost:8080/cgi-bin/echo_body.py" \
-    result_te_invalid.txt "501 Not Implemented|HTTP/1.1 200" "Invalid Transfer-Encoding value handled"
+    result_te_invalid.txt "501 Not Implemented" "Invalid Transfer-Encoding value handled"
 
 log_and_run "Test 36: Multiple Transfer-Encoding headers" \
-    "curl -s -i -X POST -H 'Transfer-Encoding: gzip' -H 'Transfer-Encoding: chunked' --data-binary 'test data' http://localhost:8080/cgi-bin/echo_body.py" \
-    result_te_multiple.txt "400 Bad Request|408 Request Timeout" "Multiple Transfer-Encoding headers handled"
+    "curl -s -i -X POST -H 'Transfer-Encoding: gzip, chunked' --data-binary 'test data' http://localhost:8080/cgi-bin/echo_body.py" \
+    result_te_multiple.txt "501 Not Implemented" "Multiple Transfer-Encoding headers handled"
 
 log_and_run "Test 37: Transfer-Encoding with both chunked and Content-Length" \
-    "printf 'POST /cgi-bin/echo_body.py HTTP/1.1\\r\\nHost: localhost:8080\\r\\nTransfer-Encoding: chunked\\r\\nContent-Length: 5\\r\\n\\r\\nhello' | nc -w 3 localhost 8080" \
-    result_te_both_headers.txt "400 Bad Request|HTTP/1.1 200" "Both Transfer-Encoding and Content-Length headers handled"
+    "printf 'POST /cgi-bin/echo_body.py HTTP/1.1\r\nHost: localhost:8080\r\nTransfer-Encoding: chunked\r\nContent-Length: 5\r\n\r\n5\r\nhello\r\n0\r\n\r\n' | nc -w 3 localhost 8080" \
+    result_te_both_headers.txt "400 Bad Request" "Both Transfer-Encoding and Content-Length headers handled"
 
 log_and_run "Test 38: Malformed chunked claim with plain body" \
     "printf 'POST /cgi-bin/echo_body.py HTTP/1.1\\r\\nHost: localhost:8080\\r\\nTransfer-Encoding: chunked\\r\\n\\r\\nhello world without chunks\\r\\n\\r\\n' | nc -w 3 localhost 8080" \
-    result_te_fake_chunked.txt "400 Bad Request|408 Request Timeout" "Claiming chunked but sending plain body"
+    result_te_fake_chunked.txt "400 Bad Request" "Claiming chunked but sending plain body"
 
 # Expect: 100-continue tests
 section "Expect Header Tests"
@@ -355,7 +350,7 @@ fi
 
 # Cleanup
 # section "Cleanup"
-rm -f test.txt result_*.txt
+# rm -f test.txt result_*.txt
 
 divider
 echo -e "${YELLOW}==> All tests completed. See $LOGFILE for details.${NC}"

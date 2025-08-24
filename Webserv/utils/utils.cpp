@@ -156,39 +156,67 @@ bool is_cgi_request(const LocationConfig& loc, const std::string& uri) {
 // }
 
 std::string decode_chunked_body(const std::string& raw) {
+	std::cout << "decode_chunked_body \n";
     std::istringstream in(raw);
     std::string decoded;
     std::string line;
-
-    while (std::getline(in, line)) {
-        // Remove trailing \r if present
-        if (!line.empty() && line[line.size() - 1] == '\r') 
+    bool first_line = true;
+    while (true) {
+        // Read chunk size line
+        if (!std::getline(in, line))
+            throw std::runtime_error("400: Malformed chunked body (missing chunk size line)");
+        if (!line.empty() && line[line.size() - 1] == '\r')
             line.erase(line.size() - 1);
-
-        if (line.empty()) 
-            continue;
-
-        // Parse chunk size in hex
-        size_t chunk_size = 0;
-        std::istringstream iss(line);
+        // Ignore chunk extensions
+        size_t semi = line.find(';');
+        std::string size_str = (semi == std::string::npos) ? line : line.substr(0, semi);
+        size_str.erase(0, size_str.find_first_not_of(" \t"));
+        size_str.erase(size_str.find_last_not_of(" \t") + 1);
+        if (size_str.empty())
+            throw std::runtime_error("400: Malformed chunked body (empty chunk size)");
+        int chunk_size = 0;
+        std::istringstream iss;
+        iss.str(size_str);
         iss >> std::hex >> chunk_size;
-        if (chunk_size == 0) 
+        if (iss.fail() || chunk_size < 0) {
+            if (first_line) {
+                throw std::runtime_error("400: Malformed chunked body (body does not start with valid chunk size line)");
+            } else {
+                throw std::runtime_error("400: Malformed chunked body (invalid chunk size)");
+            }
+        }
+        first_line = false;
+        if (chunk_size == 0) {
+            // Last chunk, expect CRLF after
+            if (!std::getline(in, line))
+                throw std::runtime_error("400: Malformed chunked body (missing final CRLF)");
+            if (!line.empty() && line[line.size() - 1] == '\r')
+                line.erase(line.size() - 1);
+            if (!line.empty())
+                throw std::runtime_error("400: Malformed chunked body (extra data after last chunk)");
             break;
-
+        }
         // Read chunk data
         std::string chunk(chunk_size, '\0');
         in.read(&chunk[0], chunk_size);
-        if (static_cast<size_t>(in.gcount()) < chunk_size) {
-            throw std::runtime_error("Incomplete chunked body");
-        }
-
+        if (in.gcount() != chunk_size)
+            throw std::runtime_error("400: Malformed chunked body (incomplete chunk data)");
         decoded += chunk;
-
-        // Consume trailing \r\n after chunk data
-        if (!std::getline(in, line)) 
-            break;
+        // Expect CRLF after chunk data
+        if (!std::getline(in, line))
+            throw std::runtime_error("400: Malformed chunked body (missing CRLF after chunk data)");
+        if (!line.empty() && line[line.size() - 1] == '\r')
+            line.erase(line.size() - 1);
+        if (!line.empty())
+            throw std::runtime_error("400: Malformed chunked body (extra data after chunk data)");
     }
-
+    // If any data remains, it's a malformed chunked body
+    if (in.peek() != EOF) {
+        std::string extra;
+        std::getline(in, extra);
+        if (!extra.empty())
+            throw std::runtime_error("400: Malformed chunked body (unexpected data after last chunk)");
+    }
     return decoded;
 }
 

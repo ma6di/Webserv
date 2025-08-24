@@ -49,10 +49,12 @@ public:
     time_t getClientLastActive(int client_fd) const;
     void updateClientActivity(int client_fd);
     void closeClient(int client_fd);
-	void send_request_timeout_response(int client_fd, size_t i);
-	void send_bad_request_response(int client_fd, const std::string &details);
-	void send_length_required_response(int client_fd, const std::string &details);
+	// void send_request_timeout_response(int client_fd, size_t i);
+	// void send_bad_request_response(int client_fd, const std::string &details);
+	// void send_length_required_response(int client_fd, const std::string &details);
 	void send_continue_response(int client_fd);
+	void send_error_response  (int, int, const std::string&, size_t);
+
 
 
 private:
@@ -94,7 +96,6 @@ private:
     void send_upload_success_response(int, const std::string&, size_t);
 
     void send_ok_response     (int, const std::string&, const std::map<std::string,std::string>&, size_t);
-    void send_error_response  (int, int, const std::string&, size_t);
     void send_file_response   (int, const std::string&, size_t);
     void send_redirect_response(int, int, const std::string&, size_t);
 	void send_created_response(int client_fd, 

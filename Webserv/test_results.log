@@ -32,9 +32,9 @@ Connection: keep-alive
 Content-Length: 502
 Content-Type: text/html; charset=utf-8
 Keep-Alive: timeout=5, max=100
-Location: www/upload/test_20250824_163002.txt
+Location: www/upload/test_20250824_195933.txt
 
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Upload Successful</title></head><body style="font-family:sans-serif;text-align:center;margin-top:50px;"><h1>✅ File uploaded successfully!</h1><p>Saved as: <code>www/upload/test_20250824_163002.txt</code></p><br><br><a href="/" style="margin: 0 10px;"><button>Home</button></a><a href="/about" style="margin: 0 10px;"><button>About</button></a><a href="/upload" style="margin: 0 10px;"><button>Upload Another</button></a></body></html>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Upload Successful</title></head><body style="font-family:sans-serif;text-align:center;margin-top:50px;"><h1>✅ File uploaded successfully!</h1><p>Saved as: <code>www/upload/test_20250824_195933.txt</code></p><br><br><a href="/" style="margin: 0 10px;"><button>Home</button></a><a href="/about" style="margin: 0 10px;"><button>About</button></a><a href="/upload" style="margin: 0 10px;"><button>Upload Another</button></a></body></html>
 HTTP 201
 
 [OK] POST /upload returned 201 created
@@ -136,10 +136,9 @@ ChunkedBodyTest
 ------------------------------------------------------------
 >> curl -s -i -X PATCH http://localhost:8080/
 HTTP/1.1 501 Not Implemented
-Connection: keep-alive
+Connection: close
 Content-Length: 165
 Content-Type: text/html
-Keep-Alive: timeout=5, max=100
 
 <!DOCTYPE html><html><head><title>501 Not Implemented</title></head><body><h1>501 Not Implemented</h1><p>The server could not fulfill your request.</p></body></html>
 [OK] 501 Not Implemented error returned.
@@ -148,10 +147,9 @@ Keep-Alive: timeout=5, max=100
 ------------------------------------------------------------
 >> curl -s -i -X DELETE http://localhost:8080/
 HTTP/1.1 405 Method Not Allowed
-Connection: keep-alive
+Connection: close
 Content-Length: 393
 Content-Type: text/html
-Keep-Alive: timeout=5, max=100
 
 <!DOCTYPE html>
 <html>
@@ -195,17 +193,21 @@ Keep-Alive: timeout=5, max=100
 == Test 12: 400 Bad Request ==
 ------------------------------------------------------------
 >> printf "GET /missing_http_version\r\n\r\n" | nc localhost 8080
+HTTP/1.1 400 Bad Request
+Connection: close
+Content-Length: 157
+Content-Type: text/html
 
-[FAIL] 400 Bad Request error returned.
+<!DOCTYPE html><html><head><title>400 Bad Request</title></head><body><h1>400 Bad Request</h1><p>The server could not fulfill your request.</p></body></html>
+[OK] 400 Bad Request error returned.
 ------------------------------------------------------------
 == Test 14: 403 Forbidden ==
 ------------------------------------------------------------
 >> touch www/upload/forbidden.txt && chmod 444 www/upload/forbidden.txt && curl -s -i -F file=@test.cpp http://localhost:8080/upload/forbidden.txt
 HTTP/1.1 403 Forbidden
-Connection: keep-alive
+Connection: close
 Content-Length: 378
 Content-Type: text/html
-Keep-Alive: timeout=5, max=100
 
 <!DOCTYPE html>
 <html>
@@ -229,10 +231,9 @@ Keep-Alive: timeout=5, max=100
 ------------------------------------------------------------
 >> curl -s -i http://localhost:8080/doesnotexist.txt
 HTTP/1.1 404 Not Found
-Connection: keep-alive
+Connection: close
 Content-Length: 483
 Content-Type: text/html
-Keep-Alive: timeout=5, max=100
 
 <!DOCTYPE html>
 <html>
@@ -255,17 +256,15 @@ Keep-Alive: timeout=5, max=100
 ------------------------------------------------------------
 == Test 16: 408 Request Timeout ==
 ------------------------------------------------------------
-Testing 408 Request Timeout by connecting but not sending data...
-[FAIL] 408 Request Timeout test: Connection failed or no response received.
+[OK] 408 Request Timeout returned for idle connection.
 ------------------------------------------------------------
 == Test 17: 500 Internal Server Error ==
 ------------------------------------------------------------
 >> echo -e '#!/usr/bin/env python3\nimport sys\nsys.exit(1)' > www/cgi-bin/error500.py && chmod +x www/cgi-bin/error500.py && curl -s -i http://localhost:8080/cgi-bin/error500.py
 HTTP/1.1 500 Internal Server Error
-Connection: keep-alive
+Connection: close
 Content-Length: 389
 Content-Type: text/html
-Keep-Alive: timeout=5, max=100
 
 <!DOCTYPE html>
 <html>
@@ -298,10 +297,9 @@ Manual/visual: To test 503, simulate server overload or maintenance mode.
 == Test 20: 504 Gateway Timeout (CGI timeout test) ==
 ------------------------------------------------------------
 HTTP/1.1 504 Gateway Timeout
-Connection: keep-alive
+Connection: close
 Content-Length: 375
 Content-Type: text/html
-Keep-Alive: timeout=5, max=100
 
 <!DOCTYPE html>
 <html>
@@ -325,10 +323,10 @@ Keep-Alive: timeout=5, max=100
 >> curl -s -i -X POST http://localhost:8080/upload -H  --data 1236565465446
 HTTP/1.1 411 Length Required
 Connection: close
-Content-Length: 138
+Content-Length: 165
 Content-Type: text/html
 
-<!DOCTYPE html><html><head><title>411 Length Required</title></head><body><h1>411 Length Required</h1><p>Length Required</p></body></html>
+<!DOCTYPE html><html><head><title>411 Length Required</title></head><body><h1>411 Length Required</h1><p>The server could not fulfill your request.</p></body></html>
 [OK] POST/ 411 Length Required
 ------------------------------------------------------------
 == Test 22: double Content_length ==
@@ -336,20 +334,19 @@ Content-Type: text/html
 >> curl -i -s -H 'Content-Length: 3' -H 'Content-Length: 5' -d 'foo' http://localhost:8080/
 HTTP/1.1 400 Bad Request
 Connection: close
-Content-Length: 126
+Content-Length: 157
 Content-Type: text/html
 
-<!DOCTYPE html><html><head><title>400 Bad Request</title></head><body><h1>400 Bad Request</h1><p>Bad Request</p></body></html>
+<!DOCTYPE html><html><head><title>400 Bad Request</title></head><body><h1>400 Bad Request</h1><p>The server could not fulfill your request.</p></body></html>
 [OK] 400 Bad Request
 ------------------------------------------------------------
 == Test 23: Wrong Location ==
 ------------------------------------------------------------
 >> curl -s -i http://localhost:8080/%00test/
 HTTP/1.1 404 Not Found
-Connection: keep-alive
+Connection: close
 Content-Length: 483
 Content-Type: text/html
-Keep-Alive: timeout=5, max=100
 
 <!DOCTYPE html>
 <html>
@@ -373,20 +370,35 @@ Keep-Alive: timeout=5, max=100
 == Test 24: Unsupported HTTP Version (HTTP/0.9) ==
 ------------------------------------------------------------
 >> printf 'GET /upload HTTP/0.9\r\nHost: localhost:8080\r\n\r\n' | nc localhost 8080
+HTTP/1.1 505 HTTP Version Not Supported
+Connection: close
+Content-Length: 187
+Content-Type: text/html
 
-[FAIL] 505 HTTP Version Not Supported
+<!DOCTYPE html><html><head><title>505 HTTP Version Not Supported</title></head><body><h1>505 HTTP Version Not Supported</h1><p>The server could not fulfill your request.</p></body></html>
+[OK] 505 HTTP Version Not Supported
 ------------------------------------------------------------
 == Test 24b: Malformed HTTP Version ==
 ------------------------------------------------------------
 >> printf 'GET /upload HTTP/ABC\r\nHost: localhost:8080\r\n\r\n' | nc localhost 8080
+HTTP/1.1 400 Bad Request
+Connection: close
+Content-Length: 157
+Content-Type: text/html
 
-[FAIL] 400 Bad Request for malformed version
+<!DOCTYPE html><html><head><title>400 Bad Request</title></head><body><h1>400 Bad Request</h1><p>The server could not fulfill your request.</p></body></html>
+[OK] 400 Bad Request for malformed version
 ------------------------------------------------------------
 == Test 25: Missing Colon in Content-Length Header ==
 ------------------------------------------------------------
 >> printf 'POST /upload HTTP/1.1\r\nHost: localhost:8080\r\nContent-Length 5\r\n\r\nhello' | nc localhost 8080
+HTTP/1.1 400 Bad Request
+Connection: close
+Content-Length: 157
+Content-Type: text/html
 
-[FAIL] 400 Bad Request
+<!DOCTYPE html><html><head><title>400 Bad Request</title></head><body><h1>400 Bad Request</h1><p>The server could not fulfill your request.</p></body></html>
+[OK] 400 Bad Request
 ------------------------------------------------------------
 == Transfer-Encoding: chunked Edge Cases ==
 ------------------------------------------------------------
@@ -466,26 +478,24 @@ Content-Type: text/plain
 == Test 32: Chunked with Content-Length header (should ignore CL) ==
 ------------------------------------------------------------
 >> curl -s -i -X POST -H 'Transfer-Encoding: chunked' -H 'Content-Length: 999' --data-binary 'test data' http://localhost:8080/cgi-bin/echo_body.py
-HTTP/1.1 200 OK
+HTTP/1.1 400 Bad Request
 Connection: close
-Content-Length: 10
-Content-Type: text/plain
+Content-Length: 157
+Content-Type: text/html
 
-test data
-
-[OK] Content-Length ignored when chunked encoding used
+<!DOCTYPE html><html><head><title>400 Bad Request</title></head><body><h1>400 Bad Request</h1><p>The server could not fulfill your request.</p></body></html>
+[FAIL] Content-Length ignored when chunked encoding used
 ------------------------------------------------------------
 == Test 33: Transfer-Encoding case insensitive ==
 ------------------------------------------------------------
 >> curl -s -i -X POST -H 'TRANSFER-ENCODING: CHUNKED' --data-binary 'case test' http://localhost:8080/cgi-bin/echo_body.py
-HTTP/1.1 200 OK
+HTTP/1.1 411 Length Required
 Connection: close
-Content-Length: 1
-Content-Type: text/plain
+Content-Length: 165
+Content-Type: text/html
 
-
-
-[OK] Transfer-Encoding is case insensitive
+<!DOCTYPE html><html><head><title>411 Length Required</title></head><body><h1>411 Length Required</h1><p>The server could not fulfill your request.</p></body></html>
+[FAIL] Transfer-Encoding is case insensitive
 ------------------------------------------------------------
 == Invalid Transfer-Encoding Edge Cases ==
 ------------------------------------------------------------
@@ -493,43 +503,46 @@ Content-Type: text/plain
 == Test 34: Unsupported Transfer-Encoding (gzip) ==
 ------------------------------------------------------------
 >> curl -s -i -X POST -H 'Transfer-Encoding: gzip' --data-binary 'test data' http://localhost:8080/cgi-bin/echo_body.py
-HTTP/1.1 200 OK
+HTTP/1.1 501 Not Implemented
 Connection: close
-Content-Length: 10
-Content-Type: text/plain
+Content-Length: 165
+Content-Type: text/html
 
-test data
-
-[FAIL] Unsupported Transfer-Encoding handled (might accept or reject)
+<!DOCTYPE html><html><head><title>501 Not Implemented</title></head><body><h1>501 Not Implemented</h1><p>The server could not fulfill your request.</p></body></html>
+[OK] Unsupported Transfer-Encoding handled (might accept or reject)
 ------------------------------------------------------------
 == Test 35: Invalid Transfer-Encoding value ==
 ------------------------------------------------------------
 >> curl -s -i -X POST -H 'Transfer-Encoding: invalid-encoding' --data-binary 'test data' http://localhost:8080/cgi-bin/echo_body.py
-HTTP/1.1 200 OK
+HTTP/1.1 501 Not Implemented
 Connection: close
-Content-Length: 10
-Content-Type: text/plain
+Content-Length: 165
+Content-Type: text/html
 
-test data
-
-[FAIL] Invalid Transfer-Encoding value handled
+<!DOCTYPE html><html><head><title>501 Not Implemented</title></head><body><h1>501 Not Implemented</h1><p>The server could not fulfill your request.</p></body></html>
+[OK] Invalid Transfer-Encoding value handled
 ------------------------------------------------------------
 == Test 36: Multiple Transfer-Encoding headers ==
 ------------------------------------------------------------
->> curl -s -i -X POST -H 'Transfer-Encoding: gzip' -H 'Transfer-Encoding: chunked' --data-binary 'test data' http://localhost:8080/cgi-bin/echo_body.py
-HTTP/1.1 408 Request Timeout
-Content-Type: text/html; charset=utf-8
+>> curl -s -i -X POST -H 'Transfer-Encoding: gzip, chunked' --data-binary 'test data' http://localhost:8080/cgi-bin/echo_body.py
+HTTP/1.1 501 Not Implemented
 Connection: close
-Content-Length: 234
+Content-Length: 165
+Content-Type: text/html
 
-<!DOCTYPE html><html><head><title>408 Request Timeout</title></head><body><h1>408 Request Timeout</h1><p>Your request took too long to complete.</p><p><a href="/">Go back to homepage</a></p></body></html>
-[FAIL] Multiple Transfer-Encoding headers handled
+<!DOCTYPE html><html><head><title>501 Not Implemented</title></head><body><h1>501 Not Implemented</h1><p>The server could not fulfill your request.</p></body></html>
+[OK] Multiple Transfer-Encoding headers handled
 ------------------------------------------------------------
 == Test 37: Transfer-Encoding with both chunked and Content-Length ==
 ------------------------------------------------------------
->> printf 'POST /cgi-bin/echo_body.py HTTP/1.1\r\nHost: localhost:8080\r\nTransfer-Encoding: chunked\r\nContent-Length: 5\r\n\r\nhello' | nc -w 3 localhost 8080
+>> printf 'POST /cgi-bin/echo_body.py HTTP/1.1\r\nHost: localhost:8080\r\nTransfer-Encoding: chunked\r\nContent-Length: 5\r\n\r\n5\r\nhello\r\n0\r\n\r\n' | nc -w 3 localhost 8080
+HTTP/1.1 400 Bad Request
+Connection: close
+Content-Length: 157
+Content-Type: text/html
 
-[FAIL] Both Transfer-Encoding and Content-Length headers handled
+<!DOCTYPE html><html><head><title>400 Bad Request</title></head><body><h1>400 Bad Request</h1><p>The server could not fulfill your request.</p></body></html>
+[OK] Both Transfer-Encoding and Content-Length headers handled
 ------------------------------------------------------------
 == Test 38: Malformed chunked claim with plain body ==
 ------------------------------------------------------------
@@ -544,6 +557,9 @@ Content-Length: 234
 ------------------------------------------------------------
 >> curl -s -i -X POST -H 'Expect: 100-continue' --data-binary 'test data for expect continue' http://localhost:8080/cgi-bin/echo_body.py
 HTTP/1.1 100 Continue
+Connection: close
+Content-Length: 0
+Content-Type: text/html
 
 HTTP/1.1 200 OK
 Connection: close
@@ -558,6 +574,9 @@ test data for expect continue
 ------------------------------------------------------------
 >> curl -s -i -X POST -H 'Expect: 100-continue' --data-binary "$(python3 -c 'print("ExpectData" * 100)')" http://localhost:8080/cgi-bin/echo_body.py
 HTTP/1.1 100 Continue
+Connection: close
+Content-Length: 0
+Content-Type: text/html
 
 HTTP/1.1 200 OK
 Connection: close
@@ -570,7 +589,7 @@ ExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectData
 ------------------------------------------------------------
 == Checking Results ==
 ------------------------------------------------------------
-[OK] File uploaded successfully as www/upload/test_20250824_162140.txt.
+[OK] File uploaded successfully as www/upload/test_20250824_170704.txt.
 [OK] File deleted successfully.
 [OK] CGI GET returned Content-Type header.
 [OK] CGI POST returned Content-Type header.

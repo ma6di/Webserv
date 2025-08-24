@@ -147,16 +147,17 @@ void WebServer::handleClientDataOn(int client_fd)
         const size_t header_bytes = hdr_end + 4;
         std::string headers = data.substr(0, header_bytes);
 
-        size_t needed = header_bytes; // total request bytes needed
+        size_t needed = header_bytes;
         if (has_chunked_encoding(headers)) {
-            size_t endpos = find_chunked_terminator(data, header_bytes);
-            if (endpos == std::string::npos) {
-                // wait for the rest of the chunked body
+            // For chunked, just wait for at least one line of body after headers
+            if (data.size() <= header_bytes) {
+                // wait for some body
                 return;
             }
-            needed = endpos;
+            Logger::log(LOG_DEBUG, "WebServer", "Detected chunked encoding, passing frame to Request for validation");
+            needed = data.size();
         } else {
-            int len = parse_content_length(headers); // your helper
+            int len = parse_content_length(headers);
             if (len < 0) len = 0;
             if (data.size() < header_bytes + (size_t)len) {
                 // wait for more body bytes
@@ -175,12 +176,19 @@ void WebServer::handleClientDataOn(int client_fd)
             std::string error_msg = e.what();
             Logger::log(LOG_ERROR, "WebServer",
                         std::string("Request parse failed: ") + error_msg);
-            
-            // Check if it's an HTTP version issue
+            // Check for specific error types
             if (error_msg.find("HTTP Version Not Supported") != std::string::npos) {
                 send_error_response(client_fd, 505, "HTTP Version Not Supported", 0);
+                flushPendingWrites(client_fd);
+                conns_[client_fd].shouldCloseAfterWrite = true;
+            } else if (error_msg.find("501:") == 0) {
+                send_error_response(client_fd, 501, "Not Implemented", 0);
+                flushPendingWrites(client_fd);
+                conns_[client_fd].shouldCloseAfterWrite = true;
             } else {
-                send_bad_request_response(client_fd, "Bad Request");
+                send_error_response(client_fd, 400, "Bad Request", 0);
+                flushPendingWrites(client_fd);
+                conns_[client_fd].shouldCloseAfterWrite = true;
             }
         }
 
@@ -197,6 +205,8 @@ void WebServer::handleClientDataOn(int client_fd)
 void WebServer::process_request(Request &request, int client_fd, size_t i)
 
 {
+    std::cout << "process_request \n";
+
     std::string ver = request.getVersion();
     std::string connHdr = request.getHeader("Connection");
     bool close_conn = (connHdr == "close") || (ver == "HTTP/1.0" && connHdr != "keep-alive");
@@ -245,10 +255,10 @@ void WebServer::process_request(Request &request, int client_fd, size_t i)
         return;
     }
 
-    // CGI check
+    // CGI check for GET/DELETE (not POST)
     int is_cgi = (loc && !loc->cgi_extension.empty() && is_cgi_request(*loc, request.getPath())) ? 1 : 0;
-    Logger::log(LOG_DEBUG, "WebServer", "is_cgi_request: " + to_str(is_cgi));
-    if (loc && is_cgi) {
+    if ((method == "GET" || method == "DELETE") && loc && is_cgi) {
+        Logger::log(LOG_DEBUG, "WebServer", "is_cgi_request: " + to_str(is_cgi));
         handle_cgi(loc, request, client_fd, i);
         return;
     }
@@ -278,7 +288,12 @@ void WebServer::process_request(Request &request, int client_fd, size_t i)
         handle_get(request, loc, client_fd, i);
     } else if (method == "POST") {
         if (!validate_post_request(request, client_fd, i)) {
-			std::cout << "hereeee" << "\n";
+            return;
+        }
+        // CGI check for POST
+        if (loc && is_cgi) {
+            Logger::log(LOG_DEBUG, "WebServer", "is_cgi_request: " + to_str(is_cgi));
+            handle_cgi(loc, request, client_fd, i);
             return;
         }
         Logger::log(LOG_DEBUG, "process_request",
@@ -300,15 +315,16 @@ bool WebServer::validate_post_request(Request &request, int client_fd, size_t i)
     long contentLength = request.getContentLength();
     std::string transferEncoding = request.getHeader("Transfer-Encoding");
     bool isChunked = !transferEncoding.empty() && transferEncoding.find("chunked") != std::string::npos;
-    std::cout << "body size :" << request.getBody().size() << "\n";
-    std::cout << "content_lenght :" << contentLength << "\n";
+    // std::cout << "body size :" << request.getBody().size() << "\n";
+    // std::cout << "content_lenght :" << contentLength << "\n";
     // Must have either Content-Length or Transfer-Encoding: chunked, but not both
     if (contentLength && isChunked) {
         send_error_response(client_fd, 400, "Bad Request", i);
+        flushPendingWrites(client_fd);
         return false;
     }
     if (!contentLength && !isChunked) {
-        send_length_required_response(client_fd, "Length Required");
+        send_error_response(client_fd, 411, "Length Required", i);
         return false;
     }
 
@@ -317,7 +333,7 @@ bool WebServer::validate_post_request(Request &request, int client_fd, size_t i)
         if (contentLength < 0 || contentLength != static_cast<long>(request.getBody().size())) {
             std::cout << "body size :" << request.getBody().size() << "\n";
             std::cout << "content_lenght :" << contentLength << "\n";
-            send_bad_request_response(client_fd, "Bad Request");
+            send_error_response(client_fd, 400, "Bad Request", i);
             return false;
         }
     }
