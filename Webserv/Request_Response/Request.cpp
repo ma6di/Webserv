@@ -1,4 +1,5 @@
 #include "Request.hpp"
+#include "Response.hpp"
 #include "utils.hpp"
 #include "Logger.hpp"
 #include "WebServer.hpp"
@@ -9,6 +10,16 @@
 
 // Constructor: Parses the raw HTTP request data
 Request::Request(const std::string& raw_data) : content_length(0) {
+    // Safety check and logging for raw_data
+        std::ostringstream oss;
+        oss << "raw_data size: " << raw_data.size();
+        Logger::log(LOG_INFO, "Request::Request", oss.str());
+    if (raw_data.size() > 100*1024*1024) {
+        Logger::log(LOG_ERROR, "Request::Request", "raw_data too large, possible buffer corruption");
+        throw std::runtime_error("raw_data too large");
+    }
+    // Optionally log first 200 bytes for debugging
+    Logger::log(LOG_INFO, "Request::Request", std::string("raw_data preview: ") + raw_data.substr(0, std::min((size_t)200, raw_data.size())));
     parseRequest(raw_data);
 }
 
@@ -60,7 +71,7 @@ void Request::parseRequest(const std::string& raw_data) {
         request_line >> method >> path >> version;
         if (method.empty() || path.empty() || version.empty())
             throw std::runtime_error("Malformed request line");
-        
+
         // Validate HTTP version format and support
         if (!isValidHttpVersionFormat(version))
             throw std::runtime_error("Invalid HTTP version");
@@ -68,6 +79,7 @@ void Request::parseRequest(const std::string& raw_data) {
             throw std::runtime_error("HTTP Version Not Supported");
 
         // --- Parse headers ---
+        int cl_found = 0;
         while (std::getline(stream, line)) {
             if (!line.empty() && line[line.size() - 1] == '\r')
                 line.erase(line.size() - 1);
@@ -94,11 +106,17 @@ void Request::parseRequest(const std::string& raw_data) {
 
             // Parse Content-Length if present (case-insensitive)
             if (strcasecmp(key.c_str(), "Content-Length") == 0) {
+                cl_found++;
+                long cl_val = -1;
                 std::istringstream iss(value);
-                if (!(iss >> content_length))
-                    throw std::runtime_error("Invalid Content-Length value");
+                if (!(iss >> cl_val) || cl_val < 0 || cl_val > 100L*1024L*1024L) // 100MB limit
+                    throw std::runtime_error("Invalid or too large Content-Length value");
+                content_length = static_cast<int>(cl_val);
             }
         }
+        if (cl_found > 1)
+            throw std::runtime_error("Multiple Content-Length headers");
+
         // Debug: print all parsed headers
         Logger::log(LOG_INFO, "Request::parseRequest", "\033[1;33m[Request] Parsed headers:\033[0m");
         for (std::map<std::string, std::string>::const_iterator it = headers.begin(); it != headers.end(); ++it) {
@@ -116,7 +134,9 @@ void Request::parseRequest(const std::string& raw_data) {
             body = decode_chunked_body(raw_body);
         } else if (strcasecmp(getHeader("Content-Length").c_str(), "") != 0) {
             // Content-Length header is present (any value, including zero)
-            if (static_cast<int>(raw_body.size()) < content_length)
+            if (content_length < 0 || content_length > 100L*1024L*1024L)
+                throw std::runtime_error("Invalid or too large Content-Length value");
+            if (static_cast<long>(raw_body.size()) < content_length)
                 throw std::runtime_error("Incomplete body");
             body = raw_body.substr(0, content_length);
         } else {

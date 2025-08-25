@@ -32,9 +32,9 @@ Connection: keep-alive
 Content-Length: 502
 Content-Type: text/html; charset=utf-8
 Keep-Alive: timeout=5, max=100
-Location: www/upload/test_20250824_214709.txt
+Location: www/upload/test_20250825_115728.txt
 
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Upload Successful</title></head><body style="font-family:sans-serif;text-align:center;margin-top:50px;"><h1>✅ File uploaded successfully!</h1><p>Saved as: <code>www/upload/test_20250824_214709.txt</code></p><br><br><a href="/" style="margin: 0 10px;"><button>Home</button></a><a href="/about" style="margin: 0 10px;"><button>About</button></a><a href="/upload" style="margin: 0 10px;"><button>Upload Another</button></a></body></html>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Upload Successful</title></head><body style="font-family:sans-serif;text-align:center;margin-top:50px;"><h1>✅ File uploaded successfully!</h1><p>Saved as: <code>www/upload/test_20250825_115728.txt</code></p><br><br><a href="/" style="margin: 0 10px;"><button>Home</button></a><a href="/about" style="margin: 0 10px;"><button>About</button></a><a href="/upload" style="margin: 0 10px;"><button>Upload Another</button></a></body></html>
 HTTP 201
 
 [OK] POST /upload returned 201 created
@@ -96,10 +96,10 @@ Content-Type: text/html
 >> curl -s -i -X POST http://localhost:8080/cgi-bin/cgi_post.py -F "file=@test.cpp"
 HTTP/1.1 200 OK
 Connection: close
-Content-Length: 118
+Content-Length: 115
 Content-Type: text/html
 
-<h1>File 'test.cpp' uploaded successfully to /Users/mahdicheraghali/Desktop/webserv/Webserv/www/upload/test.cpp!</h1>
+<h1>File 'test.cpp' uploaded successfully to /home/mcheragh/Desktop/status_codes/Webserv/www/upload/test.cpp!</h1>
 
 [OK] CGI POST (file) returned 200 OK
 ------------------------------------------------------------
@@ -671,9 +671,9 @@ Connection: keep-alive
 Content-Length: 500
 Content-Type: text/html; charset=utf-8
 Keep-Alive: timeout=5, max=100
-Location: www/upload/upload_20250824_214741
+Location: www/upload/upload_20250825_115814
 
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Upload Successful</title></head><body style="font-family:sans-serif;text-align:center;margin-top:50px;"><h1>✅ File uploaded successfully!</h1><p>Saved as: <code>www/upload/upload_20250824_214741</code></p><br><br><a href="/" style="margin: 0 10px;"><button>Home</button></a><a href="/about" style="margin: 0 10px;"><button>About</button></a><a href="/upload" style="margin: 0 10px;"><button>Upload Another</button></a></body></html>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Upload Successful</title></head><body style="font-family:sans-serif;text-align:center;margin-top:50px;"><h1>✅ File uploaded successfully!</h1><p>Saved as: <code>www/upload/upload_20250825_115814</code></p><br><br><a href="/" style="margin: 0 10px;"><button>Home</button></a><a href="/about" style="margin: 0 10px;"><button>About</button></a><a href="/upload" style="margin: 0 10px;"><button>Upload Another</button></a></body></html>
 [OK] Chunked POST to upload endpoint returned 201 Created
 ------------------------------------------------------------
 == Test 47: Chunked with Connection: close ==
@@ -688,9 +688,48 @@ connection test
 
 [OK] Chunked with Connection: close handled correctly
 ------------------------------------------------------------
+== Test 48: Expect 100-continue with oversized Content-Length (should get 413) ==
+------------------------------------------------------------
+>> curl -i -s -X POST http://127.0.0.1:8080/ -H 'Expect: 100-continue' -H 'Content-Length: 204800000' --data-binary "$(head -c 10240 /dev/zero)"
+./test_all.sh: line 40: warning: command substitution: ignored null byte in input
+HTTP/1.1 413 Payload Too Large
+Connection: close
+Content-Length: 393
+Content-Type: text/html
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>413 Payload Too Large</title>
+    <style>
+        body { font-family: Arial; background: #fff0f0; color: #a00; text-align: center; margin-top: 5em; }
+        a { color: #3366cc; }
+    </style>
+</head>
+<body>
+    <h1>413 Payload Too Large</h1>
+    <p>The request is too large for the server to handle.</p>
+    <a href="/">Go to Home</a>
+</body>
+</html>
+
+[OK] Expect: 100-continue oversized CL triggers 413
+------------------------------------------------------------
+== Test 49: POST with Expect: 100-continue and no Content-Length or chunked encoding (should get 411) ==
+------------------------------------------------------------
+>> curl -i -s -X POST http://127.0.0.1:8080/upload -H 'Expect: 100-continue' --data-binary "$(head -c 10240 /dev/zero)"
+./test_all.sh: line 40: warning: command substitution: ignored null byte in input
+HTTP/1.1 411 Length Required
+Connection: close
+Content-Length: 165
+Content-Type: text/html
+
+<!DOCTYPE html><html><head><title>411 Length Required</title></head><body><h1>411 Length Required</h1><p>The server could not fulfill your request.</p></body></html>
+[OK] Expect: 100-continue without CL/chunked triggers 411
+------------------------------------------------------------
 == Checking Results ==
 ------------------------------------------------------------
-[OK] File uploaded successfully as www/upload/test_20250824_212834.txt.
+[OK] File uploaded successfully as www/upload/test_20250825_103549.txt.
 [OK] File deleted successfully.
 [OK] CGI GET returned Content-Type header.
 [OK] CGI POST returned Content-Type header.

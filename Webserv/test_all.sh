@@ -60,6 +60,9 @@ mkdir -p www/upload
 touch www/upload/1.txt
 echo "This is a test file." > test.txt
 
+
+#!/bin/zsh
+
 # Tests
 log_and_run "Test 1: POST /cgi-bin/echo.py (application/x-www-form-urlencoded)" \
     "curl -s -i -w \"\nHTTP %{http_code}\n\" -X POST http://localhost:8080/cgi-bin/echo.py -H \"Content-Type: application/x-www-form-urlencoded\" -d \"hello=world&foo=bar\"" \
@@ -312,12 +315,21 @@ log_and_run "Test 45: Very long chunk size line" \
 # Additional realistic tests
 log_and_run "Test 46: Chunked POST to upload endpoint" \
     "curl -s -i -X POST -H 'Transfer-Encoding: chunked' --data-binary 'file content here' http://localhost:8080/upload" \
-    result_chunked_upload.txt "HTTP/1.1 201" "Chunked POST to upload endpoint returned 201 Created"
+    result_chunked_upload.txt "HTTP/1.1 201 Created" "Chunked POST to upload endpoint returned 201 Created"
 
 log_and_run "Test 47: Chunked with Connection: close" \
     "curl -s -i -X POST -H 'Transfer-Encoding: chunked' -H 'Connection: close' --data-binary 'connection test' http://localhost:8080/cgi-bin/echo_body.py" \
     result_chunked_conn_close.txt "connection test" "Chunked with Connection: close handled correctly"
 
+# Test 48: Expect 100-continue with oversized Content-Length (should get 413)
+log_and_run "Test 48: Expect 100-continue with oversized Content-Length (should get 413)" \
+    "curl -i -s -X POST http://127.0.0.1:8080/ -H 'Expect: 100-continue' -H 'Content-Length: 204800000' --data-binary \"\$(head -c 10240 /dev/zero)\"" \
+    result_expect_413.txt "413 Payload Too Large" "Expect: 100-continue oversized CL triggers 413"
+
+# Test 49: POST with Expect: 100-continue and no Content-Length or chunked encoding (should get 411)
+log_and_run "Test 49: POST with Expect: 100-continue and no Content-Length or chunked encoding (should get 411)" \
+    "curl -i -s -X POST http://127.0.0.1:8080/upload -H 'Expect: 100-continue' --data-binary \"\$(head -c 10240 /dev/zero)\"" \
+    result_expect_411.txt "411 Length Required" "Expect: 100-continue without CL/chunked triggers 411"
 # rm -f www/cgi-bin/hang.py
 
 # Result Checks
