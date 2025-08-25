@@ -13,7 +13,7 @@ def send_response(obj, status_code=200):
     print(json.dumps(obj))
     sys.exit()
 
-upload_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../images/uploads"))
+upload_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../upload"))
 os.makedirs(upload_dir, exist_ok=True)
 
 form = cgi.FieldStorage()

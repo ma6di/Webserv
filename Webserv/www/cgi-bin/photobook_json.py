@@ -2,7 +2,7 @@
 import os
 import json
 
-UPLOAD_DIR = "../images/uploads"  # or "./www/images/photobook" if you want only those
+UPLOAD_DIR = "../upload"  # or "./www/images/photobook" if you want only those
 IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif'}
 
 def photobook_json(directory):

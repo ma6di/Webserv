@@ -293,7 +293,7 @@
                     () => {
                         if (!fileToDelete || !cardToDelete) return;
 
-                        fetch(`/images/uploads/${fileToDelete}`, {
+                        fetch(`/upload/${fileToDelete}`, {
                             method: "DELETE",
                         })
                             .then((res) => {
@@ -348,7 +348,7 @@
 
                     // Creates the image element
                     const img = document.createElement("img");
-                    img.src = `/images/uploads/${filename}`;
+                    img.src = `/upload/${filename}`;
                     img.alt = filename;
                     img.style.display = "none"; // Hide until loaded
                     const loadDelay = 800; // ms
