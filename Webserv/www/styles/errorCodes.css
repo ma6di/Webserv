@@ -65,7 +65,7 @@ body {
 }
 
 .lead {
-    text-align: left;
+    /* text-align: left; */
 }
 
 /* Round carousel indicators */

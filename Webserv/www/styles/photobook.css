@@ -70,18 +70,18 @@ body {
 
 .active {
     color: #5552e2 !important;
-    font-weight: bold;
+    /* font-weight: bold; */
 }
 
 /* Paragraph */
 .paragraph {
-    text-align: center;
+    /* text-align: center; */
     max-width: 800px;
     margin: 0 auto 2rem;
     font-size: 1.1rem;
     /* color: #fff; */
     line-height: 1.6;
-    text-align: start;
+    /* text-align: start; */
 }
 
 .fa-heart {

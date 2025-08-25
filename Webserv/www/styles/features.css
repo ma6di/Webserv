@@ -18,14 +18,14 @@
 /* Title + description (idle) */
 .feature-card .card-title {
     font-size: 1.5rem;
-    font-weight: 700;
-    text-align: center;
+    /* font-weight: 700; */
+    /* text-align: center; */
     color: #dbe4ff; /* softer than white */
     transition: color 0.2s ease, text-shadow 0.2s ease;
 }
 .feature-card .card-text {
     font-size: 1rem;
-    font-weight: 300;
+    /* font-weight: 300; */
     color: #a6adc8; /* secondary text */
     transition: color 0.2s ease;
 }

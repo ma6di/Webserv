@@ -70,12 +70,6 @@
     font-size: 12px;
 }
 
-.about_sections p,
-ul {
-    text-align: start;
-    /* max-width: 1100px; */
-    /* margin: 0 auto; */
-}
 
 .about_sections li {
     padding: 5px 0;
@@ -92,8 +86,8 @@ ul {
 }
 
 .about_sections h6 {
-    text-align: center;
-    font-weight: 800;
+    /* text-align: center; */
+    /* font-weight: 800; */
     font-size: 1rem;
     margin-bottom: 1rem;
     letter-spacing: 0.4px;
