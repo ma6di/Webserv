@@ -1,3 +1,5 @@
+@import url(components/back_button.css);
+
 @media screen and (orientation: landscape) {
     .carousel {
         height: 100vh;
@@ -6,66 +8,55 @@
 
 html,
 body {
+    height: 100%;
+    margin: 0;
+}
+
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: #DC3545;
+    color: #fff;
+    /* font-family: "Roboto", sans-serif;
     height: 100vh;
     width: 100vw;
     margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    overflow-x: hidden;
-    display: flex;
-    flex-direction: column;
-    background: #212529;
+    padding: 0; */
+    /* box-sizing: border-box; */
+    /* overflow-x: hidden; */
+    /* display: flex; */
+    /* flex-direction: column; */
+    /* background: #212529; */
+    /* background: #DC3545;
     color: #fff;
+    height: fit-content; */
+
 }
 
-.back-button {
-    position: fixed;
-    top: 20px;
-    left: 20px;
-    z-index: 1000;
-    text-decoration: none;
-    transition: all 0.3s ease;
-    align-items: center;
-    backdrop-filter: blur(5px);
-    /* font-weight: 600; */
-    color: rgba(255, 255, 255, 0.589);
-    gap: 10px;
-    /* padding: 12px 24px; */
+
+.header {
+    flex: 0 0 auto;
+    background: #212529;
 }
 
-.back-button:hover {
-    /* background: rgba(255, 255, 255, 0.2); */
-    transform: translateY(-2px);
-    color: white;
+#carouselExampleCaptions {
+    flex: 1 1 auto;
 }
 
-.back-button i {
-    font-size: 0.9em;
-    transition: transform 0.5s ease;
+/* optional: remove oversizing */
+@media screen and (orientation: landscape) {
+  .carousel { height: auto; } /* or delete this rule entirely */
 }
+/* change this from min-height to height */
+.carousel-slide-bg { height: 100%; }
 
-.back-button:hover i {
-    animation: wiggleLeft 1s ease-in-out;
-    animation-iteration-count: infinite;
-}
-
-@keyframes wiggleLeft {
-    0%,
-    100% {
-        transform: translateX(0);
-    }
-
-    25% {
-        transform: translateX(-3px);
-    }
-
-    75% {
-        transform: translateX(-1px);
-    }
-}
-
-.lead {
-    /* text-align: left; */
+/* make carousel fill remaining height */
+.carousel,
+.carousel-inner,
+.carousel-item,
+.carousel-slide-bg {
+    height: 100%;
 }
 
 /* Round carousel indicators */
@@ -85,7 +76,7 @@ body {
 
 .carousel-slide-bg {
     background-color: #dc3545;
-    min-height: 90vh;
+    min-height: 100vh;
     position: relative;
     transition: all 0.3s ease;
 }
@@ -97,8 +88,7 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    /* background-image: url("https://forum.plutonium.pw/assets/uploads/files/1650070506526-fire.gif"); */
-    background-image: url("https://upload.wikimedia.org/wikipedia/commons/2/22/Animated_fire_by_nevit.gif");
+    background-image: url("https://forum.plutonium.pw/assets/uploads/files/1650070506526-fire.gif");
     background-size: cover;
     background-position: center;
     opacity: 0;
@@ -111,7 +101,7 @@ body {
     z-index: 2;
 }
 
-.trigger-btn:hover ~ .carousel-slide-bg::before,
+.trigger-btn:hover~.carousel-slide-bg::before,
 .carousel-slide-bg:has(.trigger-btn:hover)::before {
     opacity: 1;
 }
@@ -138,9 +128,9 @@ body {
 
 .trigger-btn:hover {
     color: #dc3545;
-
-    /* background: transparent; */
-    /* border-color: transparent; */
-    /* color: white; */
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+}
+
+.slide {
+    min-height: 70vh;
 }

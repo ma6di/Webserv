@@ -1,92 +1,79 @@
-/*
-  Note: In a typical project structure, CSS, JavaScript, and HTML files should be organized
-  into separate folders to maintain clean and modular architecture.
-
-  However, when these files are placed outside the 'static' directory, the server returns a 403 Forbidden error.
-  This indicates a possible server-side path resolution issue or misconfiguration in the server settings.
-
-  Resolving this is important for proper project structure and long-term maintainability.
-*/
-
-/*
-  DEFAULT CSS FILE
-  This file contains styles shared across multiple pages.
-  Common elements such as the body and navigation bar should be styled here.
-
-  Examples:
-  - Body: shared background color, font settings, etc.
-  - Navbar: consistent appearance across all HTML pages
-
-  IMPORTANT: when creating a .css file for a new html page remember to add this on top of the page:
-
-    @import url("style.css");
-
-*/
-@import url("style.css");
+@import url("components/back_button.css");
 
 body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-
-    background: #1f1e63;
-    background: radial-gradient(
-        circle,
-        rgba(31, 30, 99, 1) 0%,
-        rgba(13, 14, 71, 1) 53%,
-        rgba(9, 9, 38, 1) 100%
-    );
-    /* background: #f2f3f7; /* fallback */
-    /* background: linear-gradient(to bottom, #f5f7fa, #e4e7f1, #d6dae7); */
+    font-family: "Roboto", sans-serif;
 }
 
-#mainNavbar {
-    position: fixed;
+.get {
+    background-color: #a7d8ff;
+}
+
+.post {
+    background-color: #a7ffb6;
+}
+
+.delete {
+    background-color: #ffa7a7;
+}
+
+
+.photo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+}
+
+.photo-card {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    border-radius: 8px;
+    overflow: hidden;
+    object-fit: cover;
+    background-color: #dee2e6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.photo-card:hover {
+    transform: scale(1.03);
+}
+
+.photo-card img {
     width: 100%;
-    top: 0;
-    transition: top 0.3s;
-    z-index: 999;
-    /* background: #000; */
-    /* color: #1f1e63; */
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 0.4s ease;
 }
 
-.navbar {
-    background: linear-gradient(
-        to bottom,
-        #000000,
-        rgba(0, 0, 0, 0)
-    ) !important;
+.photo-card img.visible {
+    opacity: 1;
 }
 
-.nav-link {
-    text-decoration: none;
-    padding: 10px 15px;
-    font-size: 1.1rem;
-    transition: color 0.3s ease;
+.upload-icon {
+    font-size: 2.5rem;
+    color: #6c757d;
 }
 
-.nav-link {
-    /* color: #ffffff !important; */
-}
-
-.active {
-    color: #5552e2 !important;
-    /* font-weight: bold; */
-}
-
-/* Paragraph */
-.paragraph {
-    /* text-align: center; */
-    max-width: 800px;
-    margin: 0 auto 2rem;
-    font-size: 1.1rem;
-    /* color: #fff; */
-    line-height: 1.6;
-    /* text-align: start; */
-}
-
-.fa-heart {
-    color: #ff5760;
-    margin: 0 5px;
+.delete-btn {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    border: none;
     font-size: 1.2rem;
-    transition: color 0.3s ease;
+    padding: 0 8px;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10;
+    transition: background 0.2s ease;
+}
+
+.delete-btn:hover {
+    background: rgba(220, 53, 69, 0.85);
+    /* Bootstrap danger-ish */
 }

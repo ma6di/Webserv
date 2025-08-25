@@ -1,5 +1,6 @@
 @import url("style.css");
 @import url("index.css");
+@import url(components/back_button.css);
 .metrics-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));

@@ -1,19 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Siege Test - Webserv</title>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-        <link
-            href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap"
-            rel="stylesheet" />
-        <link
-            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css"
-            rel="stylesheet" />
-        <link rel="stylesheet" href="/styles/siege.css" />
-    </head>
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Siege Test - Webserv</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap"
+        rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+        referrerpolicy="no-referrer">
+    <link rel="stylesheet" href="/styles/siege.css" />
+</head>
+
+<body class="text-dark fw-light">
+    <div class="px-5 py-4">
+        <a href="/index.html#features" class="back-button text-white-50">
+            <i class="fa-solid fa-angle-left"></i>
+            Back to features
+        </a>
+    </div>
     <section class="siege-explainer container siege-container">
         <h2 class="text-center mb-3">Siege Stress Testing</h2>
 
@@ -45,30 +53,19 @@
 
         <h3 class="mt-4 mb-3">Our latest results</h3>
         <div class="metrics-grid">
-            <div
-                class="metric-card"
-                data-key="availability"
-                data-value="100.00"
-                data-target=">=99.5%">
+            <div class="metric-card" data-key="availability" data-value="100.00" data-target=">=99.5%">
                 <div class="metric-label">Availability</div>
                 <div class="metric-value">100.00%</div>
                 <div class="metric-target">Target: ≥ 99.5%</div>
             </div>
 
-            <div
-                class="metric-card"
-                data-key="response_time"
-                data-value="0.03"
-                data-target="<=0.30s">
+            <div class="metric-card" data-key="response_time" data-value="0.03" data-target="<=0.30s">
                 <div class="metric-label">Avg Response Time</div>
                 <div class="metric-value">0.03 s</div>
                 <div class="metric-target">Target: ≤ 0.30 s</div>
             </div>
 
-            <div
-                class="metric-card"
-                data-key="transaction_rate"
-                data-value="248.89">
+            <div class="metric-card" data-key="transaction_rate" data-value="248.89">
                 <div class="metric-label">Transaction Rate</div>
                 <div class="metric-value">248.89 req/s</div>
                 <div class="metric-target">Higher is better</div>
@@ -80,43 +77,37 @@
                 <div class="metric-target">Higher is better</div>
             </div>
 
-            <div
-                class="metric-card"
-                data-key="failed_transactions"
-                data-value="0"
-                data-target="=0">
+            <div class="metric-card" data-key="failed_transactions" data-value="0" data-target="=0">
                 <div class="metric-label">Failed Transactions</div>
                 <div class="metric-value">0</div>
                 <div class="metric-target">Target: 0</div>
             </div>
 
-            <div
-                class="metric-card"
-                data-key="longest_transaction"
-                data-value="0.73"
-                data-target="<=1.0s">
+            <div class="metric-card" data-key="longest_transaction" data-value="0.73" data-target="<=1.0s">
                 <div class="metric-label">Longest Transaction</div>
                 <div class="metric-value">0.73 s</div>
                 <div class="metric-target">Target: ≤ 1.0 s</div>
             </div>
         </div>
     </section>
+</body>
 
-    <script>
-        (function () {
-            const goals = {
-                availability: (v) => v >= 99.5,
-                response_time: (v) => v <= 0.3,
-                failed_transactions: (v) => v === 0,
-                longest_transaction: (v) => v <= 1.0,
-            };
-            document.querySelectorAll(".metric-card").forEach((card) => {
-                const key = card.dataset.key;
-                const raw = parseFloat(card.dataset.value);
-                if (goals[key]) {
-                    card.classList.add(goals[key](raw) ? "good" : "bad");
-                }
-            });
-        })();
-    </script>
+<script>
+    (function () {
+        const goals = {
+            availability: (v) => v >= 99.5,
+            response_time: (v) => v <= 0.3,
+            failed_transactions: (v) => v === 0,
+            longest_transaction: (v) => v <= 1.0,
+        };
+        document.querySelectorAll(".metric-card").forEach((card) => {
+            const key = card.dataset.key;
+            const raw = parseFloat(card.dataset.value);
+            if (goals[key]) {
+                card.classList.add(goals[key](raw) ? "good" : "bad");
+            }
+        });
+    })();
+</script>
+
 </html>

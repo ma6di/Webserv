@@ -4,42 +4,6 @@
 @import url("features.css");
 @import url("team.css");
 
-/* PARALLAX */
-/* .floating-star {
-    position: absolute;
-    font-size: 1.5rem;
-    color: white;
-    opacity: 0.04;
-    pointer-events: none;
-    z-index: 0;
-    transition: transform 0.3s ease-out;
-    user-select: none;
-} */
-
-/* PAGE 1 - HOME*/
-/* .scroll-arrow {
-    margin-top: 20px;
-    font-size: 2rem;
-    color: #333;
-} */
-
-/* .bounce {
-    animation: bounce 2s infinite;
-} */
-
-/* @keyframes bounce {
-    0%,
-    100% {
-        transform: translateY(0);
-    }
-
-    50% {
-        transform: translateY(10px);
-    }
-} */
-
-/*  */
-
 body {
     font-family: "Roboto", sans-serif;
 }

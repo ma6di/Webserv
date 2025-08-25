@@ -1,121 +1,80 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Evaluator Photobook</title>
-        <link
-            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css"
-            rel="stylesheet" />
-        <!-- <link rel="stylesheet" type="text/css" href="/styles/index.css" /> -->
-        <style>
-            body {
-                background-color: #f8f9fa;
-            }
 
-            .photo-grid {
-                display: grid;
-                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-                gap: 1rem;
-            }
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Evaluator Photobook</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" type="text/css" href="/styles/photobook.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+        referrerpolicy="no-referrer">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap"
+        rel="stylesheet" />
+</head>
 
-            .photo-card {
-                position: relative;
-                aspect-ratio: 1 / 1;
-                border-radius: 8px;
-                overflow: hidden;
-                object-fit: cover;
-                background-color: #dee2e6;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                cursor: pointer;
-                transition: transform 0.2s ease;
-            }
-
-            .photo-card:hover {
-                transform: scale(1.03);
-            }
-
-            .photo-card img {
-                width: 100%;
-                height: 100%;
-                object-fit: cover;
-                opacity: 0;
-                transition: opacity 0.4s ease;
-            }
-
-            .photo-card img.visible {
-                opacity: 1;
-            }
-
-            .upload-icon {
-                font-size: 2.5rem;
-                color: #6c757d;
-            }
-
-            .delete-btn {
-                position: absolute;
-                top: 6px;
-                right: 6px;
-                background: rgba(0, 0, 0, 0.6);
-                color: white;
-                border: none;
-                font-size: 1.2rem;
-                padding: 0 8px;
-                border-radius: 50%;
-                cursor: pointer;
-                z-index: 10;
-                transition: background 0.2s ease;
-            }
-
-            .delete-btn:hover {
-                background: rgba(220, 53, 69, 0.85); /* Bootstrap danger-ish */
-            }
-        </style>
-    </head>
-    <body>
-        <nav id="mainNavbar" class="navbar navbar-expand-lg bg-body-tertiary">
-            <div class="container-fluid">
-                <button
-                    class="navbar-toggler"
-                    type="button"
-                    data-bs-toggle="collapse"
-                    data-bs-target="#navbarTogglerDemo01"
-                    aria-controls="navbarTogglerDemo01"
-                    aria-expanded="false"
-                    aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="collapse navbar-collapse" id="navbarTogglerDemo01">
-                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                        <li class="nav-item">
-                            <a
-                                class="nav-link"
-                                aria-current="page"
-                                href="/index.html#features"></a>
-                                👈 Back to features</a
-                            >
-                        </li>
-                    </ul>
+<body class="text-dark fw-light">
+    <div class="px-5 py-4">
+        <a href="/index.html#features" class="back-button text-muted ">
+            <i class="fa-solid fa-angle-left"></i>
+            Back to features
+        </a>
+    </div>
+    <div class="container py-5">
+        <h2 class="h1 text-center">About the Photobook</h2>
+        <p class="text-center text-muted py-2">
+            A simple photobook app that loads images from the server’s <code>upload/</code> folder, lets you add new
+            photos, name them, and delete them. </br>Changes persist on the server. How requests work when interacting
+            with this
+            simple app:
+        </p>
+        <div class="row row-cols-1 row-cols-lg-3 g-3 align-items-stretch">
+            <div class="col">
+                <div class="p-3 border border-primary rounded p-3 h-100 request_card get">
+                    <h4 class="h6 m-0 fw-normal">GET: load photos</h4>
+                    <p class="text-muted mb-2 fs-6 fw-light">
+                        Before the gallery renders, the app sends a <strong>GET</strong> request to fetch the file
+                        list
+                        from
+                        <code>upload/</code>.</br>
+                        The response populates the grid.
+                    </p>
                 </div>
             </div>
-        </nav>
+            <div class="col ">
+                <div class="p-3 border border-success rounded p-3 h-100 fw-light request_card post">
+                    <h4 class="h6 m-0">POST: add a photo</h4>
+                    <p class="text-muted mb-2 fs-6">
+                        Click the <span class="badge text-bg-secondary">+</span> button to open the upload dialog.
+                        Choose a file and
+                        enter a
+                        name.
+                        If you leave the name empty, the server assigns a generic name with a timestamp.
+                        Files larger than <strong>1&nbsp;MB</strong> are rejected.
+                    </p>
+                </div>
+            </div>
+            <div class="col">
+                <div class="p-3  border border-danger rounded p-3 fw-light h-100 request_card delete">
+                    <h4 class="h6 m-0">DELETE: remove a photo</h4>
+                    <p class="text-muted mb-2 fs-6">
+                        Click the <span class="badge text-bg-secondary">✕</span> on a photo to send a
+                        <strong>DELETE</strong> request for that
+                        file.</br>
+                        If all photos are deleted, an alert appears at the bottom of the page stating the Photobook
+                        is
+                        empty.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <p class="text-start my-2 text-muted">
+            Tip: Press <kbd>F12</kbd> → <strong>Console</strong> to watch requests and responses as you interact.
+        </p>
 
-        <div class="container py-5">
-            <h1 class="text-center mb-3">Evaluator Photobook</h1>
-            <p class="text-center mb-5 text-muted">
-                This page demonstrates real-world applications of
-                <strong>GET</strong>, <strong>POST</strong>, and
-                <strong>DELETE</strong> through an evaluator photo upload
-                system.
-            </p>
-            <p class="text-center mb-5 text-muted">
-                ✨ FUN FACT: Press F12 or right-click → Inspect to see this
-                message. Now that you're here... congrats! You're officially one
-                of us 🧙‍♂️
-            </p>
-
+        <div class="container my-5">
             <div class="photo-grid mb-4">
                 <!-- Upload Button -->
                 <div class="photo-card" onclick="showModal()">
@@ -123,65 +82,36 @@
                 </div>
             </div>
             <!-- Empty state message -->
-            <p
-                id="emptyMessage"
+            <p id="emptyMessage"
                 class="text-center mt-4 d-none px-4 py-3 border rounded bg-warning bg-opacity-25 text-dark">
                 📭 The photobook is empty! Add its first picture!
             </p>
 
             <!-- Upload Modal -->
-            <div
-                class="modal fade"
-                id="uploadModal"
-                tabindex="-1"
-                aria-labelledby="uploadModalLabel"
+            <div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel"
                 aria-hidden="true">
                 <div class="modal-dialog">
                     <div class="modal-content">
-                        <form
-                            id="photoUploadForm"
-                            enctype="multipart/form-data">
+                        <form id="photoUploadForm" enctype="multipart/form-data">
                             <div class="modal-header">
                                 <h5 class="modal-title" id="uploadModalLabel">
                                     Add your photo
                                 </h5>
-                                <button
-                                    type="button"
-                                    class="btn-close"
-                                    data-bs-dismiss="modal"
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"
                                     aria-label="Close"></button>
                             </div>
                             <div class="modal-body">
                                 <p>Click the button below to add your photo.</p>
-                                <input
-                                    type="file"
-                                    name="file"
-                                    id="modalFileInput"
-                                    class="form-control mb-3"
-                                    required />
+                                <input type="file" name="file" id="modalFileInput" class="form-control mb-3" required />
                                 <div id="fileReady" class="text-success d-none">
                                     ✅ Photo ready to upload
                                 </div>
 
-                                <label for="photoName" class="form-label mt-3"
-                                    >Photo name</label
-                                >
-                                <input
-                                    type="text"
-                                    name="name"
-                                    id="photoName"
-                                    class="form-control"
-                                    required />
+                                <label for="photoName" class="form-label mt-3">Photo name</label>
+                                <input type="text" name="name" id="photoName" class="form-control" required />
 
-                                <label
-                                    for="photoDescription"
-                                    class="form-label mt-3"
-                                    >Description</label
-                                >
-                                <textarea
-                                    name="description"
-                                    id="photoDescription"
-                                    class="form-control"
+                                <label for="photoDescription" class="form-label mt-3">Description</label>
+                                <textarea name="description" id="photoDescription" class="form-control"
                                     rows="2"></textarea>
                             </div>
                             <div class="modal-footer">
@@ -196,34 +126,21 @@
         </div>
 
         <!-- Delete Confirmation Modal -->
-        <div
-            class="modal fade"
-            id="confirmDeleteModal"
-            tabindex="-1"
-            aria-hidden="true">
+        <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
                     <div class="modal-header bg-danger text-white">
                         <h5 class="modal-title">Confirm Deletion</h5>
-                        <button
-                            type="button"
-                            class="btn-close btn-close-white"
-                            data-bs-dismiss="modal"></button>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
                         Are you sure you want to delete this photo?
                     </div>
                     <div class="modal-footer">
-                        <button
-                            type="button"
-                            class="btn btn-secondary"
-                            data-bs-dismiss="modal">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                             Cancel
                         </button>
-                        <button
-                            id="confirmDeleteBtn"
-                            type="button"
-                            class="btn btn-danger">
+                        <button id="confirmDeleteBtn" type="button" class="btn btn-danger">
                             Delete
                         </button>
                     </div>
@@ -233,266 +150,263 @@
 
         <!-- Deletion Toast -->
         <div class="toast-container position-fixed bottom-0 end-0 p-3">
-            <div
-                id="deleteToast"
-                class="toast text-white bg-success border-0"
-                role="alert">
+            <div id="deleteToast" class="toast text-white bg-success border-0" role="alert">
                 <div class="d-flex">
                     <div class="toast-body">
                         ✅ Photo deleted successfully from database.
                     </div>
-                    <button
-                        type="button"
-                        class="btn-close btn-close-white me-2 m-auto"
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto"
                         data-bs-dismiss="toast"></button>
                 </div>
             </div>
         </div>
+    </div>
 
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
-        <script>
-            console.info(`
-            Dear evaluator,
-            This app demonstrates how HTTP requests work on the frontend using JavaScript.
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        console.info(`
+        Dear evaluator,
+        This app demonstrates how HTTP requests work on the frontend using JavaScript.
+        
+        🧠 The frontend makes a GET request using the fetch() API:
+        https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch
+        
+        ✅ If the request succeeds:
+        - the CGI script (cgi-bin/photobook_json.py) returns a JSON file which lists all uploaded images.
+        - We use this list to dynamically create <img> elements and insert them into the page (aka "manipulating the DOM").
+        💡 Why use JSON when you already have HTML listings?
+        - JSON is the standard for frontend/backend communication.
+        - It's clean, fast, and easy to work with using JavaScript.
+        - Scraping directory listings is fragile and outdated (we're not building tools in 2003 👵🏻).
+        
+        
+        ❌ If the request fails or if something is wrong with one of the pictures:
+        - A fallback message is shown in the image card.
+        
+        ⏳ Why a timeout and spinner?
+        - We artificially delay image rendering (~800ms) to simulate real-world async behavior,
+        normalize rendering timing across network conditions, and prevent layout instability (CLS).
+        - It also reflects best practices in frontend architecture: by decoupling render timing
+        from asset arrival, we keep UI predictable even with cache, CDN, or latency variati
+        `);
 
-            🧠 The frontend makes a GET request using the fetch() API:
-            https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch
+        function showModal() {
+            const modal = new bootstrap.Modal(
+                document.getElementById("uploadModal")
+            );
+            modal.show();
+        }
 
-            ✅ If the request succeeds:
-                - the CGI script (cgi-bin/photobook_json.py) returns a JSON file which lists all uploaded images.
-                - We use this list to dynamically create <img> elements and insert them into the page (aka "manipulating the DOM").
-               💡 Why use JSON when you already have HTML listings?
-                    - JSON is the standard for frontend/backend communication.
-                    - It's clean, fast, and easy to work with using JavaScript.
-                    - Scraping directory listings is fragile and outdated (we're not building tools in 2003 👵🏻).
+        document
+            .getElementById("modalFileInput")
+            .addEventListener("change", function () {
+                const file = this.files[0];
+                const readyNotice = document.getElementById("fileReady");
 
+                if (!file) {
+                    readyNotice.classList.add("d-none");
+                    return;
+                }
 
-            ❌ If the request fails or if something is wrong with one of the pictures:
-               - A fallback message is shown in the image card.
+                const allowedTypes = [
+                    "image/jpeg",
+                    "image/png",
+                    "image/webp",
+                    "image/gif",
+                ];
+                if (!allowedTypes.includes(file.type)) {
+                    alert(
+                        "❌ Only JPG, PNG, WEBP, and GIF files are allowed."
+                    );
+                    this.value = ""; // reset input
+                    readyNotice.classList.add("d-none");
+                    return;
+                }
 
-            ⏳ Why a timeout and spinner?
-                  - We artificially delay image rendering (~800ms) to simulate real-world async behavior,
-                  normalize rendering timing across network conditions, and prevent layout instability (CLS).
-                  - It also reflects best practices in frontend architecture: by decoupling render timing
-                  from asset arrival, we keep UI predictable even with cache, CDN, or latency variati
-            `);
+                readyNotice.classList.remove("d-none");
+            });
 
-            function showModal() {
-                const modal = new bootstrap.Modal(
-                    document.getElementById("uploadModal")
-                );
-                modal.show();
-            }
+        //POST REQUEST
+        document
+            .getElementById("photoUploadForm")
+            .addEventListener("submit", function (e) {
+                e.preventDefault();
 
-            document
-                .getElementById("modalFileInput")
-                .addEventListener("change", function () {
-                    const file = this.files[0];
-                    const readyNotice = document.getElementById("fileReady");
+                const form = e.target;
+                const formData = new FormData(form); // auto includes file + name + desc
 
-                    if (!file) {
-                        readyNotice.classList.add("d-none");
-                        return;
-                    }
-
-                    const allowedTypes = [
-                        "image/jpeg",
-                        "image/png",
-                        "image/webp",
-                        "image/gif",
-                    ];
-                    if (!allowedTypes.includes(file.type)) {
-                        alert(
-                            "❌ Only JPG, PNG, WEBP, and GIF files are allowed."
-                        );
-                        this.value = ""; // reset input
-                        readyNotice.classList.add("d-none");
-                        return;
-                    }
-
-                    readyNotice.classList.remove("d-none");
-                });
-
-            //POST REQUEST
-            document
-                .getElementById("photoUploadForm")
-                .addEventListener("submit", function (e) {
-                    e.preventDefault();
-
-                    const form = e.target;
-                    const formData = new FormData(form); // auto includes file + name + desc
-
-                    fetch("/cgi-bin/photobook_upload.py", {
-                        method: "POST",
-                        body: new FormData(
-                            document.getElementById("photoUploadForm")
-                        ),
+                fetch("/cgi-bin/photobook_upload.py", {
+                    method: "POST",
+                    body: new FormData(
+                        document.getElementById("photoUploadForm")
+                    ),
+                })
+                    .then((res) => {
+                        if (!res.ok) throw new Error("Upload failed");
+                        return res.text(); // or .json() if your backend returns metadata
                     })
-                        .then((res) => {
-                            if (!res.ok) throw new Error("Upload failed");
-                            return res.text(); // or .json() if your backend returns metadata
-                        })
-                        .then((msg) => {
-                            alert("✅ Upload complete!");
-                            form.reset();
-                            document
-                                .getElementById("fileReady")
-                                .classList.add("d-none");
-                            bootstrap.Modal.getInstance(
-                                document.getElementById("uploadModal")
-                            ).hide();
-                            location.reload(); // or dynamically add to photo-grid
-                        })
-                        .catch((err) => {
-                            console.error("❌ Upload error:", err);
-                            alert("Upload failed!");
-                        });
-                });
-
-            //GET REQUEST
-            console.time("⏰ Completed in");
-            fetch("../cgi-bin/photobook_json.py")
-                .then((res) => {
-                    if (!res.ok) throw new Error("HTTP error " + res.status);
-                    return res.json();
-                })
-                .then((data) => {
-                    // makes the "empty photobooth" warning visible or not
-                    if (!Array.isArray(data) || data.length === 0) {
+                    .then((msg) => {
+                        alert("✅ Upload complete!");
+                        form.reset();
                         document
-                            .getElementById("emptyMessage")
-                            .classList.remove("d-none");
-                        return;
-                    } else {
-                        document
-                            .getElementById("emptyMessage")
+                            .getElementById("fileReady")
                             .classList.add("d-none");
+                        bootstrap.Modal.getInstance(
+                            document.getElementById("uploadModal")
+                        ).hide();
+                        location.reload(); // or dynamically add to photo-grid
+                    })
+                    .catch((err) => {
+                        console.error("❌ Upload error:", err);
+                        alert("Upload failed!");
+                    });
+            });
+
+        //GET REQUEST
+        console.time("⏰ Completed in");
+        fetch("../cgi-bin/photobook_json.py")
+            .then((res) => {
+                if (!res.ok) throw new Error("HTTP error " + res.status);
+                return res.json();
+            })
+            .then((data) => {
+                // makes the "empty photobooth" warning visible or not
+                if (!Array.isArray(data) || data.length === 0) {
+                    document
+                        .getElementById("emptyMessage")
+                        .classList.remove("d-none");
+                    return;
+                } else {
+                    document
+                        .getElementById("emptyMessage")
+                        .classList.add("d-none");
+                }
+
+                console.log("✅ Request handled successfully!");
+                console.timeEnd("⏰ Completed in");
+                console.log("Retrieved data:", data);
+
+                const grid = document.querySelector(".photo-grid");
+                let fileToDelete = null;
+                let cardToDelete = null;
+                document.getElementById("confirmDeleteBtn").onclick =
+                    () => {
+                        if (!fileToDelete || !cardToDelete) return;
+
+                        fetch(`/images/uploads/${fileToDelete}`, {
+                            method: "DELETE",
+                        })
+                            .then((res) => {
+                                if (!res.ok)
+                                    throw new Error("Delete failed");
+
+                                cardToDelete.remove();
+
+                                const toast = new bootstrap.Toast(
+                                    document.getElementById("deleteToast")
+                                );
+                                toast.show();
+
+                                fileToDelete = null;
+                                cardToDelete = null;
+
+                                bootstrap.Modal.getInstance(
+                                    document.getElementById(
+                                        "confirmDeleteModal"
+                                    )
+                                ).hide();
+
+                                // shows "empty phitobook" message
+                                if (
+                                    document.querySelectorAll(".photo-card")
+                                        .length === 1
+                                ) {
+                                    // Only the upload button remains
+                                    document
+                                        .getElementById("emptyMessage")
+                                        .classList.remove("d-none");
+                                }
+                            })
+                            .catch((err) => {
+                                console.error(
+                                    "❌ Could not delete image:",
+                                    err
+                                );
+                                alert("Error: failed to delete image.");
+                            });
+                    };
+
+                data.forEach((filename) => {
+                    const card = document.createElement("div");
+                    card.className = "photo-card";
+
+                    // Creates the spinner
+                    const spinner = document.createElement("div");
+                    spinner.className = "spinner-border text-secondary";
+                    spinner.setAttribute("role", "status");
+                    card.appendChild(spinner);
+
+                    // Creates the image element
+                    const img = document.createElement("img");
+                    img.src = `/images/uploads/${filename}`;
+                    img.alt = filename;
+                    img.style.display = "none"; // Hide until loaded
+                    const loadDelay = 800; // ms
+
+                    let finished = false;
+
+                    function revealImage(success) {
+                        if (finished) return;
+                        finished = true;
+
+                        setTimeout(() => {
+                            spinner.remove();
+
+                            if (success) {
+                                img.style.display = "block";
+                                img.classList.add("visible");
+                            } else {
+                                const errorText =
+                                    document.createElement("div");
+                                errorText.textContent = "❌ Failed to load";
+                                errorText.style.fontSize = "0.9rem";
+                                errorText.style.color = "#dc3545";
+                                card.appendChild(errorText);
+                            }
+                        }, loadDelay);
                     }
 
-                    console.log("✅ Request handled successfully!");
-                    console.timeEnd("⏰ Completed in");
-                    console.log("Retrieved data:", data);
+                    img.onload = () => revealImage(true);
+                    img.onerror = () => revealImage(false);
+                    card.appendChild(img);
+                    grid.appendChild(card);
 
-                    const grid = document.querySelector(".photo-grid");
-                    let fileToDelete = null;
-                    let cardToDelete = null;
-                    document.getElementById("confirmDeleteBtn").onclick =
-                        () => {
-                            if (!fileToDelete || !cardToDelete) return;
+                    // DELETE BUTTON AND REQUEST
+                    const deleteBtn = document.createElement("button");
+                    deleteBtn.textContent = "×";
+                    deleteBtn.className = "delete-btn";
+                    deleteBtn.title = "Delete photo";
 
-                            fetch(`/images/uploads/${fileToDelete}`, {
-                                method: "DELETE",
-                            })
-                                .then((res) => {
-                                    if (!res.ok)
-                                        throw new Error("Delete failed");
+                    // PHASE 1: When user clicks X button
+                    deleteBtn.onclick = () => {
+                        fileToDelete = filename;
+                        cardToDelete = card;
 
-                                    cardToDelete.remove();
+                        const modal = new bootstrap.Modal(
+                            document.getElementById("confirmDeleteModal")
+                        );
+                        modal.show();
+                    };
 
-                                    const toast = new bootstrap.Toast(
-                                        document.getElementById("deleteToast")
-                                    );
-                                    toast.show();
-
-                                    fileToDelete = null;
-                                    cardToDelete = null;
-
-                                    bootstrap.Modal.getInstance(
-                                        document.getElementById(
-                                            "confirmDeleteModal"
-                                        )
-                                    ).hide();
-
-                                    // shows "empty phitobook" message
-                                    if (
-                                        document.querySelectorAll(".photo-card")
-                                            .length === 1
-                                    ) {
-                                        // Only the upload button remains
-                                        document
-                                            .getElementById("emptyMessage")
-                                            .classList.remove("d-none");
-                                    }
-                                })
-                                .catch((err) => {
-                                    console.error(
-                                        "❌ Could not delete image:",
-                                        err
-                                    );
-                                    alert("Error: failed to delete image.");
-                                });
-                        };
-
-                    data.forEach((filename) => {
-                        const card = document.createElement("div");
-                        card.className = "photo-card";
-
-                        // Creates the spinner
-                        const spinner = document.createElement("div");
-                        spinner.className = "spinner-border text-secondary";
-                        spinner.setAttribute("role", "status");
-                        card.appendChild(spinner);
-
-                        // Creates the image element
-                        const img = document.createElement("img");
-                        img.src = `/images/uploads/${filename}`;
-                        img.alt = filename;
-                        img.style.display = "none"; // Hide until loaded
-                        const loadDelay = 800; // ms
-
-                        let finished = false;
-
-                        function revealImage(success) {
-                            if (finished) return;
-                            finished = true;
-
-                            setTimeout(() => {
-                                spinner.remove();
-
-                                if (success) {
-                                    img.style.display = "block";
-                                    img.classList.add("visible");
-                                } else {
-                                    const errorText =
-                                        document.createElement("div");
-                                    errorText.textContent = "❌ Failed to load";
-                                    errorText.style.fontSize = "0.9rem";
-                                    errorText.style.color = "#dc3545";
-                                    card.appendChild(errorText);
-                                }
-                            }, loadDelay);
-                        }
-
-                        img.onload = () => revealImage(true);
-                        img.onerror = () => revealImage(false);
-                        card.appendChild(img);
-                        grid.appendChild(card);
-
-                        // DELETE BUTTON AND REQUEST
-                        const deleteBtn = document.createElement("button");
-                        deleteBtn.textContent = "×";
-                        deleteBtn.className = "delete-btn";
-                        deleteBtn.title = "Delete photo";
-
-                        // PHASE 1: When user clicks X button
-                        deleteBtn.onclick = () => {
-                            fileToDelete = filename;
-                            cardToDelete = card;
-
-                            const modal = new bootstrap.Modal(
-                                document.getElementById("confirmDeleteModal")
-                            );
-                            modal.show();
-                        };
-
-                        card.appendChild(deleteBtn);
-                    });
-                })
-                .catch((err) => {
-                    console.log("❌ Fetch failed!");
-                    console.timeEnd("⏰ Completed in");
-                    console.error("Request returned:", err);
+                    card.appendChild(deleteBtn);
                 });
-        </script>
-    </body>
+            })
+            .catch((err) => {
+                console.log("❌ Fetch failed!");
+                console.timeEnd("⏰ Completed in");
+                console.error("Request returned:", err);
+            });
+    </script>
+</body>
+
 </html>
