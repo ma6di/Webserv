@@ -39,29 +39,35 @@ static void sigint_handler(int /*signum*/)
  */
 static void logConfigurationDetails(const std::vector<Config> &configs)
 {
+    // Iterate over all server configurations
     for (size_t ci = 0; ci < configs.size(); ++ci)
     {
         const Config &cfg = configs[ci];
+        // Get all location blocks for this server
         const std::vector<LocationConfig> &locs = cfg.getLocations();
         for (size_t li = 0; li < locs.size(); ++li)
         {
             const LocationConfig &L = locs[li];
-            // build a comma-separated list of methods
+            // Build a comma-separated list of allowed HTTP methods for this location
             std::ostringstream methods;
             for (size_t mi = 0; mi < L.allowed_methods.size(); ++mi)
             {
                 if (mi)
-                    methods << ",";
-                methods << L.allowed_methods[mi];
+                    methods << ","; // Add comma between methods
+                methods << L.allowed_methods[mi]; // Add method name
             }
+            // Log the configuration details for this location:
+            // - server index
+            // - location index
+            // - path
+            // - allowed methods
+            // - upload directory
             Logger::log(LOG_INFO,
                         "ConfigDump",
                         "server[" + to_str(ci) + "].loc[" + to_str(li) + "] "
-                                                                         "path='" +
-                            L.path +
-                            "' methods=[" + methods.str() + "] "
-                                                            "upload_dir='" +
-                            L.upload_dir + "'");
+                        "path='" + L.path + "' "
+                        "methods=[" + methods.str() + "] "
+                        "upload_dir='" + L.upload_dir + "'");
         }
     }
 }
@@ -71,11 +77,17 @@ static void logConfigurationDetails(const std::vector<Config> &configs)
  */
 static void setupSignalHandlers()
 {
+    // Create a sigaction struct to specify signal handling behavior
     struct sigaction sa;
+    // Set the handler function for SIGINT and SIGTERM (Ctrl+C or kill)
     sa.sa_handler = sigint_handler;
+    // Clear the signal mask (no signals are blocked during handler execution)
     sigemptyset(&sa.sa_mask);
+    // No special flags
     sa.sa_flags = 0;
+    // Register the handler for SIGINT (Ctrl+C)
     sigaction(SIGINT, &sa, 0);
+    // Register the handler for SIGTERM (kill)
     sigaction(SIGTERM, &sa, 0);
 }
 

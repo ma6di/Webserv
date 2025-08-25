@@ -269,7 +269,7 @@ void CGIHandler::setup_child_process(const std::string& absPath, int input_pipe[
     std::string interpreter;
     if (absPath.size() >= 4 && absPath.substr(absPath.size() - 4) == ".php") {
         environment["SCRIPT_FILENAME"] = absPath;
-        interpreter = "/opt/homebrew/bin/php-cgi"; // Adjust path if needed
+        interpreter = "/usr/bin/php-cgi"; // Adjust path if needed
     }
 
     std::vector<std::string> envStrings;
