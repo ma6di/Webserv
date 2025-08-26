@@ -3,17 +3,16 @@ import os
 import json
 
 UPLOAD_DIR = "../upload"  # or "./www/images/photobook" if you want only those
-IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif'}
 
-def photobook_json(directory):
+def files_json(directory):
     try:
         return [
             f for f in os.listdir(directory)
-            if os.path.isfile(os.path.join(directory, f)) and os.path.splitext(f)[1].lower() in IMAGE_EXTENSIONS
+            if os.path.isfile(os.path.join(directory, f))
         ]
     except Exception as e:
         return []
 
 print("Content-Type: application/json\r\n")
 print()
-print(json.dumps(photobook_json(UPLOAD_DIR)))
+print(json.dumps(files_json(UPLOAD_DIR)))
