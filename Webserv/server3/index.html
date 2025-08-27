@@ -1,15 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Another server</title>
-</head>
-<body>
-    <h1>Upload a File through 3nd Server</h1>
-    <form action="/upload" method="POST" enctype="multipart/form-data">
-        <input type="file" name="file" required>
-        <br><br>
-        <button type="submit">Upload</button>
-    </form>
-</body>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Another Server</title>
+        <link
+            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css"
+            rel="stylesheet" />
+    </head>
+    <body class="bg-dark text-light">
+        <div
+            class="container d-flex flex-column justify-content-center align-items-center"
+            style="min-height: 100vh">
+            <h1 class="h1">Welcome to Webserv's Server 3!</h1>
+            <a type="submit" href="/upload" class="btn btn-warning"
+                >Go to file uploader</a
+            >
+        </div>
+    </body>
 </html>
