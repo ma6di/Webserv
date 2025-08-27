@@ -25,26 +25,37 @@
     <body class="bg-dark text-light">
         <div class="container py-4">
             <!-- Intro -->
-            <section class="mb-4">
-                <h2 class="h4">HTTP Methods: GET, POST, DELETE</h2>
-                <p class="mb-2">
+            <section class="mb-4 fw-light">
+                <h2 class="h2 text-center">HTTP Methods Explained</h2>
+                <p class="my-4">
                     HTTP methods are a basic set of operations that can be used
                     to interact with the server. Each method is included in the
                     first line of the HTTP request and tells the server what to
                     do with a specific resource. The server processes the
                     request and answers with an HTTP response that begins with a
-                    status code, which describes the type of answer sent back (
-                    <span class="badge bg-success mx-1">2xx: success</span>
-                    <span class="badge bg-warning mx-1">3xx: redirections</span>
-                    <span class="badge bg-danger mx-1">4xx: client errors</span>
-                    <span class="badge bg-dark border border-danger mx-1"
+                    status code, which describes the type of answer sent back:
+                    <span
+                        class="fw-light badge bg-dark border border-success mx-1"
+                        >2xx: success</span
+                    >
+                    <span
+                        class="fw-light badge bg-dark border border-warning mx-1"
+                        >3xx: redirections</span
+                    >
+                    <span
+                        class="fw-light badge bg-dark border border-danger mx-1"
+                        >4xx: client errors</span
+                    >
+                    <span
+                        class="fw-light badge bg-dark border border-danger mx-1"
                         >5xx: server errors</span
                     >
-                    ).
+                    .
                 </p>
-                <p class="mb-2">Our webserv handles the current requests:</p>
-
-                <div class="d-grid gap-2">
+                <p class="fw-semibold">
+                    Our webserv handles the current requests:
+                </p>
+                <div class="d-grid mx-4">
                     <div class="d-flex align-items-center p-2 bg-dark">
                         <span
                             class="badge bg-success me-3 px-3 py-2"
@@ -79,134 +90,178 @@
                         >
                     </div>
                 </div>
+                <p class="mb-2 fw-bold mt-4">
+                    We demonstrate two ways requests can be handled, click the
+                    button to switch between the demos.
+                </p>
             </section>
 
-            <!-- Short intro -->
-            <p class="mb-4 text-center">
-                Below we demonstrate two ways requests can be handled:
-            </p>
+            <!-- NEW START -->
 
-            <!-- Two columns -->
-            <div class="row g-4">
-                <!-- Left: Static -->
-                <div class="col-12 col-lg-6">
-                    <div class="border rounded p-3 h-100">
-                        <h3 class="h5 mb-3 text-center">Static webpages</h3>
-                        <p>
-                            In our webserv, when you upload a file, the server
-                            sends back a complete HTML page as the response. The
-                            browser discards the old page and loads this new one
-                            (for example, a “✅ Upload successful” page).
-                        </p>
-                        <p>
-                            This was the normal way websites worked before the
-                            rise of modern JavaScript-driven apps in the
-                            mid-2000s. It is called static because each server
-                            response is a full, fixed document — the client just
-                            displays it without changing anything itself.
-                        </p>
-                        <p><strong>The drawbacks:</strong></p>
-                        <ul>
-                            <li>
-                                Every action forces a full page reload, which
-                                feels slower and less interactive.
-                            </li>
-                            <li>
-                                It increases server cost because the server
-                                rebuilds and resends entire pages for even small
-                                updates.
-                            </li>
-                            <li>
-                                It mixes responsibilities: the server handles
-                                both the data/logic and the page state, while in
-                                modern practice the server should focus on data
-                                and the client should control presentation and
-                                interactivity.
-                            </li>
-                        </ul>
-
-                        <form
-                            action="/upload"
-                            method="POST"
-                            enctype="multipart/form-data"
-                            class="mt-3">
-                            <label for="formFile" class="form-label"
-                                >Upload a file</label
-                            >
-                            <div class="d-flex gap-2 align-items-center">
-                                <input
-                                    class="form-control"
-                                    type="file"
-                                    name="file"
-                                    id="formFile"
-                                    required />
-                                <button type="submit" class="btn btn-secondary">
-                                    Upload
-                                </button>
-                            </div>
-                        </form>
+            <!-- Switch -->
+            <section class="card bg-dark border-secondary mb-4">
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-2 m-3">
+                        <!-- Short intro -->
+                        <button
+                            id="showStatic"
+                            class="btn btn-outline-light active">
+                            Static web pages
+                        </button>
+                        <button id="showDynamic" class="btn btn-outline-light">
+                            Dynamic web pages
+                        </button>
                     </div>
-                </div>
 
-                <!-- Right: Dynamic -->
-                <div class="col-12 col-lg-6">
-                    <div class="border rounded p-3 h-100 d-flex flex-column">
-                        <h3 class="h5 mb-3 text-center">Dynamic webpages</h3>
-                        <p>
-                            In the new style, the server no longer sends a whole
-                            HTML page each time. Instead, it sends back just raw
-                            data, typically in JSON format. The page does not
-                            reload or change its path: it’s the frontend role,
-                            via JavaScript, to update only the parts that need
-                            to change while keeping the user on the same page.
-                        </p>
-                        <p>
-                            This is the approach used in SPAs (single-page
-                            applications), which became common from the
-                            mid-2000s onward and grew popular with frameworks
-                            like AngularJS, React, and Vue. The site is called
-                            dynamic because the page can change on the fly
-                            without being fully reloaded.
-                        </p>
-                        <p><strong>The advantages:</strong></p>
-                        <ul>
-                            <li>
-                                Faster and smoother: the user stays on the same
-                                page, only the changed data is updated.
-                            </li>
-                            <li>
-                                More interactive: the browser can react
-                                instantly to server responses.
-                            </li>
-                            <li>
-                                Clearer separation of concerns: the server
-                                handles data and logic, while the client/browser
-                                controls page state and interactivity.
-                            </li>
-                        </ul>
+                    <!-- Panels -->
+                    <section id="panel-static" class="fw-lighter card-body">
+                        <div class="text-white fst-italic">
+                            <!-- <h3 class="h5 mb-3 text-center">Static webpages</h3> -->
+                            <p>
+                                In our webserv, when you upload a file, the
+                                server sends back a complete HTML page as the
+                                response.<br />
+                                The browser discards the old page and loads this
+                                new one (for example, a “✅ Upload successful”
+                                page).
+                            </p>
+                            <p>
+                                This was the normal way websites worked before
+                                the rise of modern JavaScript-driven apps in the
+                                mid-2000s. It is called static because each
+                                server response is a full, fixed document — the
+                                client just displays it without changing
+                                anything itself.
+                            </p>
+                            <p class="fw-semibold">The drawbacks:</p>
+                            <ul class="fw-lighter">
+                                <li>
+                                    Every action forces a full page reload,
+                                    which feels slower and less interactive.
+                                </li>
+                                <li>
+                                    It increases server cost because the server
+                                    rebuilds and resends entire pages for even
+                                    small updates.
+                                </li>
+                                <li>
+                                    It mixes responsibilities: the server
+                                    handles both the data/logic and the page
+                                    state, while in modern practice the server
+                                    should focus on data and the client should
+                                    control presentation and interactivity.
+                                </li>
+                            </ul>
 
-                        <div
-                            class="d-flex justify-content-center align-items-center gap-2 mb-3">
-                            <button id="loadBtn" class="btn btn-success">
-                                Load files
-                            </button>
-                            <span id="status" class="text-secondary"></span>
+                            <form
+                                action="/upload"
+                                method="POST"
+                                enctype="multipart/form-data"
+                                class="mt-1">
+                                <label
+                                    for="formFile"
+                                    class="form-label fw-normal fst-normal"
+                                    >Upload a file</label
+                                >
+                                <div class="d-flex gap-2 align-items-center">
+                                    <input
+                                        class="form-control"
+                                        type="file"
+                                        name="file"
+                                        id="formFile"
+                                        required />
+                                    <button
+                                        type="submit"
+                                        class="btn btn-secondary">
+                                        Upload
+                                    </button>
+                                </div>
+                            </form>
                         </div>
-                        <div id="alert" class="alert alert-danger d-none"></div>
-                        <ul
-                            id="fileList"
-                            class="list-unstyled d-grid gap-2 mb-3"></ul>
-                        <p
-                            id="empty"
-                            class="text-secondary mt-auto d-none mb-0">
-                            No files.
-                        </p>
-                    </div>
+                    </section>
+
+                    <section
+                        id="panel-dynamic"
+                        class="border-secondary mb-4 d-none">
+                        <div
+                            class="card-body d-flex flex-column text-white fst-italic fw-lighter">
+                            <!-- <h3 class="h5 mb-3 text-center">Dynamic webpages</h3> -->
+                            <p>
+                                Nowadays, the server no longer sends a whole
+                                HTML page each time. Instead, it sends back just
+                                raw data, typically in JSON format. The page
+                                does not reload or change its path: it's the
+                                frontend role, via JavaScript, to update only
+                                the parts that need to change while keeping the
+                                user on the same page.
+                            </p>
+                            <p>
+                                This is the approach used in SPAs (single-page
+                                applications), which became common from the
+                                mid-2000s onward and grew popular with
+                                frameworks like AngularJS, React, and Vue. The
+                                site is called dynamic because the page can
+                                change on the fly without being fully reloaded.
+                            </p>
+                            <p class="mb-1 fw-semibold">The advantages:</p>
+                            <ul class="mb-3">
+                                <li>
+                                    Faster and smoother: stay on the same page;
+                                    only changed data updates.
+                                </li>
+                                <li>
+                                    More interactive: instant reactions to
+                                    server responses.
+                                </li>
+                                <li>
+                                    Clear separation: server = data/logic;
+                                    client = page state/interactivity.
+                                </li>
+                            </ul>
+
+                            <div
+                                class="d-flex justify-content-center align-items-center gap-2 mb-3">
+                                <button id="loadBtn" class="btn btn-success">
+                                    Load files
+                                </button>
+                                <span id="status" class="text-secondary"></span>
+                            </div>
+                            <div
+                                id="alert"
+                                class="alert alert-danger d-none"></div>
+                            <ul
+                                id="fileList"
+                                class="list-unstyled d-grid gap-2 mb-3"></ul>
+                            <p
+                                id="empty"
+                                class="text-secondary mt-auto d-none mb-0">
+                                No files.
+                            </p>
+                        </div>
+                    </section>
                 </div>
-            </div>
+                <!-- NEW END -->
+            </section>
         </div>
 
         <script>
+            // panel toggle
+            const btnStatic = document.getElementById("showStatic");
+            const btnDynamic = document.getElementById("showDynamic");
+            const panelStatic = document.getElementById("panel-static");
+            const panelDynamic = document.getElementById("panel-dynamic");
+
+            function show(which) {
+                const s = which === "static";
+                panelStatic.classList.toggle("d-none", !s);
+                panelDynamic.classList.toggle("d-none", s);
+                btnStatic.classList.toggle("active", s);
+                btnDynamic.classList.toggle("active", !s);
+            }
+            btnStatic.addEventListener("click", () => show("static"));
+            btnDynamic.addEventListener("click", () => show("dynamic"));
+
+            // get and delete request with dom manip
             const ENDPOINT_LIST = "../cgi-bin/files_json.py";
             const DELETE_BASE = "/upload/";
 
