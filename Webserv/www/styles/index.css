@@ -28,6 +28,7 @@ body {
     /* letter-spacing: -0.02em;
     line-height: 1.05; */
     /* text-align: center; */
+
     font-size: 200px;
     margin: 0px;
     background: linear-gradient(
@@ -67,14 +68,36 @@ h2 {
     margin: 0;
 }
 
+#countdown {
+    /* font-weight: bold; */
+    color: #ff6b6b;
+}
+
+/* Ensure each container takes full width and stacks */
+.container {
+    position: relative; /* no absolute positioning */
+    width: 100%; /* always scale with screen */
+    display: block; /* stack containers vertically */
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem; /* adjust padding for readability */
+    padding-right: 1rem;
+    margin-bottom: 3rem; /* space between containers */
+    box-sizing: border-box; /* prevents overflow from padding */
+}
+
+/* your page content */
+main {
+    flex: 1 0 auto;
+}
+
 .footer-message {
-    display: none;
+    display: block;
     background: #0d0a1c;
-    position: fixed;
-    bottom: 0;
-    left: 0;
+    position: relative;
+    /* left: 0; */
     width: 100%;
-    z-index: 999;
+    /* z-index: 999; */
     font-size: 1rem;
     /* font-weight: 400; */
     opacity: 0;
@@ -85,9 +108,4 @@ h2 {
 .footer-message.show {
     display: block;
     opacity: 1;
-}
-
-#countdown {
-    /* font-weight: bold; */
-    color: #ff6b6b;
 }
