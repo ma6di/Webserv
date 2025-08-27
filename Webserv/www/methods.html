@@ -2,7 +2,7 @@
 <html lang="en">
     <head>
         <meta charset="utf-8" />
-        <title>File List</title>
+        <title>HTTP Methods • File Demo</title>
         <link
             href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css"
             rel="stylesheet" />
@@ -20,52 +20,133 @@
                 font-family: ui-monospace, Menlo, Consolas, monospace;
                 word-break: break-all;
             }
-            .btn-x {
-                width: 2rem;
-                height: 2rem;
-                line-height: 1;
-                padding: 0;
-                font-weight: 700;
-            }
         </style>
     </head>
     <body class="bg-dark text-light">
         <div class="container py-4">
-            <div class="mb-3">
-                <h1>Upload a file</h1>
-                <form
-                    action="/upload"
-                    method="POST"
-                    enctype="multipart/form-data">
-                    <label for="formFile" class="form-label"
-                        >Default file input example</label
+            <!-- Intro -->
+            <section class="mb-4">
+                <h2 class="h4">HTTP Methods: GET, POST, DELETE</h2>
+                <p class="mb-2">
+                    HTTP methods are a basic set of operations that can be used
+                    to interact with the server. Each method is included in the
+                    first line of the HTTP request and tells the server what to
+                    do with a specific resource. The server processes the
+                    request and answers with an HTTP response that begins with a
+                    status code, which describes the type of answer sent back (
+                    <span class="badge bg-success mx-1">2xx: success</span>
+                    <span class="badge bg-warning mx-1">3xx: redirections</span>
+                    <span class="badge bg-danger mx-1">4xx: client errors</span>
+                    <span class="badge bg-dark border border-danger mx-1"
+                        >5xx: server errors</span
                     >
-                    <input
-                        class="form-control"
-                        type="file"
-                        name="file"
-                        id="formFile"
-                        required />
-                    <button type="submit" class="btn btn-outline-light">
-                        Upload
-                    </button>
-                </form>
+                    ).
+                </p>
+                <p class="mb-2">Our webserv handles the current requests:</p>
+
+                <div class="d-grid gap-2">
+                    <div class="d-flex align-items-center p-2 bg-dark">
+                        <span
+                            class="badge bg-success me-3 px-3 py-2"
+                            style="min-width: 80px; text-align: center"
+                            >GET</span
+                        >
+                        <span
+                            >Ask the server to give you something (like a list
+                            of files, or a webpage).</span
+                        >
+                    </div>
+
+                    <div class="d-flex align-items-center p-2 bg-dark">
+                        <span
+                            class="badge bg-primary me-3 px-3 py-2"
+                            style="min-width: 80px; text-align: center"
+                            >POST</span
+                        >
+                        <span
+                            >Send something new to the server (like uploading a
+                            file).</span
+                        >
+                    </div>
+
+                    <div class="d-flex align-items-center p-2 bg-dark">
+                        <span
+                            class="badge bg-warning text-dark me-3 px-3 py-2"
+                            style="min-width: 80px; text-align: center"
+                            >DELETE</span
+                        >
+                        <span
+                            >Tell the server to remove something (like deleting
+                            a file).</span
+                        >
+                    </div>
+                </div>
+            </section>
+
+            <!-- Two columns -->
+            <div class="row g-4">
+                <!-- Left: old style upload (POST → HTML response) -->
+                <div class="col-12 col-lg-6">
+                    <div class="border rounded p-3 h-100">
+                        <h3 class="h5 mb-3">
+                            Old style: Upload a file (POST → HTML page)
+                        </h3>
+                        <form
+                            action="/upload"
+                            method="POST"
+                            enctype="multipart/form-data">
+                            <label for="formFile" class="form-label"
+                                >Choose a file</label
+                            >
+                            <input
+                                class="form-control mb-3"
+                                type="file"
+                                name="file"
+                                id="formFile"
+                                required />
+                            <button type="submit" class="btn btn-outline-light">
+                                Upload
+                            </button>
+                        </form>
+                        <p class="text-secondary mt-3 mb-0">
+                            This submits a form and navigates to the server’s
+                            HTML “upload successful” page.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Right: new style list + delete (GET/DELETE → JSON/status) -->
+                <div class="col-12 col-lg-6">
+                    <div class="border rounded p-3 h-100 d-flex flex-column">
+                        <h3 class="h5 mb-3">
+                            New style: Load & delete files (GET/DELETE → data)
+                        </h3>
+
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <button id="loadBtn" class="btn btn-outline-light">
+                                Load files (GET)
+                            </button>
+                            <span id="status" class="text-secondary"></span>
+                        </div>
+
+                        <div id="alert" class="alert alert-danger d-none"></div>
+
+                        <ul
+                            id="fileList"
+                            class="list-unstyled d-grid gap-2 mb-3"></ul>
+                        <p
+                            id="empty"
+                            class="text-secondary mt-auto d-none mb-0">
+                            No files.
+                        </p>
+
+                        <p class="text-secondary mt-2 mb-0">
+                            Stays on this page. JS updates the DOM from server
+                            data.
+                        </p>
+                    </div>
+                </div>
             </div>
-
-            <h1 class="h3 mb-3">Files</h1>
-
-            <div class="d-flex align-items-center gap-2 mb-3">
-                <button id="loadBtn" class="btn btn-outline-light">
-                    Load files (GET)
-                </button>
-                <span id="status" class="text-secondary"></span>
-            </div>
-
-            <div id="alert" class="alert alert-danger d-none"></div>
-
-            <ul id="fileList" class="list-unstyled d-grid gap-2"></ul>
-
-            <p id="empty" class="text-secondary mt-3 d-none">No files.</p>
         </div>
 
         <script>
@@ -106,9 +187,10 @@
                     .map(
                         (name) => `
         <li class="file-item" data-name="${escapeAttr(name)}">
-          <a class="file-name"  href="${DELETE_BASE + encodeURIComponent(name)}"
-         target="_blank" rel="noopener">${escapeHtml(name)}</a>
-          <button class="btn btn-outline-danger " title="Delete">delete</button>
+          <a class="file-name link-light text-decoration-none"
+             href="${DELETE_BASE + encodeURIComponent(name)}"
+             target="_blank" rel="noopener">${escapeHtml(name)}</a>
+          <button class="btn btn-outline-danger delete-btn" title="Delete">delete</button>
         </li>
       `
                     )
@@ -117,10 +199,10 @@
             }
 
             async function onListClick(e) {
-                if (!(e.target instanceof Element)) return;
-                if (!e.target.classList.contains("btn-x")) return;
+                const btn = e.target.closest(".delete-btn");
+                if (!btn) return;
 
-                const li = e.target.closest(".file-item");
+                const li = btn.closest(".file-item");
                 if (!li) return;
                 const name = li.getAttribute("data-name");
                 if (!name) return;
