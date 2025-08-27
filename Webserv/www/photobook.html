@@ -16,17 +16,21 @@
 </head>
 
 <body class="text-dark fw-light">
-    <div class="px-5 py-4">
-        <a href="/index.html#features" class="back-button text-muted ">
-            <i class="fa-solid fa-angle-left"></i>
-            Back to features
-        </a>
-    </div>
+         <nav class="navbar sticky-top">
+            <div class="px-5 pt-4">
+                <a
+                    href="/index.html#features"
+                    class="back-button text-muted">
+                    <i class="fa-solid fa-angle-left"></i>
+                    Back to features
+                </a>
+            </div>
+        </nav>
     <div class="container py-5">
         <h2 class="h1 text-center">About the Photobook</h2>
         <p class="text-center text-muted py-2">
             A simple photobook app that loads images from the server’s <code>upload/</code> folder, lets you add new
-            photos, name them, and delete them. </br>Changes persist on the server. How requests work when interacting
+            photos, name them, and delete them. </br>Changes persist on the server and are rendered dynamically on the browser. How requests work when interacting
             with this
             simple app:
         </p>
@@ -167,10 +171,10 @@
         console.info(`
         Dear evaluator,
         This app demonstrates how HTTP requests work on the frontend using JavaScript.
-        
+
         🧠 The frontend makes a GET request using the fetch() API:
         https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch
-        
+
         ✅ If the request succeeds:
         - the CGI script (cgi-bin/photobook_json.py) returns a JSON file which lists all uploaded images.
         - We use this list to dynamically create <img> elements and insert them into the page (aka "manipulating the DOM").
@@ -178,11 +182,11 @@
         - JSON is the standard for frontend/backend communication.
         - It's clean, fast, and easy to work with using JavaScript.
         - Scraping directory listings is fragile and outdated (we're not building tools in 2003 👵🏻).
-        
-        
+
+
         ❌ If the request fails or if something is wrong with one of the pictures:
         - A fallback message is shown in the image card.
-        
+
         ⏳ Why a timeout and spinner?
         - We artificially delay image rendering (~800ms) to simulate real-world async behavior,
         normalize rendering timing across network conditions, and prevent layout instability (CLS).
