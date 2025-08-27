@@ -2,7 +2,7 @@
 <html lang="en">
     <head>
         <meta charset="utf-8" />
-        <title>HTTP Methods • File Demo</title>
+        <title>Webserv: Methods explained</title>
         <link
             href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css"
             rel="stylesheet" />
@@ -56,7 +56,6 @@
                             of files, or a webpage).</span
                         >
                     </div>
-
                     <div class="d-flex align-items-center p-2 bg-dark">
                         <span
                             class="badge bg-primary me-3 px-3 py-2"
@@ -68,7 +67,6 @@
                             file).</span
                         >
                     </div>
-
                     <div class="d-flex align-items-center p-2 bg-dark">
                         <span
                             class="badge bg-warning text-dark me-3 px-3 py-2"
@@ -83,54 +81,118 @@
                 </div>
             </section>
 
+            <!-- Short intro -->
+            <p class="mb-4 text-center">
+                Below we demonstrate two ways requests can be handled:
+            </p>
+
             <!-- Two columns -->
             <div class="row g-4">
-                <!-- Left: old style upload (POST → HTML response) -->
+                <!-- Left: Static -->
                 <div class="col-12 col-lg-6">
                     <div class="border rounded p-3 h-100">
-                        <h3 class="h5 mb-3">
-                            Old style: Upload a file (POST → HTML page)
-                        </h3>
+                        <h3 class="h5 mb-3 text-center">Static webpages</h3>
+                        <p>
+                            In our webserv, when you upload a file, the server
+                            sends back a complete HTML page as the response. The
+                            browser discards the old page and loads this new one
+                            (for example, a “✅ Upload successful” page).
+                        </p>
+                        <p>
+                            This was the normal way websites worked before the
+                            rise of modern JavaScript-driven apps in the
+                            mid-2000s. It is called static because each server
+                            response is a full, fixed document — the client just
+                            displays it without changing anything itself.
+                        </p>
+                        <p><strong>The drawbacks:</strong></p>
+                        <ul>
+                            <li>
+                                Every action forces a full page reload, which
+                                feels slower and less interactive.
+                            </li>
+                            <li>
+                                It increases server cost because the server
+                                rebuilds and resends entire pages for even small
+                                updates.
+                            </li>
+                            <li>
+                                It mixes responsibilities: the server handles
+                                both the data/logic and the page state, while in
+                                modern practice the server should focus on data
+                                and the client should control presentation and
+                                interactivity.
+                            </li>
+                        </ul>
+
                         <form
                             action="/upload"
                             method="POST"
-                            enctype="multipart/form-data">
+                            enctype="multipart/form-data"
+                            class="mt-3">
                             <label for="formFile" class="form-label"
-                                >Choose a file</label
+                                >Upload a file</label
                             >
-                            <input
-                                class="form-control mb-3"
-                                type="file"
-                                name="file"
-                                id="formFile"
-                                required />
-                            <button type="submit" class="btn btn-outline-light">
-                                Upload
-                            </button>
+                            <div class="d-flex gap-2 align-items-center">
+                                <input
+                                    class="form-control"
+                                    type="file"
+                                    name="file"
+                                    id="formFile"
+                                    required />
+                                <button type="submit" class="btn btn-secondary">
+                                    Upload
+                                </button>
+                            </div>
                         </form>
-                        <p class="text-secondary mt-3 mb-0">
-                            This submits a form and navigates to the server’s
-                            HTML “upload successful” page.
-                        </p>
                     </div>
                 </div>
 
-                <!-- Right: new style list + delete (GET/DELETE → JSON/status) -->
+                <!-- Right: Dynamic -->
                 <div class="col-12 col-lg-6">
                     <div class="border rounded p-3 h-100 d-flex flex-column">
-                        <h3 class="h5 mb-3">
-                            New style: Load & delete files (GET/DELETE → data)
-                        </h3>
+                        <h3 class="h5 mb-3 text-center">Dynamic webpages</h3>
+                        <p>
+                            In the new style, the server no longer sends a whole
+                            HTML page each time. Instead, it sends back just raw
+                            data, typically in JSON format. The page does not
+                            reload or change its path: it’s the frontend role,
+                            via JavaScript, to update only the parts that need
+                            to change while keeping the user on the same page.
+                        </p>
+                        <p>
+                            This is the approach used in SPAs (single-page
+                            applications), which became common from the
+                            mid-2000s onward and grew popular with frameworks
+                            like AngularJS, React, and Vue. The site is called
+                            dynamic because the page can change on the fly
+                            without being fully reloaded.
+                        </p>
+                        <p><strong>The advantages:</strong></p>
+                        <ul>
+                            <li>
+                                Faster and smoother: the user stays on the same
+                                page, only the changed data is updated.
+                            </li>
+                            <li>
+                                More interactive: the browser can react
+                                instantly to server responses.
+                            </li>
+                            <li>
+                                Clearer separation of concerns: the server
+                                handles data and logic, while the client/browser
+                                controls page state and interactivity.
+                            </li>
+                        </ul>
 
-                        <div class="d-flex align-items-center gap-2 mb-3">
-                            <button id="loadBtn" class="btn btn-outline-light">
-                                Load files (GET)
+                        <div
+                            class="d-flex justify-content-center align-items-center gap-2 mb-3">
+                            <button id="loadBtn" class="btn btn-success">
+                                Load files
                             </button>
                             <span id="status" class="text-secondary"></span>
                         </div>
-
                         <div id="alert" class="alert alert-danger d-none"></div>
-
                         <ul
                             id="fileList"
                             class="list-unstyled d-grid gap-2 mb-3"></ul>
@@ -139,11 +201,6 @@
                             class="text-secondary mt-auto d-none mb-0">
                             No files.
                         </p>
-
-                        <p class="text-secondary mt-2 mb-0">
-                            Stays on this page. JS updates the DOM from server
-                            data.
-                        </p>
                     </div>
                 </div>
             </div>
@@ -151,7 +208,7 @@
 
         <script>
             const ENDPOINT_LIST = "../cgi-bin/files_json.py";
-            const DELETE_BASE = "/upload/"; // DELETE /upload/<filename>
+            const DELETE_BASE = "/upload/";
 
             const loadBtn = document.getElementById("loadBtn");
             const statusEl = document.getElementById("status");
@@ -170,12 +227,12 @@
                         cache: "no-store",
                     });
                     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                    const json = await res.json(); // expects ["a.jpg","b.png", ...]
+                    const json = await res.json();
                     const files = Array.isArray(json)
                         ? json.filter(Boolean)
                         : [];
                     render(files);
-                    statusEl.textContent = `GET REQUEST SUCCESS ✅ (${files.length})`;
+                    statusEl.textContent = `GET REQUEST SUCCESS ✅ (${files.length}) files found`;
                 } catch (e) {
                     showError(e.message || String(e));
                     statusEl.textContent = "GET REQUEST FAILED ❌";
@@ -186,13 +243,12 @@
                 listEl.innerHTML = files
                     .map(
                         (name) => `
-        <li class="file-item" data-name="${escapeAttr(name)}">
-          <a class="file-name link-light text-decoration-none"
-             href="${DELETE_BASE + encodeURIComponent(name)}"
-             target="_blank" rel="noopener">${escapeHtml(name)}</a>
-          <button class="btn btn-outline-danger delete-btn" title="Delete">delete</button>
-        </li>
-      `
+          <li class="file-item" data-name="${escapeAttr(name)}">
+            <a class="file-name link-light text-decoration-none"
+               href="${DELETE_BASE + encodeURIComponent(name)}"
+               target="_blank" rel="noopener">${escapeHtml(name)}</a>
+            <button class="btn btn-outline-danger delete-btn" title="Delete">delete</button>
+          </li>`
                     )
                     .join("");
                 emptyEl.classList.toggle("d-none", files.length !== 0);
