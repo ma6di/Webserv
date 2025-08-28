@@ -135,7 +135,7 @@ void WebServer::handle_post(const Request& request, const LocationConfig* loc, i
 }
 
 // --- DELETE Handler ---
-void WebServer::handle_delete(const Request& request, const LocationConfig* loc, int client_fd, size_t i) {
+/*void WebServer::handle_delete(const Request& request, const LocationConfig* loc, int client_fd, size_t i) {
     std::string uri = request.getPath();
     std::string path = resolve_path(uri, "DELETE", loc);
     Logger::log(LOG_DEBUG, "handle_delete", "uri=" + uri + " path=" + path);
@@ -153,7 +153,65 @@ void WebServer::handle_delete(const Request& request, const LocationConfig* loc,
         Logger::log(LOG_ERROR, "handle_delete", "Failed to delete file: " + path);
         send_error_response(client_fd, 500, "Internal Server Error", i);
     }
+}*/
+
+void WebServer::handle_delete(const Request& request, const LocationConfig* loc, int client_fd, size_t i) {
+    std::string uri = request.getPath();
+    std::string path;
+
+    // If this location stores uploads in a dedicated dir, delete from there
+    if (loc && !loc->upload_dir.empty()) {
+        // derive basename from the URI relative to the location path
+        std::string suffix;
+        if (uri.size() > loc->path.size())
+            suffix = uri.substr(loc->path.size());
+        // strip one leading slash if present
+        if (!suffix.empty() && suffix[0] == '/')
+            suffix.erase(0, 1);
+
+        // empty basename (e.g., DELETE /new_files/) is a bad request
+        if (suffix.empty()) {
+            Logger::log(LOG_ERROR, "handle_delete", "No filename in URL for delete: " + uri);
+            send_error_response(client_fd, 400, "Bad Request", i);
+            return;
+        }
+        // very light safety: disallow nested paths / traversal in the basename
+        if (suffix.find('/') != std::string::npos || suffix.find("..") != std::string::npos) {
+            Logger::log(LOG_ERROR, "handle_delete", "Invalid delete target: " + suffix);
+            send_error_response(client_fd, 400, "Bad Request", i);
+            return;
+        }
+
+        // join upload_dir + basename
+        path = loc->upload_dir;
+        if (!path.empty() && path[path.size() - 1] != '/')
+            path += '/';
+        path += suffix;
+    } else {
+        // default behavior for locations without upload_dir
+        path = resolve_path(uri, "DELETE", loc);
+    }
+
+    Logger::log(LOG_DEBUG, "handle_delete", "uri=" + uri + " path=" + path);
+
+    if (!file_exists(path)) {
+        Logger::log(LOG_ERROR, "handle_delete", "File not found: " + path);
+        send_error_response(client_fd, 404, "Not Found", i);
+    } else if (is_directory(path)) {
+        Logger::log(LOG_ERROR, "handle_delete", "Refusing to delete a directory: " + path);
+        send_error_response(client_fd, 403, "Forbidden", i);
+    } else if (access(path.c_str(), W_OK) != 0) {
+        Logger::log(LOG_ERROR, "handle_delete", "File not writable: " + path);
+        send_error_response(client_fd, 403, "Forbidden", i);
+    } else if (remove(path.c_str()) == 0) {
+        Logger::log(LOG_INFO, "handle_delete", "File deleted: " + path);
+        send_no_content_response(client_fd, i);
+    } else {
+        Logger::log(LOG_ERROR, "handle_delete", "Failed to delete file: " + path);
+        send_error_response(client_fd, 500, "Internal Server Error", i);
+    }
 }
+
 
 // --- UPLOAD Helpers (unchanged, but could be moved to upload.cpp) ---
 std::string extract_file_from_multipart(const std::string& body, std::string& filename) {
@@ -230,10 +288,22 @@ bool WebServer::handle_upload(const Request& request, const LocationConfig* loc,
         // Remove leading slash if present
         if (!uri_filename.empty() && uri_filename[0] == '/')
             uri_filename = uri_filename.substr(1);
-        target_path = upload_dir + "/" + uri_filename;
+
+        // ✅ NEW: if empty after stripping, fall back to multipart filename or generator
+        if (!uri_filename.empty()) {
+            target_path = upload_dir + "/" + uri_filename;
+        } else if (!filename.empty()) {
+            target_path = upload_dir + "/" + filename;
+        } else {
+            target_path = upload_dir + "/" + make_upload_filename(filename);
+        }
     } else {
-        // POST to /upload, use generated filename
-        target_path = upload_dir + "/" + make_upload_filename(filename);
+        // POST to /upload, use multipart filename if available
+        if (!filename.empty()) {
+            target_path = upload_dir + "/" + filename;
+        } else {
+            target_path = upload_dir + "/" + make_upload_filename(filename);
+        }
     }
 
     // --- Check if file exists and is writable ---

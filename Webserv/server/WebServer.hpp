@@ -6,6 +6,9 @@
 #include <map>
 #include <ctime>  // for time_t and time()
 #include <netinet/in.h>  // sockaddr_in
+#include <netdb.h>      // gethostbyname
+#include <arpa/inet.h>  // inet_aton, htons
+#include <cstring>  
 #include "../logger/Logger.hpp"
 #include "Config.hpp"
 #include "LocationConfig.hpp"
@@ -111,12 +114,12 @@ private:
     bool   is_full_body_received    (const Request&, const std::string&, size_t);
     void   process_request          (Request&, int, size_t);
     static std::string timestamp();
-    void handle_client_fd(int client_fd);
 
     static bool isAbsoluteHttpUrl(const std::string& s);
     static std::string hostportFromUrl(const std::string& url);
     static bool iequals(const std::string& a, const std::string& b);
     static bool isExternalRedirect(const std::string& location, const std::string& reqHost);
+    bool resolve_ipv4(const std::string& host, in_addr* out);
 };
 
 std::string extract_file_from_multipart(const std::string& body, std::string& filename);
