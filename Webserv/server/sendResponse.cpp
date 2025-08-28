@@ -134,7 +134,7 @@ static std::string resolve_error_page_path(const std::string &err_uri)
     return full_path;
 }
 
-void WebServer::send_error_response(int client_fd,
+/*void WebServer::send_error_response(int client_fd,
                                     int code,
                                     const std::string &msg,
                                     size_t i)
@@ -180,7 +180,68 @@ void WebServer::send_error_response(int client_fd,
     queueResponse(client_fd, raw);
     // Always flush writes for error responses
     flushPendingWrites(client_fd);
+}*/
+
+void WebServer::send_error_response(int client_fd,
+                                    int code,
+                                    const std::string &msg,
+                                    size_t i)
+{
+    (void)i;
+    (void)msg;
+
+    // Ensure the connection still exists
+    std::map<int, Connection>::iterator it = conns_.find(client_fd);
+    if (it == conns_.end())
+        return;
+
+    const std::string *err_page = config_->getErrorPage(code);
+    std::string status_msg = Response::getStatusMessage(code);
+
+    Response resp;
+    resp.setStatus(code, status_msg);
+    resp.setHeader("Content-Type", "text/html");
+
+    bool loaded = false;
+    if (err_page && !err_page->empty())
+    {
+        std::string resolved_path = resolve_error_page_path(*err_page);
+        Logger::log(LOG_DEBUG, "send_error_response",
+                    "Trying custom error page: " + resolved_path);
+        loaded = resp.loadBodyFromFile(resolved_path);
+        if (!loaded)
+            Logger::log(LOG_ERROR, "send_error_response",
+                        "Custom error page not found or unreadable: " + resolved_path);
+    }
+
+    if (!loaded)
+    {
+        std::ostringstream oss;
+        oss << "<!DOCTYPE html><html><head><title>"
+            << code << " " << status_msg
+            << "</title></head><body><h1>"
+            << code << " " << status_msg
+            << "</h1><p>The server could not fulfill your request.</p></body></html>";
+        resp.setBody(oss.str());
+    }
+
+    // Decide connection policy for errors:
+    // - Keep open only for informational (1xx) or 204; otherwise close after write.
+    bool closeAfter = !(code < 200 || code == 204);
+
+    // Mark connection state
+    it->second.shouldCloseAfterWrite = closeAfter;
+
+    // Set proper Connection header
+    resp.applyConnectionHeaders(!closeAfter);  // keepAlive = !closeAfter
+
+    // Serialize and enqueue; DO NOT flush or close here
+    std::string raw = resp.toString();
+    queueResponse(client_fd, raw);
+
+    // No flushPendingWrites() here — POLLOUT will handle it in the main poll loop.
 }
+
 
 // ...existing code...
 

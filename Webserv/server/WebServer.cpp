@@ -116,7 +116,7 @@ int WebServer::handleNewConnection(int listen_fd)
     return client_fd;
 }
 
-void WebServer::handleClientDataOn(int client_fd)
+/*void WebServer::handleClientDataOn(int client_fd)
 {
     char buf[4096];
     ssize_t n = ::read(client_fd, buf, sizeof(buf));
@@ -303,7 +303,150 @@ void WebServer::handleClientDataOn(int client_fd)
         }
         // else continue loop for pipelined requests
     }
+}*/
+
+void WebServer::handleClientDataOn(int client_fd)
+{
+    // --- Single-shot read per POLLIN ---
+    char buf[4096];
+    ssize_t n = ::read(client_fd, buf, sizeof(buf));
+
+    if (n == 0) {
+        // Peer closed
+        Logger::log(LOG_INFO, "WebServer", "FD=" + to_str(client_fd) + " EOF from peer; closing");
+        closeClient(client_fd); // use your unified close; fallback to cleanup_client if needed
+        return;
+    }
+
+    if (n < 0) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
+            Logger::log(LOG_DEBUG, "WebServer",
+                "FD=" + to_str(client_fd) + " read would block/interrupt; returning");
+            return; // not fatal
+        }
+        Logger::log(LOG_ERROR, "WebServer",
+            "FD=" + to_str(client_fd) + " read error errno=" + to_str(errno) + "; closing");
+        closeClient(client_fd);
+        return;
+    }
+
+    // n > 0
+    updateClientActivity(client_fd);
+
+    // Find connection
+    std::map<int, Connection>::iterator it = conns_.find(client_fd);
+    if (it == conns_.end())
+        return;
+
+    std::string &data = it->second.readBuf;
+
+    // Optional guard against runaway buffer growth
+    if (data.size() + static_cast<size_t>(n) > 100 * 1024 * 1024) {
+        Logger::log(LOG_ERROR, "WebServer",
+            "Client buffer too large, possible DoS. FD=" + to_str(client_fd));
+        // Enqueue 413 and close-after-write instead of immediate close
+        send_error_response(client_fd, 413, "Payload Too Large", 0);
+        it->second.shouldCloseAfterWrite = true;
+        return;
+    }
+
+    // Append read bytes
+    data.append(buf, static_cast<size_t>(n));
+    Logger::log(LOG_DEBUG, "WebServer",
+        "FD=" + to_str(client_fd) + " buffer size after append: " + to_str(data.size()));
+
+    // --- Handle pipelined requests present in the buffer (no more reads here) ---
+    for (;;)
+    {
+        // Connection might have been closed by processing
+        std::map<int, Connection>::iterator it2 = conns_.find(client_fd);
+        if (it2 == conns_.end())
+            return;
+
+        std::string &buffer = it2->second.readBuf;
+
+        // Do we have full headers?
+        size_t hdr_end = find_header_end(buffer);
+        if (hdr_end == std::string::npos) {
+            // Need more data to get headers
+            return;
+        }
+
+        const size_t header_bytes = hdr_end + 4;
+        std::string headers = buffer.substr(0, header_bytes);
+
+        // Decide how many bytes constitute one full request
+        size_t needed = header_bytes;
+        if (has_chunked_encoding(headers)) {
+            // We don’t know yet; wait until the request parser can tell us the full size
+            // If your Request class can parse chunked fully from the buffer, you may let it do so.
+            if (buffer.size() <= header_bytes) return;
+            // Hand over entire buffer to Request for parsing of chunked; it will validate completeness.
+            needed = buffer.size();
+        } else {
+            long len = parse_content_length(headers);
+            if (len < 0) len = 0;
+            if (buffer.size() < header_bytes + static_cast<size_t>(len)) {
+                // Wait for the rest of the body
+                return;
+            }
+            needed = header_bytes + static_cast<size_t>(len);
+        }
+
+        if (needed > buffer.size()) {
+            // Shouldn’t happen with the checks above; treat as protocol error
+            Logger::log(LOG_ERROR, "WebServer",
+                "Needed bytes exceed buffer size before parsing! FD=" + to_str(client_fd));
+            send_error_response(client_fd, 400, "Bad Request", 0);
+            it2->second.shouldCloseAfterWrite = true;
+            return;
+        }
+
+        // Slice exactly one complete request frame
+        std::string frame = buffer.substr(0, needed);
+
+        try {
+            Request req(frame);
+            process_request(req, client_fd, 0); // MUST enqueue response only; no direct write()
+        } catch (const std::exception &e) {
+            std::string error_msg = e.what();
+            Logger::log(LOG_ERROR, "WebServer", std::string("Request parse failed: ") + error_msg);
+
+            // Enqueue an error response; DO NOT flush() here; let POLLOUT handle it
+            if (error_msg.find("HTTP Version Not Supported") != std::string::npos) {
+                send_error_response(client_fd, 505, "HTTP Version Not Supported", 0);
+                if (conns_.count(client_fd)) conns_[client_fd].shouldCloseAfterWrite = true;
+            } else if (error_msg.find("501:") == 0) {
+                send_error_response(client_fd, 501, "Not Implemented", 0);
+                if (conns_.count(client_fd)) conns_[client_fd].shouldCloseAfterWrite = true;
+            } else {
+                send_error_response(client_fd, 400, "Bad Request", 0);
+                if (conns_.count(client_fd)) conns_[client_fd].shouldCloseAfterWrite = true;
+            }
+        }
+
+        // Re-fetch connection and buffer (process_request may have queued output or closed)
+        std::map<int, Connection>::iterator it3 = conns_.find(client_fd);
+        if (it3 == conns_.end())
+            return;
+
+        std::string &buffer2 = it3->second.readBuf;
+
+        if (needed > buffer2.size()) {
+            // Buffer changed unexpectedly (e.g., connection state changed). Stop here.
+            Logger::log(LOG_DEBUG, "WebServer",
+                "Buffer smaller than expected after process_request; stopping. FD=" + to_str(client_fd));
+            return;
+        }
+
+        // Consume exactly one frame and continue loop for any pipelined requests still buffered
+        buffer2.erase(0, needed);
+        if (buffer2.empty()) {
+            return;
+        }
+    }
 }
+
 
 // --- Helper: Process the request ---
 void WebServer::process_request(Request &request, int client_fd, size_t i)
@@ -433,7 +576,7 @@ void WebServer::process_request(Request &request, int client_fd, size_t i)
 }
 
 // Helper for POST validation
-bool WebServer::validate_post_request(Request &request, int client_fd, size_t i)
+/*bool WebServer::validate_post_request(Request &request, int client_fd, size_t i)
 {
     long contentLength = request.getContentLength();
     bool isChunked = request.isChunked();
@@ -475,7 +618,49 @@ bool WebServer::validate_post_request(Request &request, int client_fd, size_t i)
     //     return false;
     // }
     return true;
+}*/
+
+bool WebServer::validate_post_request(Request &request, int client_fd, size_t i)
+{
+    long contentLength = request.getContentLength();
+    bool isChunked = request.isChunked();
+    long maxBodySize = config_->getMaxBodySize();
+
+    // Must have either Content-Length or chunked, but not both
+    if (contentLength && isChunked)
+    {
+        send_error_response(client_fd, 400, "Bad Request", i);
+        if (conns_.count(client_fd)) conns_[client_fd].shouldCloseAfterWrite = true;
+        return false;
+    }
+    if (!contentLength && !isChunked)
+    {
+        send_error_response(client_fd, 411, "Length Required", i);
+        if (conns_.count(client_fd)) conns_[client_fd].shouldCloseAfterWrite = true;
+        return false;
+    }
+
+    // Content-Length checks
+    if (contentLength)
+    {
+        if (contentLength < 0 || contentLength > maxBodySize)
+        {
+            send_error_response(client_fd, 413, "Payload Too Large", i);
+            if (conns_.count(client_fd)) conns_[client_fd].shouldCloseAfterWrite = true;
+            return false;
+        }
+        if (contentLength != static_cast<long>(request.getBody().size()))
+        {
+            send_error_response(client_fd, 400, "Bad Request", i);
+            if (conns_.count(client_fd)) conns_[client_fd].shouldCloseAfterWrite = true;
+            return false;
+        }
+    }
+
+    // ok
+    return true;
 }
+
 
 void WebServer::cleanup_client(int client_fd, int i)
 {
@@ -505,7 +690,7 @@ bool WebServer::hasPendingWrite(int client_fd) const
     return !it->second.writeBuf.empty();
 }
 
-void WebServer::flushPendingWrites(int client_fd)
+/*void WebServer::flushPendingWrites(int client_fd)
 {
     std::map<int, Connection>::iterator it = conns_.find(client_fd);
     if (it == conns_.end())
@@ -549,7 +734,62 @@ void WebServer::flushPendingWrites(int client_fd)
     {
         Logger::log(LOG_DEBUG, "flush", "fd=" + to_str(client_fd) + " drained; keeping open");
     }
+}*/
+
+void WebServer::flushPendingWrites(int client_fd)
+{
+    std::map<int, Connection>::iterator it = conns_.find(client_fd);
+    if (it == conns_.end())
+        return;
+
+    Connection &conn = it->second;
+
+    // Nothing to send? Let the next buildPollFds() omit POLLOUT.
+    if (conn.writeBuf.empty())
+        return;
+
+    // EXACTLY ONE write() attempt per POLLOUT event
+    ssize_t n = ::write(client_fd, conn.writeBuf.data(), conn.writeBuf.size());
+
+    if (n > 0)
+    {
+        // Consume written bytes
+        conn.writeBuf.erase(0, static_cast<size_t>(n));
+        updateClientActivity(client_fd);
+
+        // If we fully drained the buffer, decide whether to close
+        if (conn.writeBuf.empty())
+        {
+            if (conn.shouldCloseAfterWrite)
+            {
+                // Close now; next poll build won’t include this fd
+                closeClient(client_fd); // or cleanup_client(client_fd, 0);
+                return;
+            }
+            // Drained but keeping open (keep-alive). No POLLOUT next time.
+            Logger::log(LOG_DEBUG, "flush", "fd=" + to_str(client_fd) + " drained; keeping open");
+        }
+        return; // one write done this cycle
+    }
+
+    if (n == 0)
+    {
+        // Peer closed the write side; remove client.
+        closeClient(client_fd); // or cleanup_client(client_fd, 0);
+        return;
+    }
+
+    // n < 0: only look at errno because write() failed
+    if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)
+    {
+        // Not fatal; try again on next POLLOUT
+        return;
+    }
+
+    // Any other error => drop the client
+    closeClient(client_fd); // or cleanup_client(client_fd, 0);
 }
+
 
 // Timeout management methods
 time_t WebServer::getClientLastActive(int client_fd) const
@@ -671,4 +911,11 @@ bool WebServer::resolve_ipv4(const std::string& host, in_addr* out)
 
     std::memcpy(out, he->h_addr_list[0], sizeof(in_addr));
     return true;
+}
+
+void WebServer::markCloseAfterWrite(int fd)
+{
+    std::map<int, Connection>::iterator it = conns_.find(fd);
+    if (it != conns_.end())
+        it->second.shouldCloseAfterWrite = true;
 }

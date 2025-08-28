@@ -57,6 +57,7 @@ public:
 	// void send_length_required_response(int client_fd, const std::string &details);
 	void send_continue_response(int client_fd);
 	void send_error_response  (int, int, const std::string&, size_t);
+    void markCloseAfterWrite(int fd);
 
 
 
