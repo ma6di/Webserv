@@ -9,11 +9,13 @@
 #include <sys/stat.h>
 #include <set>
 #include <fstream>
+#include <limits.h>
 #include <sstream>
 #include <iostream>
 #include <stdexcept>
 #include <cstdlib>
-#include <cstdlib>
+
+
 
 
 class Config {
@@ -26,6 +28,8 @@ public:
 
     std::vector<int> ports;
     const std::vector<int>& getPorts() const;
+    std::vector<std::string> hosts;
+    const std::vector<std::string>& getHosts() const;
     const std::string& getRoot() const;
     const std::vector<LocationConfig>& getLocations() const;
     const std::map<int, std::string>& getErrorPages() const;

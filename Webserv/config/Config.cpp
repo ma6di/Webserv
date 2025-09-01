@@ -31,6 +31,22 @@ static std::string stripSemicolon(const std::string &token)
     return token;
 }
 
+/*int Config::parseListenDirective(const std::string &token)
+{
+    std::string portStr = stripSemicolon(token);
+
+    if (portStr.empty() || portStr.find_first_not_of("0123456789") != std::string::npos)
+        throw std::runtime_error("Invalid listen port: not a number");
+
+    int parsedPort = std::atoi(portStr.c_str());
+
+    if (parsedPort <= 0 || parsedPort > 65535)
+        throw std::runtime_error("Invalid listen port: must be between 1 and 65535");
+
+    return parsedPort;
+}*/
+
+// --- leave this helper as "port-only" validator ---
 int Config::parseListenDirective(const std::string &token)
 {
     std::string portStr = stripSemicolon(token);
@@ -46,6 +62,7 @@ int Config::parseListenDirective(const std::string &token)
     return parsedPort;
 }
 
+
 bool Config::pathExists(const std::string &path)
 {
     struct stat s;
@@ -54,7 +71,7 @@ bool Config::pathExists(const std::string &path)
 
 // --- Helper functions ---
 
-void Config::handleListenDirective(std::istringstream &iss)
+/*void Config::handleListenDirective(std::istringstream &iss)
 {
     std::string token;
     iss >> token;
@@ -69,6 +86,86 @@ void Config::handleListenDirective(std::istringstream &iss)
     {
         Logger::log(LOG_DEBUG, "Config", "Multiple listen ports detected, using first: " + to_str(port));
     }
+    if (parsed < 1 || parsed > 65535)
+    {
+        std::ostringstream oss;
+        oss << "Invalid listen port: " << parsed;
+        throw std::runtime_error(oss.str());
+    }
+}*/
+
+static bool isValidIPv4(const std::string &s) {
+    int dots = 0;
+    int num = 0;
+    int count = 0;
+
+    for (size_t i = 0; i < s.size(); ++i) {
+        char c = s[i];
+        if (c == '.') {
+            if (count == 0 || num > 255) return false;
+            dots++; num = 0; count = 0;
+        } else if (c >= '0' && c <= '9') {
+            num = num * 10 + (c - '0');
+            count++;
+            if (num > 255) return false;
+        } else {
+            return false;
+        }
+    }
+    return (dots == 3 && num <= 255 && count > 0);
+}
+
+static bool checkHost(const std::string &host) {
+    if (host == "localhost")
+        return true;
+    if (isValidIPv4(host))
+        return true;
+    return false;
+}
+
+void Config::handleListenDirective(std::istringstream &iss)
+{
+    std::string token;
+    iss >> token;
+    if (token.empty())
+        throw std::runtime_error("listen: missing value");
+
+    // Remove optional trailing ';'
+    if (!token.empty() && token[token.size() - 1] == ';')
+        token.erase(token.size() - 1);
+
+// must be HOST:PORT
+    std::string::size_type colon = token.find(':');
+    if (colon == std::string::npos)
+        throw std::runtime_error("listen: must be host:port (e.g., 127.0.0.1:8080)");
+
+    std::string host = token.substr(0, colon);
+    std::string portPart = token.substr(colon + 1);
+
+    if (host.empty())
+        throw std::runtime_error("listen: missing host before ':'");
+    if (!checkHost(host))
+        throw std::runtime_error("listen: invalid host '" + host + "' (must be IPv4 like 127.0.0.1 or 'localhost')");
+    if (portPart.empty())
+        throw std::runtime_error("listen: missing port after ':'");
+
+    // validate port as before
+    int parsed = parseListenDirective(portPart);
+
+    ports.push_back(parsed);
+    hosts.push_back(host);  // always present now
+
+    Logger::log(
+        LOG_DEBUG, "Config",
+        std::string("listen: host=[") + host + "], port=" + to_str(parsed));
+
+    // keep your existing "first port is primary" behavior
+    if (port == 0)
+        port = parsed;
+    else if (port != parsed)
+        Logger::log(LOG_DEBUG, "Config",
+                    "Multiple listen ports detected, using first: " + to_str(port));
+
     if (parsed < 1 || parsed > 65535)
     {
         std::ostringstream oss;
@@ -112,8 +209,29 @@ void Config::handleClientMaxBodySizeDirective(std::istringstream &iss)
     std::string sizeStr;
     iss >> sizeStr;
     sizeStr = stripSemicolon(sizeStr);
-    max_body_size = static_cast<size_t>(std::strtoull(sizeStr.c_str(), NULL, 10));
+
+    if (sizeStr.empty())
+        throw std::runtime_error("client_max_body_size: missing value");
+
+    // must be digits only
+    for (size_t i = 0; i < sizeStr.size(); ++i) {
+        if (sizeStr[i] < '0' || sizeStr[i] > '9') {
+            throw std::runtime_error("client_max_body_size: must be a positive integer (digits only)");
+        }
+    }
+
+    // convert to int
+    long n = std::atol(sizeStr.c_str());
+
+    if (n <= 0)
+        throw std::runtime_error("client_max_body_size: must be >= 1");
+
+    if (n > INT_MAX)  // too large for safety
+        throw std::runtime_error("client_max_body_size: value too large");
+
+    max_body_size = static_cast<size_t>(n);
 }
+
 
 void Config::handleLocationEnd(LocationConfig &currentLocation, bool &insideLocation)
 {
@@ -285,3 +403,5 @@ void Config::parseServerBlock(std::ifstream &file)
     if (!ports.empty())
         port = ports.front();
 }
+
+const std::vector<std::string>& Config::getHosts() const { return hosts; }

@@ -25,7 +25,7 @@ void WebServer::send_redirect_response(int client_fd, int code, const std::strin
          << "<p>Redirecting to <a href=\"" << location << "\">" << location << "</a></p>"
          << "</body></html>";
     Logger::log(LOG_INFO, "send_redirect_response", "Redirecting to: " + location + " (code " + to_str(code) + ")");
-    
+
     Response resp;
     resp.setStatus(code, Response::getStatusMessage(code));
     resp.setHeader("Location", location);
@@ -46,18 +46,17 @@ void WebServer::send_ok_response(int client_fd, const std::string &body, const s
     Logger::log(LOG_INFO, "send_ok_response", "Sending 200 OK response.");
     Response resp(200, "OK", body, headers);
     bool keepAlive = !conns_[client_fd].shouldCloseAfterWrite; // <----- photobook bug?
-    keepAlive = false; // <--- bug "fixed" because false
+    keepAlive = false;                                         // <--- bug "fixed" because false
     // Apply our new helper:
-    resp.applyConnectionHeaders(keepAlive);  // <----- photobook bug?
+    resp.applyConnectionHeaders(keepAlive); // <----- photobook bug?
     std::string raw = resp.toString();
     // 2) Enqueue for non-blocking write; close after fully sent
     queueResponse(client_fd, raw);
 }
 
-
-void WebServer::send_created_response(int client_fd, 
-                                      const std::string &body, 
-                                      const std::map<std::string, std::string> &headers, 
+void WebServer::send_created_response(int client_fd,
+                                      const std::string &body,
+                                      const std::map<std::string, std::string> &headers,
                                       size_t i)
 {
     (void)i;
@@ -91,7 +90,7 @@ void WebServer::send_upload_success_response(int client_fd, const std::string &f
     // Add headers: Content-Type + Location
     std::map<std::string, std::string> headers;
     headers["Content-Type"] = "text/html; charset=utf-8";
-    headers["Location"] = full_filename;   // ideally relative URL, not filesystem path
+    headers["Location"] = full_filename; // ideally relative URL, not filesystem path
 
     send_created_response(client_fd, body.str(), headers, i);
 }
@@ -116,7 +115,6 @@ void WebServer::send_no_content_response(int client_fd, size_t i)
     queueResponse(client_fd, raw);
 }
 
-
 static std::string resolve_error_page_path(const std::string &err_uri)
 {
     std::string fallback_root = "./www";
@@ -130,7 +128,7 @@ static std::string resolve_error_page_path(const std::string &err_uri)
     return full_path;
 }
 
-void WebServer::send_error_response(int client_fd,
+/*void WebServer::send_error_response(int client_fd,
                                     int code,
                                     const std::string &msg,
                                     size_t i)
@@ -143,15 +141,18 @@ void WebServer::send_error_response(int client_fd,
     resp.setStatus(code, status_msg);
     resp.setHeader("Content-Type", "text/html");
     bool loaded = false;
-    if (err_page && !err_page->empty()) {
+    if (err_page && !err_page->empty())
+    {
         std::string resolved_path = resolve_error_page_path(*err_page);
         Logger::log(LOG_DEBUG, "send_error_response", "Trying custom error page: " + resolved_path);
         loaded = resp.loadBodyFromFile(resolved_path);
-        if (!loaded) {
+        if (!loaded)
+        {
             Logger::log(LOG_ERROR, "send_error_response", "Custom error page not found or not readable: " + resolved_path);
         }
     }
-    if (!loaded) {
+    if (!loaded)
+    {
         std::ostringstream oss;
         oss << "<!DOCTYPE html><html><head><title>" << code << " " << status_msg
             << "</title></head><body><h1>" << code << " " << status_msg
@@ -159,9 +160,12 @@ void WebServer::send_error_response(int client_fd,
         resp.setBody(oss.str());
     }
     // For error responses, close connection after sending unless informational (1xx) or 204
-    if (code < 200 || code == 204) {
+    if (code < 200 || code == 204)
+    {
         conns_[client_fd].shouldCloseAfterWrite = false;
-    } else {
+    }
+    else
+    {
         conns_[client_fd].shouldCloseAfterWrite = true;
     }
     bool keepAlive = !conns_[client_fd].shouldCloseAfterWrite;
@@ -170,7 +174,68 @@ void WebServer::send_error_response(int client_fd,
     queueResponse(client_fd, raw);
     // Always flush writes for error responses
     flushPendingWrites(client_fd);
+}*/
+
+void WebServer::send_error_response(int client_fd,
+                                    int code,
+                                    const std::string &msg,
+                                    size_t i)
+{
+    (void)i;
+    (void)msg;
+
+    // Ensure the connection still exists
+    std::map<int, Connection>::iterator it = conns_.find(client_fd);
+    if (it == conns_.end())
+        return;
+
+    const std::string *err_page = config_->getErrorPage(code);
+    std::string status_msg = Response::getStatusMessage(code);
+
+    Response resp;
+    resp.setStatus(code, status_msg);
+    resp.setHeader("Content-Type", "text/html");
+
+    bool loaded = false;
+    if (err_page && !err_page->empty())
+    {
+        std::string resolved_path = resolve_error_page_path(*err_page);
+        Logger::log(LOG_DEBUG, "send_error_response",
+                    "Trying custom error page: " + resolved_path);
+        loaded = resp.loadBodyFromFile(resolved_path);
+        if (!loaded)
+            Logger::log(LOG_ERROR, "send_error_response",
+                        "Custom error page not found or unreadable: " + resolved_path);
+    }
+
+    if (!loaded)
+    {
+        std::ostringstream oss;
+        oss << "<!DOCTYPE html><html><head><title>"
+            << code << " " << status_msg
+            << "</title></head><body><h1>"
+            << code << " " << status_msg
+            << "</h1><p>The server could not fulfill your request.</p></body></html>";
+        resp.setBody(oss.str());
+    }
+
+    // Decide connection policy for errors:
+    // - Keep open only for informational (1xx) or 204; otherwise close after write.
+    bool closeAfter = !(code < 200 || code == 204);
+
+    // Mark connection state
+    it->second.shouldCloseAfterWrite = closeAfter;
+
+    // Set proper Connection header
+    resp.applyConnectionHeaders(!closeAfter);  // keepAlive = !closeAfter
+
+    // Serialize and enqueue; DO NOT flush or close here
+    std::string raw = resp.toString();
+    queueResponse(client_fd, raw);
+
+    // No flushPendingWrites() here — POLLOUT will handle it in the main poll loop.
 }
+
 
 // ...existing code...
 
@@ -203,7 +268,7 @@ void WebServer::send_error_response(int client_fd,
 
 // void WebServer::send_request_timeout_response(int client_fd, size_t i) {
 //     (void)i;
-//     Logger::log(LOG_INFO, "send_request_timeout_response", 
+//     Logger::log(LOG_INFO, "send_request_timeout_response",
 //                 "Sending 408 Request Timeout response to fd=" + to_str(client_fd));
 
 //     Response resp;
@@ -226,11 +291,11 @@ void WebServer::send_error_response(int client_fd,
 //     std::string response = resp.toString();
 //     ssize_t n = ::write(client_fd, response.data(), response.size());
 //     if (n < 0) {
-//         Logger::log(LOG_ERROR, "send_request_timeout_response", 
-//                    "Failed to send 408 response to fd=" + to_str(client_fd) + 
+//         Logger::log(LOG_ERROR, "send_request_timeout_response",
+//                    "Failed to send 408 response to fd=" + to_str(client_fd) +
 //                    " (errno=" + to_str(errno) + ")");
 //     } else {
-//         Logger::log(LOG_INFO, "send_request_timeout_response", 
+//         Logger::log(LOG_INFO, "send_request_timeout_response",
 //                    "Successfully sent 408 response (" + to_str(n) + " bytes) to fd=" + to_str(client_fd));
 //     }
 // }
@@ -241,15 +306,32 @@ void WebServer::send_continue_response(int client_fd)
     resp.setStatus(100, Response::getStatusMessage(100));
     // 100 Continue should have no body and minimal headers
     resp.setBody("");
-    
+
     std::string response = resp.toString();
-    ssize_t n = send(client_fd, response.c_str(), response.length(), MSG_NOSIGNAL);
+    /*ssize_t n = send(client_fd, response.c_str(), response.length(), MSG_NOSIGNAL);
     if (n == -1) {
-        Logger::log(LOG_ERROR, "send_continue_response", 
-                   "Failed to send 100 Continue response to fd=" + to_str(client_fd) + 
+        Logger::log(LOG_ERROR, "send_continue_response",
+                   "Failed to send 100 Continue response to fd=" + to_str(client_fd) +
                    " (errno=" + to_str(errno) + ")");
-    } else {
-        Logger::log(LOG_INFO, "send_continue_response", 
-                   "Successfully sent 100 Continue response (" + to_str(n) + " bytes) to fd=" + to_str(client_fd));
+    }*/
+    ssize_t n = send(client_fd, response.c_str(), response.length(), MSG_NOSIGNAL);
+    if (n == -1)
+    {
+        if (errno == EAGAIN || errno == EWOULDBLOCK)
+        {
+            Logger::log(LOG_DEBUG, "send_continue_response",
+                        "FD=" + to_str(client_fd) + " would block (EAGAIN); skipping for now");
+            return; // not fatal; try again later if you want
+        }
+        Logger::log(LOG_ERROR, "send_continue_response",
+                    "FD=" + to_str(client_fd) +
+                        " send failed, errno=" + to_str(errno) + "; closing client");
+        cleanup_client(client_fd, 0); // real error → remove client
+        return;
+    }
+    else
+    {
+        Logger::log(LOG_INFO, "send_continue_response",
+                    "Successfully sent 100 Continue response (" + to_str(n) + " bytes) to fd=" + to_str(client_fd));
     }
 }
