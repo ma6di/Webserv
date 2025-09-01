@@ -1,10 +1,46 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Another server</title>
-</head>
-<body>
-    <h1>2nd Server</h1>
-</body>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Server 2 — Webserv Test</title>
+        <link
+            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css"
+            rel="stylesheet" />
+    </head>
+    <body
+        class="bg-dark text-light d-flex flex-column justify-content-center align-items-center min-vh-100">
+        <div class="container text-center">
+            <h1 class="mb-3">
+                Welcome to our 2nd Server at
+                <span class="fw-bold">localhost:8085</span>
+            </h1>
+            <p class="lead mb-5">
+                This server is used to test our <strong>Webserv</strong> running
+                on a different port.
+            </p>
+
+            <div class="d-grid gap-3 col-12 col-md-6 mx-auto">
+                <a href="/upload_8085" class="btn btn-outline-light"
+                    >Upload to current server (8085)</a
+                >
+                <a href="/upload_8080" class="btn btn-outline-info"
+                    >Upload to main sever (8080)</a
+                >
+                <a
+                    href="/surprise.html"
+                    class="btn btn-outline-warning text-warning"
+                    >Random cuteness</a
+                >
+                <a
+                    href="http://localhost:8080/"
+                    class="btn btn-danger text-light"
+                    >Go back to
+                    <strong class="fw-bold">localhost:8080</strong></a
+                >
+            </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
+    </body>
 </html>

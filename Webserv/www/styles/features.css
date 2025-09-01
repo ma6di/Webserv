@@ -1,0 +1,57 @@
+/* PAGE 3 - FEATURES */
+.card-link-wrapper {
+    text-decoration: none;
+}
+
+/* Main card */
+.feature-card {
+    background-color: transparent;
+    border: 1px solid rgb(27, 38, 74);
+    border-radius: 12px;
+    box-shadow: 0 0 15px #0e1235;
+    transition: background 0.3s ease, transform 0.2s ease;
+    /* border-color 0.2s ease; */
+    padding: 1rem;
+    height: 100%;
+}
+
+/* Title + description (idle) */
+.feature-card .card-title {
+    font-size: 1.5rem;
+    /* font-weight: 700; */
+    /* text-align: center; */
+    color: #dbe4ff; /* softer than white */
+    transition: color 0.2s ease, text-shadow 0.2s ease;
+}
+.feature-card .card-text {
+    font-size: 1rem;
+    /* font-weight: 300; */
+    color: #a6adc8; /* secondary text */
+    transition: color 0.2s ease;
+}
+
+/* Hover gradient + text color change */
+.feature-card:hover {
+    background: linear-gradient(#131c4c, #0b1131) padding-box,
+        linear-gradient(280deg, #7c5cff, #22d3ee, #60a5fa, #7c5cff) border-box;
+    border-color: transparent;
+    background-size: 100% 100%, 400% 400%;
+    animation: rainbow 1s linear infinite alternate;
+    transform: translateY(-3px);
+}
+.feature-card:hover .card-title {
+    color: #eef3ff;
+    /* text-shadow: 0 0 12px rgba(139, 214, 255, 0.35); */
+}
+.feature-card:hover .card-text {
+    color: #cdd6f4;
+}
+
+@keyframes rainbow {
+    0% {
+        background-position: 0% 50%, 0% 50%;
+    }
+    100% {
+        background-position: 0% 50%, 100% 50%;
+    }
+}

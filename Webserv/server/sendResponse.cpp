@@ -76,13 +76,21 @@ void WebServer::send_upload_success_response(int client_fd, const std::string &f
 {
     std::ostringstream body;
     body << "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\">"
-         << "<title>Upload Successful</title></head><body style=\"font-family:sans-serif;text-align:center;margin-top:50px;\">"
-         << "<h1>✅ File uploaded successfully!</h1>"
-         << "<p>Saved as: <code>" << full_filename << "</code></p>"
-         << "<br><br>"
-         << "<a href=\"/\" style=\"margin: 0 10px;\"><button>Home</button></a>"
-         << "<a href=\"/about\" style=\"margin: 0 10px;\"><button>About</button></a>"
-         << "<a href=\"/upload\" style=\"margin: 0 10px;\"><button>Upload Another</button></a>"
+         << "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
+         << "<title>Upload Successful</title>"
+         << "<link href=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css\" rel=\"stylesheet\">"
+         << "</head><body class=\"bg-dark text-light d-flex flex-column justify-content-center align-items-center\" "
+         << "style=\"font-family:sans-serif;min-height:100vh;\">"
+
+         << "<h1 class=\"mb-3\">✅ File uploaded successfully!</h1>"
+         << "<p class=\"mb-4\">Saved as: <code>" << full_filename << "</code></p>"
+
+         << "<div class=\"d-flex gap-3\">"
+         << "<a href=\"/\" class=\"btn btn-outline-light\">Home</a>"
+         << "<a href=\"/methods.html#demos\" class=\"btn btn-success\">Go back</a>"
+         << "</div>"
+
+         << "<script src=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js\"></script>"
          << "</body></html>";
 
     Logger::log(LOG_INFO, "send_upload_success_response", "Upload successful: " + full_filename);
