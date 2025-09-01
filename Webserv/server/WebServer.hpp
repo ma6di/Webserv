@@ -58,6 +58,7 @@ public:
 	void send_continue_response(int client_fd);
 	void send_error_response  (int, int, const std::string&, size_t);
     void markCloseAfterWrite(int fd);
+	// int check_headers(const std::string &headers, long maxBodySize);
 
 
 

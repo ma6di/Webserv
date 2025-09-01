@@ -119,242 +119,6 @@ int WebServer::handleNewConnection(int listen_fd)
 	return client_fd;
 }
 
-/* void WebServer::handleClientDataOn(int client_fd)
-{
-	char buf[4096];
-	ssize_t n = ::read(client_fd, buf, sizeof(buf));
-	if (n == 0)
-	{ // EOF: peer closed
-		::close(client_fd);
-		conns_.erase(client_fd);
-		Logger::log(LOG_INFO, "WebServer",
-		"FD=" + to_str(client_fd) + " EOF from peer; closing");
-		return;
-	}
-	if (n < 0)
-	{
-		if (errno == EAGAIN || errno == EWOULDBLOCK)
-		{
-			Logger::log(LOG_DEBUG, "WebServer",
-			"FD=" + to_str(client_fd) + " read would block (EAGAIN); returning");
-			return; // not an error in non-blocking mode
-		}
-		Logger::log(LOG_ERROR, "WebServer",
-		"FD=" + to_str(client_fd) + " read error errno=" + to_str(errno) + "; closing");
-		::close(client_fd); // real error → remove client
-		conns_.erase(client_fd);
-		return;
-	}
-
-	// Update client activity timestamp
-	updateClientActivity(client_fd);
-
-	if ((size_t)n > sizeof(buf))
-	{
-		Logger::log(LOG_ERROR, "WebServer", "Read more bytes than buffer size! Possible buffer overrun.");
-		::close(client_fd);
-		conns_.erase(client_fd);
-		return;
-	}
-
-	std::map<int, Connection>::iterator it = conns_.find(client_fd);
-	if (it == conns_.end())
-	{
-		return; // connection gone
-	}
-
-	// Early header check for oversized Content-Length before appending body
-	std::string &data = it->second.readBuf;
-	// Temporarily append to buffer for header parsing only
-	std::string temp = data + std::string(buf, (size_t)n);
-	size_t hdr_end = find_header_end(temp);
-	if (hdr_end != std::string::npos)
-	{
-		const size_t header_bytes = hdr_end + 4;
-		std::string headers = temp.substr(0, header_bytes);
-		long contentLength = parse_content_length(headers);
-		long maxBodySize = config_->getMaxBodySize();
-		if (contentLength > maxBodySize)
-		{
-			Logger:
-/*void WebServer::handleClientDataOn(int client_fd)
-{
-	char buf[4096];
-	ssize_t n = ::read(client_fd, buf, sizeof(buf));
-	if (n == 0)
-	{ // EOF: peer closed
-		::close(client_fd);
-		conns_.erase(client_fd);
-		Logger::log(LOG_INFO, "WebServer",
-		"FD=" + to_str(client_fd) + " EOF from peer; closing");
-		return;
-	}
-	if (n < 0)
-	{
-		if (errno == EAGAIN || errno == EWOULDBLOCK)
-		{
-			Logger::log(LOG_DEBUG, "WebServer",
-			"FD=" + to_str(client_fd) + " read would block (EAGAIN); returning");
-			return; // not an error in non-blocking mode
-		}
-		Logger::log(LOG_ERROR, "WebServer",
-		"FD=" + to_str(client_fd) + " read error errno=" + to_str(errno) + "; closing");
-		::close(client_fd); // real error → remove client
-		conns_.erase(client_fd);
-		return;
-	}
-
-	// Update client activity timestamp
-	updateClientActivity(client_fd);
-
-	if ((size_t)n > sizeof(buf))
-	{
-		Logger::log(LOG_ERROR, "WebServer", "Read more bytes than buffer size! Possible buffer overrun.");
-		::close(client_fd);
-		conns_.erase(client_fd);
-		return;
-	}
-
-	std::map<int, Connection>::iterator it = conns_.find(client_fd);
-	if (it == conns_.end())
-	{
-		return; // connection gone
-	}
-
-	// Early header check for oversized Content-Length before appending body
-	std::string &data = it->second.readBuf;
-	// Temporarily :log(LOG_ERROR, "WebServer",
-						"Rejecting request: Content-Length=" + to_str(contentLength) +
-							" exceeds maxBodySize=" + to_str(maxBodySize));
-			send_error_response(client_fd, 413, "Payload Too Large", 0);
-			::close(client_fd);
-			conns_.erase(client_fd);
-			return;
-		}
-	}
-
-	// Now append into our buffer
-	if (data.size() + (size_t)n > 100 * 1024 * 1024)
-	{
-		Logger::log(LOG_ERROR, "WebServer", "Client buffer too large, possible DoS or bug. FD=" + to_str(client_fd));
-		::close(client_fd);
-		conns_.erase(client_fd);
-		return;
-	}
-	data.append(buf, (size_t)n);
-	Logger::log(LOG_DEBUG, "WebServer", "FD=" + to_str(client_fd) + " buffer size after append: " + to_str(data.size()));
-
-	// loop to handle pipelined requests in the same buffer
-	// loop to handle pipelined requests in the same buffer
-	for (;;)
-	{
-		std::map<int, Connection>::iterator it2 = conns_.find(client_fd);
-		if (it2 == conns_.end())
-			return; // connection gone
-		std::string &buffer = it2->second.readBuf;
-
-		size_t hdr_end = find_header_end(buffer);
-		if (hdr_end == std::string::npos)
-		{
-			// need more bytes for headers
-			return;
-		}
-
-		const size_t header_bytes = hdr_end + 4;
-		std::string headers = buffer.substr(0, header_bytes);
-
-		size_t needed = header_bytes;
-		if (has_chunked_encoding(headers))
-		{
-			if (buffer.size() <= header_bytes)
-			{
-				return; // wait for body
-			}
-			Logger::log(LOG_DEBUG, "WebServer", "Detected chunked encoding");
-			needed = buffer.size();
-		}
-		else
-		{
-			int len = parse_content_length(headers);
-			if (len < 0)
-				len = 0;
-			if (buffer.size() < header_bytes + (size_t)len)
-			{
-				return; // wait for body
-			}
-			needed = header_bytes + (size_t)len;
-		}
-
-		if (needed > buffer.size())
-		{
-			// protocol error before parsing, not after
-			Logger::log(LOG_ERROR, "WebServer",
-						"Needed bytes exceed buffer size before parsing! FD=" + to_str(client_fd));
-			::close(client_fd);
-			conns_.erase(client_fd);
-			return;
-		}
-
-		// Slice one full request
-		std::string frame = buffer.substr(0, needed);
-
-		try
-		{
-			Request req(frame);
-			process_request(req, client_fd, 0);
-		}
-		catch (const std::exception &e)
-		{
-			std::string error_msg = e.what();
-			Logger::log(LOG_ERROR, "WebServer",
-						std::string("Request parse failed: ") + error_msg);
-
-			if (error_msg.find("HTTP Version Not Supported") != std::string::npos)
-			{
-				send_error_response(client_fd, 505, "HTTP Version Not Supported", 0);
-				flushPendingWrites(client_fd);
-				if (conns_.count(client_fd))
-					conns_[client_fd].shouldCloseAfterWrite = true;
-			}
-			else if (error_msg.find("501:") == 0)
-			{
-				send_error_response(client_fd, 501, "Not Implemented", 0);
-				flushPendingWrites(client_fd);
-				if (conns_.count(client_fd))
-					conns_[client_fd].shouldCloseAfterWrite = true;
-			}
-			else
-			{
-				send_error_response(client_fd, 400, "Bad Request", 0);
-				flushPendingWrites(client_fd);
-				if (conns_.count(client_fd))
-					conns_[client_fd].shouldCloseAfterWrite = true;
-			}
-		}
-
-		// refresh iterator (process_request may have closed the connection)
-		std::map<int, Connection>::iterator it3 = conns_.find(client_fd);
-		if (it3 == conns_.end())
-			return;
-		std::string &buffer2 = it3->second.readBuf;
-
-		if (needed > buffer2.size())
-		{
-			// buffer shrank inside process_request → assume already consumed
-			Logger::log(LOG_DEBUG, "WebServer",
-						"Buffer smaller than expected after process_request, skipping erase. FD=" + to_str(client_fd));
-			return;
-		}
-
-		buffer2.erase(0, needed);
-		if (buffer2.empty())
-		{
-			return;
-		}
-		// else continue loop for pipelined requests
-	}
-} */
-
 void WebServer::handleClientDataOn(int client_fd)
 {
 	// --- Single-shot read per POLLIN ---
@@ -409,6 +173,15 @@ void WebServer::handleClientDataOn(int client_fd)
 	Logger::log(LOG_DEBUG, "WebServer",
 				"FD=" + to_str(client_fd) + " buffer size after append: " + to_str(data.size()));
 
+	// --- Immediate error if buffer exceeds max body size ---
+	long maxBodySize = static_cast<long>(config_->getMaxBodySize());
+	if (data.size() > static_cast<size_t>(maxBodySize)) {
+		Logger::log(LOG_ERROR, "WebServer",
+					"FD=" + to_str(client_fd) + " buffer exceeds max body size");
+		send_error_response(client_fd, 413, "Payload Too Large", 0);
+		return;
+	}
+
 	// --- Handle pipelined requests present in the buffer (no more reads here) ---
 	for (;;)
 	{
@@ -421,14 +194,34 @@ void WebServer::handleClientDataOn(int client_fd)
 
 		// Do we have full headers?
 		size_t hdr_end = find_header_end(buffer);
-		if (hdr_end == std::string::npos)
-		{
+		if (hdr_end == std::string::npos) {
 			// Need more data to get headers
 			return;
 		}
 
 		const size_t header_bytes = hdr_end + 4;
 		std::string headers = buffer.substr(0, header_bytes);
+
+		// Header protocol checks
+		// int headerErr = check_headers(headers, maxBodySize);
+		// if (headerErr) {
+		// 	int code = headerErr == 413 ? 413 : (headerErr == 501 ? 501 : 400);
+		// 	const char *msg = code == 413 ? "Payload Too Large" : (code == 501 ? "Not Implemented" : "Bad Request");
+		// 	Logger::log(LOG_ERROR, "WebServer", "FD=" + to_str(client_fd) + " header error, code=" + to_str(code));
+		// 	send_error_response(client_fd, code, msg, 0);
+		// 	it2->second.shouldCloseAfterWrite = true;
+		// 	return;
+		// }
+
+		// --- Immediate error if declared Content-Length exceeds max body size ---
+		long len = parse_content_length(headers);
+		if (len > maxBodySize) {
+			Logger::log(LOG_ERROR, "WebServer",
+						"FD=" + to_str(client_fd) + " declared Content-Length exceeds max body size");
+			send_error_response(client_fd, 413, "Payload Too Large", 0);
+			it2->second.shouldCloseAfterWrite = true;
+			return;
+		}
 
 		// Decide how many bytes constitute one full request
 		size_t needed = header_bytes;
@@ -443,7 +236,6 @@ void WebServer::handleClientDataOn(int client_fd)
 		}
 		else
 		{
-			long len = parse_content_length(headers);
 			if (len < 0)
 				len = 0;
 			if (buffer.size() < header_bytes + static_cast<size_t>(len))
@@ -452,6 +244,15 @@ void WebServer::handleClientDataOn(int client_fd)
 				return;
 			}
 			needed = header_bytes + static_cast<size_t>(len);
+		}
+
+		// --- Immediate error if buffer exceeds declared Content-Length ---
+		if (len > 0 && buffer.size() > header_bytes + static_cast<size_t>(len)) {
+			Logger::log(LOG_ERROR, "WebServer",
+						"FD=" + to_str(client_fd) + " buffer exceeds declared Content-Length");
+			send_error_response(client_fd, 400, "Bad Request", 0);
+			it2->second.shouldCloseAfterWrite = true;
+			return;
 		}
 
 		if (needed > buffer.size())
@@ -1005,3 +806,73 @@ void WebServer::markCloseAfterWrite(int fd)
 	if (it != conns_.end())
 		it->second.shouldCloseAfterWrite = true;
 }
+
+// // Helper: Checks headers for protocol errors, returns error code or 0 if OK
+// int WebServer::check_headers(const std::string &headers, long maxBodySize) {
+//     int contentLengthCount = 0;
+//     long contentLength = -1;
+//     bool hasTransferEncoding = false;
+//     bool hasHost = false;
+//     std::string version;
+//     std::string method;
+
+//     // Simple line-by-line parse
+//     size_t pos = 0;
+//     bool firstLine = true;
+//     while (pos < headers.size()) {
+//         size_t end = headers.find("\r\n", pos);
+//         if (end == std::string::npos) break;
+//         std::string line = headers.substr(pos, end - pos);
+//         pos = end + 2;
+//         if (line.empty()) continue;
+//         if (firstLine) {
+//             // Parse request line: METHOD PATH VERSION
+//             size_t m1 = line.find(' ');
+//             size_t m2 = line.find(' ', m1 + 1);
+//             if (m1 != std::string::npos && m2 != std::string::npos) {
+//                 method = line.substr(0, m1);
+//                 version = line.substr(m2 + 1);
+//             }
+//             firstLine = false;
+//             continue;
+//         }
+//         size_t colon = line.find(':');
+//         if (colon == std::string::npos) continue;
+//         std::string key = line.substr(0, colon);
+//         std::string value = line.substr(colon + 1);
+//         // Trim
+//         while (!key.empty() && (key[0] == ' ' || key[0] == '\t')) key.erase(0, 1);
+//         while (!value.empty() && (value[0] == ' ' || value[0] == '\t')) value.erase(0, 1);
+//         // Lowercase for comparison
+//         for (size_t i = 0; i < key.size(); ++i) key[i] = tolower(key[i]);
+//         for (size_t i = 0; i < value.size(); ++i) value[i] = tolower(value[i]);
+//         if (key == "content-length") {
+//             contentLengthCount++;
+//             char *endptr = NULL;
+//             long cl = strtol(value.c_str(), &endptr, 10);
+//             if (*endptr != '\0') return 400; // Bad Request: non-numeric CL
+//             contentLength = cl;
+//         }
+//         if (key == "transfer-encoding") {
+//             hasTransferEncoding = true;
+//             if (value.find("chunked") == std::string::npos) return 501; // Not Implemented: unsupported encoding
+//         }
+//         if (key == "host") hasHost = true;
+//         // Check for invalid header chars (simple)
+//         for (size_t i = 0; i < key.size(); ++i) {
+//             if (key[i] < 32 || key[i] == 127) return 400;
+//         }
+//     }
+//     // Only enforce Host for HTTP/1.1
+//     if (version == "HTTP/1.1" && !hasHost) return 400;
+//     // Only check body-related headers for POST/PUT
+//     if (method == "POST" || method == "PUT") {
+//         if (contentLengthCount > 1) return 400;
+//         if (contentLength < 0) return 400;
+//         if (contentLengthCount && hasTransferEncoding) return 400;
+//         if (contentLength > maxBodySize) return 413;
+//     }
+//     // For other methods, ignore Content-Length/Transfer-Encoding unless present and invalid
+//     if ((method != "POST" && method != "PUT") && (contentLengthCount > 1 || contentLength < 0)) return 400;
+//     return 0;
+// }
