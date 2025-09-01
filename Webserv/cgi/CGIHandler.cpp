@@ -120,13 +120,8 @@ void CGIHandler::log_cgi_debug(int status, int ret, const std::string& output, c
     Logger::log(LOG_DEBUG, "CGIHandler", "WIFEXITED: " + to_str(WIFEXITED(status)) + ", WEXITSTATUS: " + to_str(WEXITSTATUS(status)));
     Logger::log(LOG_DEBUG, "CGIHandler", "WIFSIGNALED: " + to_str(WIFSIGNALED(status)) + ", WTERMSIG: " + to_str(WTERMSIG(status)));
 
-    std::ostringstream hex;
-    hex << "[CGI DEBUG] Raw CGI output (hex):\n";
-    for (size_t i = 0; i < output.size(); ++i)
-        hex << std::hex << (int)(unsigned char)output[i] << " ";
-    hex << "\n[END HEX]\n";
-    Logger::log(LOG_DEBUG, "CGIHandler", hex.str());
     Logger::log(LOG_DEBUG, "CGIHandler", "[CGI DEBUG] CGI ERROR output:\n" + error_output + "\n[END]");
+    (void)output;
 }
 
 // --- Static helpers for CGI logic ---
@@ -274,7 +269,7 @@ void CGIHandler::setup_child_process(const std::string& absPath, int input_pipe[
     std::string interpreter;
     if (absPath.size() >= 4 && absPath.substr(absPath.size() - 4) == ".php") {
         environment["SCRIPT_FILENAME"] = absPath;
-        interpreter = "/opt/homebrew/bin/php-cgi"; // Adjust path if needed
+        interpreter = "/usr/bin/php-cgi"; // Adjust path if needed
     }
 
     std::vector<std::string> envStrings;

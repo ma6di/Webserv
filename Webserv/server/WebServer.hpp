@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <ctime>  // for time_t and time()
 #include <netinet/in.h>  // sockaddr_in
 #include "../logger/Logger.hpp"
 #include "Config.hpp"
@@ -43,7 +44,21 @@ public:
 
     bool hasPendingWrite(int client_fd) const;
     void flushPendingWrites(int client_fd);
+    
+    // Timeout management
+    time_t getClientLastActive(int client_fd) const;
+    void updateClientActivity(int client_fd);
+    void closeClient(int client_fd);
+	// void send_request_timeout_response(int client_fd, size_t i);
+	// void send_bad_request_response(int client_fd, const std::string &details);
+	// void send_length_required_response(int client_fd, const std::string &details);
+	void send_continue_response(int client_fd);
+	void send_error_response  (int, int, const std::string&, size_t);
+
+
+
 private:
+    bool validate_post_request(Request &request, int client_fd, size_t i);
     const Config*                 config_;
 
     std::vector<int>              listening_sockets;
@@ -54,7 +69,8 @@ private:
       std::string readBuf;    // accumulated request bytes
       std::string writeBuf;   // bytes queued for response
       bool        shouldCloseAfterWrite;
-      Connection() : readBuf(), writeBuf(), shouldCloseAfterWrite(false) {}
+      time_t      last_active; // timestamp of last activity
+      Connection() : readBuf(), writeBuf(), shouldCloseAfterWrite(false), last_active(time(NULL)) {}
     };
 
     std::map<int, Connection> conns_;
@@ -80,9 +96,14 @@ private:
     void send_upload_success_response(int, const std::string&, size_t);
 
     void send_ok_response     (int, const std::string&, const std::map<std::string,std::string>&, size_t);
-    void send_error_response  (int, int, const std::string&, size_t);
     void send_file_response   (int, const std::string&, size_t);
     void send_redirect_response(int, int, const std::string&, size_t);
+	void send_created_response(int client_fd, 
+                                      const std::string &body, 
+                                      const std::map<std::string, std::string> &headers, 
+                                      size_t i);
+	void send_no_content_response(int client_fd, size_t i);
+
 
     size_t find_header_end          (const std::string&);
     bool   read_and_append_client_data(int, size_t);

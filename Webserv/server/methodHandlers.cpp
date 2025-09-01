@@ -174,7 +174,8 @@ void WebServer::handle_delete(const Request& request, const LocationConfig* loc,
         send_error_response(client_fd, 403, "Forbidden", i);
     } else if (remove(path.c_str()) == 0) {
         Logger::log(LOG_INFO, "handle_delete", "File deleted: " + path);
-        send_ok_response(client_fd, "<html><body><h1>File deleted: " + uri + "</h1></body></html>", content_type_html(), i);
+		send_no_content_response(client_fd, i);
+        // send_ok_response(client_fd, "<html><body><h1>File deleted: " + uri + "</h1></body></html>", content_type_html(), i);
     } else {
         Logger::log(LOG_ERROR, "handle_delete", "Failed to delete file: " + path);
         send_error_response(client_fd, 500, "Internal Server Error", i);

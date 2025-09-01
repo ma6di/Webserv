@@ -31,15 +31,19 @@ void WebServer::send_redirect_response(int client_fd, int code, const std::strin
          << "<p>Redirecting to <a href=\"" << location << "\">" << location << "</a></p>"
          << "</body></html>";
     Logger::log(LOG_INFO, "send_redirect_response", "Redirecting to: " + location + " (code " + to_str(code) + ")");
-    Response resp(code, "Redirect", body.str(), redirect_headers(location));
-     bool keepAlive = !conns_[client_fd].shouldCloseAfterWrite;
+    
+    Response resp;
+    resp.setStatus(code, Response::getStatusMessage(code));
+    resp.setHeader("Location", location);
+    resp.setHeader("Content-Type", "text/html");
+    resp.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+    resp.setHeader("Pragma", "no-cache");
+    resp.setHeader("Expires", "0");
+    resp.setBody(body.str());
 
-    // Apply our new helper:
+    bool keepAlive = !conns_[client_fd].shouldCloseAfterWrite;
     resp.applyConnectionHeaders(keepAlive);
-    std::string raw = resp.toString();
-
-    // 2) Enqueue for non-blocking write; close after fully sent
-    queueResponse(client_fd, raw);
+    queueResponse(client_fd, resp.toString());
 }
 
 void WebServer::send_ok_response(int client_fd, const std::string &body, const std::map<std::string, std::string> &headers, size_t i)
@@ -48,11 +52,30 @@ void WebServer::send_ok_response(int client_fd, const std::string &body, const s
     Logger::log(LOG_INFO, "send_ok_response", "Sending 200 OK response.");
     Response resp(200, "OK", body, headers);
     bool keepAlive = !conns_[client_fd].shouldCloseAfterWrite; // <----- photobook bug?
-	keepAlive = false; // <--- bug "fixed" because false
+    keepAlive = false; // <--- bug "fixed" because false
     // Apply our new helper:
     resp.applyConnectionHeaders(keepAlive);  // <----- photobook bug?
     std::string raw = resp.toString();
     // 2) Enqueue for non-blocking write; close after fully sent
+    queueResponse(client_fd, raw);
+}
+
+
+void WebServer::send_created_response(int client_fd, 
+                                      const std::string &body, 
+                                      const std::map<std::string, std::string> &headers, 
+                                      size_t i)
+{
+    (void)i;
+    Logger::log(LOG_INFO, "send_created_response", "Sending 201 Created response.");
+    Response resp(201, "Created", body, headers);
+
+    bool keepAlive = !conns_[client_fd].shouldCloseAfterWrite;
+
+    // Apply connection headers (keep-alive/close)
+    resp.applyConnectionHeaders(keepAlive);
+
+    std::string raw = resp.toString();
     queueResponse(client_fd, raw);
 }
 
@@ -70,8 +93,35 @@ void WebServer::send_upload_success_response(int client_fd, const std::string &f
          << "</body></html>";
 
     Logger::log(LOG_INFO, "send_upload_success_response", "Upload successful: " + full_filename);
-    send_ok_response(client_fd, body.str(), single_header("Content-Type", "text/html; charset=utf-8"), i);
+
+    // Add headers: Content-Type + Location
+    std::map<std::string, std::string> headers;
+    headers["Content-Type"] = "text/html; charset=utf-8";
+    headers["Location"] = full_filename;   // ideally relative URL, not filesystem path
+
+    send_created_response(client_fd, body.str(), headers, i);
 }
+
+void WebServer::send_no_content_response(int client_fd, size_t i)
+{
+    (void)i;
+    Logger::log(LOG_INFO, "send_no_content_response", "Sending 204 No Content response.");
+
+    // Empty headers (Content-Length/Content-Type not allowed for 204)
+    std::map<std::string, std::string> headers;
+
+    // Build response object
+    Response resp(204, "No Content", "", headers);
+
+    bool keepAlive = conns_[client_fd].shouldCloseAfterWrite;
+    resp.applyConnectionHeaders(keepAlive);
+
+    // Let Response::toString() handle proper formatting
+    std::string raw = resp.toString();
+
+    queueResponse(client_fd, raw);
+}
+
 
 static std::string resolve_error_page_path(const std::string &err_uri)
 {
@@ -92,46 +142,120 @@ void WebServer::send_error_response(int client_fd,
                                     size_t i)
 {
     (void)i;
+    (void)msg; // Suppress unused parameter warning
     const std::string *err_page = config_->getErrorPage(code);
-    std::string body;
-
-    if (err_page && !err_page->empty())
-    {
+    std::string status_msg = Response::getStatusMessage(code);
+    Response resp;
+    resp.setStatus(code, status_msg);
+    resp.setHeader("Content-Type", "text/html");
+    bool loaded = false;
+    if (err_page && !err_page->empty()) {
         std::string resolved_path = resolve_error_page_path(*err_page);
         Logger::log(LOG_DEBUG, "send_error_response", "Trying custom error page: " + resolved_path);
-
-        if (file_exists(resolved_path) && access(resolved_path.c_str(), R_OK) == 0)
-        {
-            body = read_file(resolved_path);
-            if (!body.empty())
-            {
-                Logger::log(LOG_INFO, "send_error_response",
-                            "Using custom error page for code " + to_str(code));
-                Response resp(code, msg, body, content_type_html());
-                bool keepAlive = !conns_[client_fd].shouldCloseAfterWrite;
-                resp.applyConnectionHeaders(keepAlive);
-                std::string raw = resp.toString();
-                queueResponse(client_fd, raw);
-                return;
-            }
+        loaded = resp.loadBodyFromFile(resolved_path);
+        if (!loaded) {
+            Logger::log(LOG_ERROR, "send_error_response", "Custom error page not found or not readable: " + resolved_path);
         }
-        Logger::log(LOG_ERROR, "send_error_response",
-                    "Custom error page not found or not readable: " + resolved_path);
     }
-
-    {
+    if (!loaded) {
         std::ostringstream oss;
-        oss << "<!DOCTYPE html><html><head><title>" << code << " " << msg
-            << "</title></head><body><h1>" << code << " " << msg
+        oss << "<!DOCTYPE html><html><head><title>" << code << " " << status_msg
+            << "</title></head><body><h1>" << code << " " << status_msg
             << "</h1><p>The server could not fulfill your request.</p></body></html>";
-        body = oss.str();
+        resp.setBody(oss.str());
     }
-
-    Logger::log(LOG_INFO, "send_error_response",
-                "Using default error page for code " + to_str(code));
-    Response resp(code, msg, body, content_type_html());
+    // For error responses, close connection after sending unless informational (1xx) or 204
+    if (code < 200 || code == 204) {
+        conns_[client_fd].shouldCloseAfterWrite = false;
+    } else {
+        conns_[client_fd].shouldCloseAfterWrite = true;
+    }
     bool keepAlive = !conns_[client_fd].shouldCloseAfterWrite;
     resp.applyConnectionHeaders(keepAlive);
     std::string raw = resp.toString();
     queueResponse(client_fd, raw);
+    // Always flush writes for error responses
+    flushPendingWrites(client_fd);
+}
+
+// ...existing code...
+
+// void WebServer::send_length_required_response(int client_fd, const std::string &details)
+// {
+//     Response resp;
+//     resp.setStatus(411, Response::getStatusMessage(411));
+//     resp.setHeader("Content-Type", "text/html");
+
+//     // Try to load custom error page first
+//     if (!resp.loadBodyFromFile("./www/error_pages/411.html")) {
+//         // Fallback to default error page
+//         std::ostringstream oss;
+//         oss << "<!DOCTYPE html><html><head><title>411 Length Required</title></head>"
+//             << "<body><h1>411 Length Required</h1>";
+
+//         if (!details.empty()) {
+//             oss << "<p>" << details << "</p>";
+//         } else {
+//             oss << "<p>Length Required</p>";
+//         }
+//         oss << "</body></html>";
+//         resp.setBody(oss.str());
+//     }
+
+//     bool keepAlive = !conns_[client_fd].shouldCloseAfterWrite;
+//     resp.applyConnectionHeaders(keepAlive);
+//     queueResponse(client_fd, resp.toString());
+// }
+
+// void WebServer::send_request_timeout_response(int client_fd, size_t i) {
+//     (void)i;
+//     Logger::log(LOG_INFO, "send_request_timeout_response", 
+//                 "Sending 408 Request Timeout response to fd=" + to_str(client_fd));
+
+//     Response resp;
+//     resp.setStatus(408, Response::getStatusMessage(408));
+//     resp.setHeader("Content-Type", "text/html; charset=utf-8");
+//     resp.setHeader("Connection", "close");
+
+//     // Try to load custom error page first
+//     if (!resp.loadBodyFromFile("./www/error_pages/408.html")) {
+//         // Fallback to default error page
+//         std::string body = "<!DOCTYPE html><html><head><title>408 Request Timeout</title></head>"
+//                           "<body><h1>408 Request Timeout</h1>"
+//                           "<p>Your request took too long to complete.</p>"
+//                           "<p><a href=\"/\">Go back to homepage</a></p>"
+//                           "</body></html>";
+//         resp.setBody(body);
+//     }
+
+//     // Send immediately without queuing (for timeout situations)
+//     std::string response = resp.toString();
+//     ssize_t n = ::write(client_fd, response.data(), response.size());
+//     if (n < 0) {
+//         Logger::log(LOG_ERROR, "send_request_timeout_response", 
+//                    "Failed to send 408 response to fd=" + to_str(client_fd) + 
+//                    " (errno=" + to_str(errno) + ")");
+//     } else {
+//         Logger::log(LOG_INFO, "send_request_timeout_response", 
+//                    "Successfully sent 408 response (" + to_str(n) + " bytes) to fd=" + to_str(client_fd));
+//     }
+// }
+
+void WebServer::send_continue_response(int client_fd)
+{
+    Response resp;
+    resp.setStatus(100, Response::getStatusMessage(100));
+    // 100 Continue should have no body and minimal headers
+    resp.setBody("");
+    
+    std::string response = resp.toString();
+    ssize_t n = send(client_fd, response.c_str(), response.length(), MSG_NOSIGNAL);
+    if (n == -1) {
+        Logger::log(LOG_ERROR, "send_continue_response", 
+                   "Failed to send 100 Continue response to fd=" + to_str(client_fd) + 
+                   " (errno=" + to_str(errno) + ")");
+    } else {
+        Logger::log(LOG_INFO, "send_continue_response", 
+                   "Successfully sent 100 Continue response (" + to_str(n) + " bytes) to fd=" + to_str(client_fd));
+    }
 }

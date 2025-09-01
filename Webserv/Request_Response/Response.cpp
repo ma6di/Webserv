@@ -1,13 +1,70 @@
 #include "Response.hpp"
-#include "Response.hpp"
 #include "../logger/Logger.hpp"
 #include <unistd.h>
 #include <sstream>
+#include <fstream>
 
+
+
+// Centralized status messages
+static std::map<int, std::string> createStatusMessages() {
+    std::map<int, std::string> messages;
+    messages[100] = "Continue";
+    messages[200] = "OK";
+    messages[201] = "Created";
+    messages[204] = "No Content";
+    messages[400] = "Bad Request";
+    messages[401] = "Unauthorized";
+    messages[403] = "Forbidden";
+    messages[404] = "Not Found";
+    messages[405] = "Method Not Allowed";
+    messages[408] = "Request Timeout";
+    messages[411] = "Length Required";
+    messages[413] = "Payload Too Large";
+    messages[500] = "Internal Server Error";
+    messages[501] = "Not Implemented";
+    messages[502] = "Bad Gateway";
+    messages[503] = "Service Unavailable";
+    messages[504] = "Gateway Timeout";
+    messages[505] = "HTTP Version Not Supported";
+    return messages;
+}
+
+static std::map<int, std::string> status_messages = createStatusMessages();
 
 Response::Response() : status_code(200), status_message("OK") {
     headers["Content-Type"] = "text/html";
     headers["Connection"] = "close";
+}
+// Get status message for a code
+std::string Response::getStatusMessage(int code) {
+    std::map<int, std::string>::const_iterator it = status_messages.find(code);
+    if (it != status_messages.end()) return it->second;
+    return "Unknown";
+}
+
+// Load body from file
+bool Response::loadBodyFromFile(const std::string& path) {
+    std::ifstream file(path.c_str());
+    if (!file.is_open()) return false;
+    std::ostringstream ss;
+    ss << file.rdbuf();
+    body = ss.str();
+    setHeader("Content-Length", to_str(body.size()));
+    return true;
+}
+
+// Helper to create error response with file fallback
+Response Response::createErrorResponse(int code, const std::string& error_file_path, const std::string& fallback_body) {
+    Response resp;
+    resp.setStatus(code, getStatusMessage(code));
+    resp.setHeader("Content-Type", "text/html");
+    
+    if (!error_file_path.empty() && !resp.loadBodyFromFile(error_file_path)) {
+        resp.setBody(fallback_body);
+    }
+    
+    return resp;
 }
 
 Response::Response(int code,

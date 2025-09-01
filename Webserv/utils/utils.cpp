@@ -129,29 +129,93 @@ bool is_cgi_request(const LocationConfig& loc, const std::string& uri) {
     return valid;
 }
 
-std::string decode_chunked_body(const std::string& body) {
-    std::istringstream in(body);
-    std::string decoded, line;
-    while (std::getline(in, line)) {
-        // Remove trailing \r if present
+// std::string decode_chunked_body(const std::string& body) {
+//     std::istringstream in(body);
+//     std::string decoded, line;
+//     while (std::getline(in, line)) {
+//         // Remove trailing \r if present
+//         if (!line.empty() && line[line.size() - 1] == '\r')
+//             line.erase(line.size() - 1);
+//         if (line.empty())
+//             continue;
+//         // Parse chunk size (hex)
+//         size_t chunk_size = 0;
+//         std::istringstream chunk_size_stream(line);
+//         chunk_size_stream >> std::hex >> chunk_size;
+//         if (chunk_size == 0)
+//             break;
+//         // Read chunk data
+//         std::string chunk(chunk_size, '\0');
+//         in.read(&chunk[0], chunk_size);
+//         decoded += chunk;
+//         // Read the trailing \r\n after chunk data
+//         std::getline(in, line);
+//     }
+//     Logger::log(LOG_DEBUG, "decode_chunked_body", "Decoded chunked body, size=" + to_str(decoded.size()));
+//     return decoded;
+// }
+
+std::string decode_chunked_body(const std::string& raw) {
+    std::istringstream in(raw);
+    std::string decoded;
+    std::string line;
+    bool first_line = true;
+    while (true) {
+        // Read chunk size line
+        if (!std::getline(in, line))
+            throw std::runtime_error("400: Malformed chunked body (missing chunk size line)");
         if (!line.empty() && line[line.size() - 1] == '\r')
             line.erase(line.size() - 1);
-        if (line.empty())
-            continue;
-        // Parse chunk size (hex)
-        size_t chunk_size = 0;
-        std::istringstream chunk_size_stream(line);
-        chunk_size_stream >> std::hex >> chunk_size;
-        if (chunk_size == 0)
+        // Ignore chunk extensions
+        size_t semi = line.find(';');
+        std::string size_str = (semi == std::string::npos) ? line : line.substr(0, semi);
+        size_str.erase(0, size_str.find_first_not_of(" \t"));
+        size_str.erase(size_str.find_last_not_of(" \t") + 1);
+        if (size_str.empty())
+            throw std::runtime_error("400: Malformed chunked body (empty chunk size)");
+        int chunk_size = 0;
+        std::istringstream iss;
+        iss.str(size_str);
+        iss >> std::hex >> chunk_size;
+        if (iss.fail() || chunk_size < 0) {
+            if (first_line) {
+                throw std::runtime_error("400: Malformed chunked body (body does not start with valid chunk size line)");
+            } else {
+                throw std::runtime_error("400: Malformed chunked body (invalid chunk size)");
+            }
+        }
+        first_line = false;
+        if (chunk_size == 0) {
+            // Last chunk, expect CRLF after
+            if (!std::getline(in, line))
+                throw std::runtime_error("400: Malformed chunked body (missing final CRLF)");
+            if (!line.empty() && line[line.size() - 1] == '\r')
+                line.erase(line.size() - 1);
+            if (!line.empty())
+                throw std::runtime_error("400: Malformed chunked body (extra data after last chunk)");
             break;
+        }
         // Read chunk data
         std::string chunk(chunk_size, '\0');
         in.read(&chunk[0], chunk_size);
+        if (in.gcount() != chunk_size)
+            throw std::runtime_error("400: Malformed chunked body (incomplete chunk data)");
         decoded += chunk;
-        // Read the trailing \r\n after chunk data
-        std::getline(in, line);
+        // Expect CRLF after chunk data
+        if (!std::getline(in, line))
+            throw std::runtime_error("400: Malformed chunked body (missing CRLF after chunk data)");
+        if (!line.empty() && line[line.size() - 1] == '\r')
+            line.erase(line.size() - 1);
+        if (!line.empty())
+            throw std::runtime_error("400: Malformed chunked body (extra data after chunk data)");
     }
-    Logger::log(LOG_DEBUG, "decode_chunked_body", "Decoded chunked body, size=" + to_str(decoded.size()));
+    // If any data remains, it's a malformed chunked body
+    if (in.peek() != EOF) {
+        std::string extra;
+        std::getline(in, extra);
+        if (!extra.empty())
+            throw std::runtime_error("400: Malformed chunked body (unexpected data after last chunk)");
+    }
     return decoded;
 }
 
@@ -311,9 +375,63 @@ bool has_chunked_encoding(const std::string& headers) {
 
 // 2) Find the end of a chunked body quickly (looks for the 0-chunk terminator)
 size_t find_chunked_terminator(const std::string& buf, size_t body_start) {
-    const std::string endMarker = "\r\n0\r\n\r\n";
-    size_t pos = buf.find(endMarker, body_start);
-    if (pos == std::string::npos) return std::string::npos;
-    return pos + endMarker.size(); // absolute end index for the whole request
+    size_t pos = body_start;
+    
+    while (pos < buf.size()) {
+        // Find the next chunk size line
+        size_t line_end = buf.find("\r\n", pos);
+        if (line_end == std::string::npos) {
+            return std::string::npos; // need more data
+        }
+        
+        // Extract chunk size line
+        std::string chunk_line = buf.substr(pos, line_end - pos);
+        
+        // Parse chunk size (ignore chunk extensions after semicolon)
+        size_t semicolon_pos = chunk_line.find(';');
+        if (semicolon_pos != std::string::npos) {
+            chunk_line = chunk_line.substr(0, semicolon_pos);
+        }
+        
+        // Convert hex chunk size
+        size_t chunk_size = 0;
+        std::istringstream iss(chunk_line);
+        iss >> std::hex >> chunk_size;
+        
+        if (iss.fail()) {
+            return std::string::npos; // invalid chunk size
+        }
+        
+        // If chunk size is 0, this is the final chunk
+        if (chunk_size == 0) {
+            // Look for the final \r\n\r\n after possible trailing headers
+            size_t final_pos = line_end + 2; // after chunk size line
+            
+            // Skip any trailing headers
+            while (final_pos < buf.size()) {
+                size_t header_end = buf.find("\r\n", final_pos);
+                if (header_end == std::string::npos) {
+                    return std::string::npos; // need more data
+                }
+                
+                // If we found an empty line, we're done
+                if (header_end == final_pos) {
+                    return header_end + 2; // return position after final \r\n
+                }
+                
+                final_pos = header_end + 2;
+            }
+            return std::string::npos; // need more data for final \r\n
+        }
+        
+        // Skip to after this chunk's data and trailing \r\n
+        pos = line_end + 2 + chunk_size + 2; // chunk_size + data + \r\n
+        
+        if (pos > buf.size()) {
+            return std::string::npos; // need more data
+        }
+    }
+    
+    return std::string::npos; // need more data
 }
 

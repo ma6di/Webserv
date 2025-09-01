@@ -1,6 +1,6 @@
 # === Project Info ===
 NAME        := webserv
-CXX         := c++
+CXX         := g++
 CXXFLAGS    := -Wall -Wextra -Werror -std=c++98 -pedantic -g
 
 # === Directories ===

@@ -21,6 +21,11 @@ public:
     std::string toString() const;
     void applyConnectionHeaders(bool keepAlive);
 
+    // New helpers
+    static std::string getStatusMessage(int code);
+    bool loadBodyFromFile(const std::string& path);
+    static Response createErrorResponse(int code, const std::string& error_file_path = "", const std::string& fallback_body = "");
+
 private:
     int status_code;
     std::string status_message;

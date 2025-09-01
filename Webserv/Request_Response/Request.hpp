@@ -17,6 +17,8 @@ public:
     std::string getBody() const;
     void setBody(const std::string& newBody);
 	bool isChunked() const;
+    bool isValidHttpVersionFormat(const std::string& version) const;
+    bool hasExpectContinue() const;
 
     int getContentLength() const; // <-- Add this
 
