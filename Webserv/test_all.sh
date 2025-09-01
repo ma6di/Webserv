@@ -275,7 +275,7 @@ log_and_run "Test 47: Chunked with Connection: close" \
 
 # Test 48: Expect 100-continue with oversized Content-Length (should get 413)
 log_and_run "Test 48: Expect 100-continue with oversized Content-Length (should get 413)" \
-    "curl -i -s -X POST http://127.0.0.1:8080/ -H 'Expect: 100-continue' -H 'Content-Length: 204800000' --data-binary \"\$(head -c 10240 /dev/zero)\"" \
+    "curl -i -s -X POST http://localhost:8080/ -H 'Expect: 100-continue' -H 'Content-Length: 204800' --data-binary @<(head -c 1024000 /dev/zero)" \
     result_expect_413.txt "413 Payload Too Large" "Expect: 100-continue oversized CL triggers 413"
 
 # Test 49: POST with Expect: 100-continue and no Content-Length or chunked encoding (should get 411)
@@ -287,46 +287,50 @@ log_and_run "Test 50: 301 redirect" \
     "curl localhost:8080/old" \
     result_redirect_301.txt "301 Redirect" "Redirect"
 
-# section "Test 51: 408 Request Timeout"
-# # echo "Testing 408 Request Timeout by connecting but not sending data..." >> "$LOGFILE"
-# # Connect to server and wait for server to respond or close after timeout
-# nc -w 15 localhost 8080 > result_408.txt 
-# # nc_pid=$!
-# sleep 12
-# # kill $nc_pid 2>/dev/null
-# # sleep 1  # Give time for output to flush
-# # cat result_408.txt >> "$LOGFILE"
+log_and_run "Test 51: 301 redirect" \
+    "curl -i localhost:8080/upload" \
+    result_dir_listing.txt "200 OK" "Directory Listing"
 
-# # Check for 408 response
-# if grep -q "408 Request Timeout" result_408.txt; then
-#     result_ok "408 Request Timeout returned for idle connection."
-# else
-#     if [ -s result_408.txt ]; then
-#         fail_line=$(grep -m1 -E "HTTP/|error|fail|not found|denied|forbidden|timeout" result_408.txt)
-#         result_fail "408 Request Timeout missing for idle connection."
-#         if [ -n "$fail_line" ]; then
-#             echo -e "${YELLOW}Reason: $fail_line${NC}"
-#         fi
-#     else
-#         result_fail "408 Request Timeout test: Connection failed or no response received."
-#         echo -e "${YELLOW}Note: Make sure server is running and timeout is configured correctly.${NC}"
-#     fi
-# fi
+section "Test 52: 408 Request Timeout"
+# echo "Testing 408 Request Timeout by connecting but not sending data..." >> "$LOGFILE"
+# Connect to server and wait for server to respond or close after timeout
+nc -w 15 localhost 8080 > result_408.txt 
+# nc_pid=$!
+sleep 12
+# kill $nc_pid 2>/dev/null
+# sleep 1  # Give time for output to flush
+# cat result_408.txt >> "$LOGFILE"
 
-# section "Test 52: 504 Gateway Timeout (CGI timeout test)"
-# echo -e '#!/usr/bin/env python3\nimport time\ntime.sleep(100)' > www/cgi-bin/hang.py
-# chmod +x www/cgi-bin/hang.py
-# curl -s -i --max-time 10 http://localhost:8080/cgi-bin/hang.py > result_504.txt
-# cat result_504.txt >> "$LOGFILE"
-# if grep -q "504 Gateway Timeout" result_504.txt; then
-#     result_ok "504 Gateway Timeout error returned for CGI timeout."
-# else
-#     fail_line=$(grep -m1 -E "HTTP/|error|fail|not found|denied|forbidden|timeout" result_504.txt)
-#     result_fail "504 Gateway Timeout error missing for CGI timeout."
-#     if [ -n "$fail_line" ]; then
-#         echo -e "${YELLOW}Reason: $fail_line${NC}"
-#     fi
-# fi
+# Check for 408 response
+if grep -q "408 Request Timeout" result_408.txt; then
+    result_ok "408 Request Timeout returned for idle connection."
+else
+    if [ -s result_408.txt ]; then
+        fail_line=$(grep -m1 -E "HTTP/|error|fail|not found|denied|forbidden|timeout" result_408.txt)
+        result_fail "408 Request Timeout missing for idle connection."
+        if [ -n "$fail_line" ]; then
+            echo -e "${YELLOW}Reason: $fail_line${NC}"
+        fi
+    else
+        result_fail "408 Request Timeout test: Connection failed or no response received."
+        echo -e "${YELLOW}Note: Make sure server is running and timeout is configured correctly.${NC}"
+    fi
+fi
+
+section "Test 53: 504 Gateway Timeout (CGI timeout test)"
+echo -e '#!/usr/bin/env python3\nimport time\ntime.sleep(100)' > www/cgi-bin/hang.py
+chmod +x www/cgi-bin/hang.py
+curl -s -i --max-time 10 http://localhost:8080/cgi-bin/hang.py > result_504.txt
+cat result_504.txt >> "$LOGFILE"
+if grep -q "504 Gateway Timeout" result_504.txt; then
+    result_ok "504 Gateway Timeout error returned for CGI timeout."
+else
+    fail_line=$(grep -m1 -E "HTTP/|error|fail|not found|denied|forbidden|timeout" result_504.txt)
+    result_fail "504 Gateway Timeout error missing for CGI timeout."
+    if [ -n "$fail_line" ]; then
+        echo -e "${YELLOW}Reason: $fail_line${NC}"
+    fi
+fi
 
 # Result Checks
 section "Checking Results"
