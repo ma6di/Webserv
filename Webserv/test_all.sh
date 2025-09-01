@@ -278,10 +278,12 @@ log_and_run "Test 48: Expect 100-continue with oversized Content-Length (should 
 log_and_run "Test 49: POST with Expect: 100-continue and no Content-Length or chunked encoding (should get 411)" \
     "curl -i -s -X POST http://127.0.0.1:8080/upload -H 'Expect: 100-continue' --data-binary \"\$(head -c 10240 /dev/zero)\"" \
     result_expect_411.txt "411 Length Required" "Expect: 100-continue without CL/chunked triggers 411"
-# rm -f www/cgi-bin/hang.py
 
+log_and_run "Test 50: 301 redirect" \
+    "curl localhost:8080/old" \
+    result_redirect_301.txt "301 Redirect" "Redirect"
 
-section "Test 50: 408 Request Timeout"
+section "Test 51: 408 Request Timeout"
 # echo "Testing 408 Request Timeout by connecting but not sending data..." >> "$LOGFILE"
 # Connect to server and wait for server to respond or close after timeout
 nc -w 15 localhost 8080 > result_408.txt 
@@ -307,7 +309,7 @@ else
     fi
 fi
 
-section "Test 51: 504 Gateway Timeout (CGI timeout test)"
+section "Test 52: 504 Gateway Timeout (CGI timeout test)"
 echo -e '#!/usr/bin/env python3\nimport time\ntime.sleep(100)' > www/cgi-bin/hang.py
 chmod +x www/cgi-bin/hang.py
 curl -s -i --max-time 10 http://localhost:8080/cgi-bin/hang.py > result_504.txt
