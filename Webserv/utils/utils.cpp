@@ -233,22 +233,34 @@ std::string generate_directory_listing(const std::string& dir_path, const std::s
         return "<html><body><h1>403 Forbidden</h1></body></html>";
     }
 
-    std::ostringstream html;
-    html << "<html><head><title>Index of " << uri_path << "</title></head><body>";
-    html << "<h1>Index of " << uri_path << "</h1><ul>";
-
+    std::vector<std::string> entries;
     struct dirent* entry;
     while ((entry = readdir(dir)) != NULL) {
         std::string name = entry->d_name;
-        if (name == ".") continue;
-
-        html << "<li><a href=\"" << uri_path;
-        if (!uri_path.empty() && uri_path[uri_path.length() - 1] != '/') html << "/";
-        html << name << "\">" << name << "</a></li>";
+        if (name == "." || name == "..") continue; // skip current and parent dir entries
+        entries.push_back(name);
     }
-
-    html << "</ul></body></html>";
     closedir(dir);
+
+    std::sort(entries.begin(), entries.end());
+
+    std::ostringstream html;
+    html << "<!DOCTYPE html><html><head><title>Index of " << uri_path << "</title>"
+         << "<style>body{font-family:sans-serif;}table{width:60%;margin:auto;}th,td{text-align:left;padding:4px;}tr:nth-child(even){background:#f9f9f9;}a{text-decoration:none;}</style>"
+         << "</head><body>";
+    html << "<h1>Index of " << uri_path << "</h1>";
+    html << "<table><tr><th>Name</th></tr>";
+
+    // No parent directory link
+
+    for (size_t i = 0; i < entries.size(); ++i) {
+        std::string name = entries[i];
+        std::string href = uri_path;
+        if (!href.empty() && href[href.length()-1] != '/') href += "/";
+        href += name;
+        html << "<tr><td><a href=\"" << href << "\">" << name << "</a></td></tr>";
+    }
+    html << "</table></body></html>";
     Logger::log(LOG_DEBUG, "generate_directory_listing", "Generated listing for: " + dir_path);
     return html.str();
 }

@@ -125,7 +125,12 @@ void CGIHandler::log_cgi_debug(int status, int ret, const std::string& output, c
 }
 
 // --- Static helpers for CGI logic ---
-
+/*It checks if the request URI starts with the CGI location URI (cgi_uri). If not, it returns false.
+It extracts the part of the URI after the CGI location (rel_uri).
+It loops through possible script candidates in rel_uri, trying to find an executable file in cgi_root.
+For each candidate, it checks if the file exists and is executable using access(abs_candidate.c_str(), X_OK).
+If it finds a match, it sets script_path, script_name, and path_info (the extra path after the script).
+If no executable file is found, it returns false.*/
 bool CGIHandler::find_cgi_script(const std::string& cgi_root, const std::string& cgi_uri, const std::string& uri,
                                  std::string& script_path, std::string& script_name, std::string& path_info) {
     if (uri.find(cgi_uri) != 0)
@@ -159,20 +164,47 @@ std::map<std::string, std::string> CGIHandler::build_cgi_env(const Request& requ
     size_t q = uri.find('?');
     std::string query_string = (q == std::string::npos) ? "" : uri.substr(q + 1);
 
+    // REQUEST_METHOD: HTTP method (GET, POST, etc.)
+    // Used by all CGI scripts to determine request type
     env["REQUEST_METHOD"] = method;
+
+    // SCRIPT_NAME: The URI path to the CGI script
     env["SCRIPT_NAME"] = script_name;
+
+    // QUERY_STRING: The part of the URI after '?'
+    // Used for GET requests to pass parameters
     env["QUERY_STRING"] = query_string;
+
+    // PATH_INFO: Extra path info after the script name
+    // Used for RESTful APIs or scripts that process sub-paths
     env["PATH_INFO"] = path_info;
+
     if (method == "POST") {
+        // CONTENT_LENGTH: Length of the request body (for POST)
+        // Tells the script how much data to read from stdin
         std::ostringstream oss;
         oss << request.getBody().size();
         env["CONTENT_LENGTH"] = oss.str();
+
+        // CONTENT_TYPE: MIME type of the request body (for POST)
+        // Tells the script how to interpret the incoming data
         env["CONTENT_TYPE"] = request.getHeader("Content-Type");
     }
+
+    // GATEWAY_INTERFACE: CGI version (always "CGI/1.1")
+    // Standard for all CGI scripts
     env["GATEWAY_INTERFACE"] = "CGI/1.1";
+
+    // SERVER_PROTOCOL: HTTP protocol version (e.g., "HTTP/1.1")
     env["SERVER_PROTOCOL"] = "HTTP/1.1";
+
+    // SERVER_SOFTWARE: Identifies the server software
     env["SERVER_SOFTWARE"] = "Webserv/1.0";
+
+    // REDIRECT_STATUS: Used by PHP CGI to indicate a successful redirect (usually "200")
+    // Required for PHP CGI, ignored by Python CGI
     env["REDIRECT_STATUS"] = "200";
+
     return env;
 }
 

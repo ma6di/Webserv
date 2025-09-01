@@ -119,8 +119,6 @@ private:
     static bool isExternalRedirect(const std::string& location, const std::string& reqHost);
 };
 
-std::string extract_file_from_multipart(const std::string& body, std::string& filename);
-
 inline std::string to_str(int n) {
     std::ostringstream oss;
     oss << n;

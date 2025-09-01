@@ -4,21 +4,15 @@
 void WebServer::send_file_response(int client_fd, const std::string &path, size_t i)
 {
     std::string body = read_file(path);
-    if (body.empty())
-    {
+    if (body.empty()) {
         Logger::log(LOG_ERROR, "send_file_response", "File not found or empty: " + path);
         send_error_response(client_fd, 404, "Not Found", i);
         return;
     }
     Logger::log(LOG_INFO, "send_file_response", "Sending file: " + path);
-    Response resp(200, "OK", body, single_header("Content-Type", get_mime_type(path)));
-    bool keepAlive = !conns_[client_fd].shouldCloseAfterWrite;
-
-    // Apply our new helper:
-    resp.applyConnectionHeaders(keepAlive);
-    std::string raw = resp.toString();
-    // 2) Enqueue for non-blocking write; close after fully sent
-    queueResponse(client_fd, raw);
+    std::map<std::string, std::string> headers;
+    headers["Content-Type"] = get_mime_type(path);
+    send_ok_response(client_fd, body, headers, i);
 }
 
 // Send a redirect response
@@ -125,7 +119,7 @@ void WebServer::send_no_content_response(int client_fd, size_t i)
 
 static std::string resolve_error_page_path(const std::string &err_uri)
 {
-    std::string fallback_root = "./www/";
+    std::string fallback_root = "./www";
     std::string cleaned_uri = err_uri;
 
     if (!cleaned_uri.empty() && cleaned_uri[0] == '/')
