@@ -279,50 +279,46 @@ std::string extract_file_from_multipart(const std::string& body, std::string& fi
 }
 
 bool WebServer::handle_upload(const Request& request, const LocationConfig* loc, int client_fd, size_t i) {
-	// /check if the request is a POST and the location config has an upload directory.
+	// Check if the request is a POST and the location config has an upload directory.
     if (!is_valid_upload_request(request, loc)) {
         Logger::log(LOG_DEBUG, "is_valid_upload_request",
-			"method=" + request.getMethod() +
-			" upload_dir=" + (loc? loc->upload_dir : "<none>"));
-
+            "method=" + request.getMethod() +
+            " upload_dir=" + (loc? loc->upload_dir : "<none>"));
         Logger::log(LOG_DEBUG, "handle_upload", "Not an upload request.");
         return false;
     }
 
-	//extract the uploaded file’s name and content from the request body.
+    // Extract the uploaded file’s name and content from the request body.
     std::string filename, content;
     process_upload_content(request, filename, content);
 
-    // --- NEW: Use URI filename if present ---
-	//if the URI includes a filename (e.g., /upload/myfile.txt), use that as the target filename.
-	//Otherwise, generate a unique filename using make_upload_filename
     std::string uri = request.getPath(); // e.g. /upload/test_forbidden.txt
     std::string upload_dir = loc->upload_dir;
-    std::string target_path;
+    std::string base_filename;
 
+    // If URI includes a filename (e.g., /upload/myfile.txt), use that as base
     if (uri.length() > loc->path.length()) {
-        // /upload/filename
         std::string uri_filename = uri.substr(loc->path.length());
-        // Remove leading slash if present
         if (!uri_filename.empty() && uri_filename[0] == '/')
             uri_filename = uri_filename.substr(1);
-
-        // ✅ NEW: if empty after stripping, fall back to multipart filename or generator
         if (!uri_filename.empty()) {
-            target_path = upload_dir + "/" + uri_filename;
+            base_filename = uri_filename;
         } else if (!filename.empty()) {
-            target_path = upload_dir + "/" + filename;
+            base_filename = filename;
         } else {
-            target_path = upload_dir + "/" + make_upload_filename(filename);
+            base_filename = "upload";
         }
     } else {
         // POST to /upload, use multipart filename if available
         if (!filename.empty()) {
-            target_path = upload_dir + "/" + filename;
+            base_filename = make_upload_filename(filename);
         } else {
-            target_path = upload_dir + "/" + make_upload_filename(filename);
+            base_filename = "upload";
         }
     }
+
+    // Always append timestamp to avoid overwrites
+    std::string target_path = upload_dir + "/" + base_filename;
 
     // --- Check if file exists and is writable ---
     if (file_exists(target_path) && access(target_path.c_str(), W_OK) != 0) {

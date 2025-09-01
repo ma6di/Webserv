@@ -39,7 +39,7 @@
     // This triggers 413 at the server level (before/while parsing).
     const form = document.createElement("form");
     form.method = "POST";
-    form.action = "/uploads";
+    form.action = "/upload";
     // default enctype is fine; body size is what matters for 413
     form.style.display = "none";
 
