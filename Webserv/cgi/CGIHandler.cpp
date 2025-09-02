@@ -67,13 +67,37 @@ std::string CGIHandler::execute() {
     return output;
 }
 
-std::string CGIHandler::read_pipe_to_string(int fd) const {
+/*std::string CGIHandler::read_pipe_to_string(int fd) const {
     std::string result;
     char buffer[4096];
     ssize_t n;
     while ((n = read(fd, buffer, sizeof(buffer))) > 0) {
         result.append(buffer, n);
     }
+    return result;
+}*/
+
+std::string CGIHandler::read_pipe_to_string(int fd) const {
+    std::string result;
+    char buffer[4096];
+
+    while (true) {
+        ssize_t n = ::read(fd, buffer, sizeof(buffer));
+
+        if (n > 0) {
+            // Got data → append it
+            result.append(buffer, static_cast<size_t>(n));
+        }
+        else if (n == 0) {
+            // EOF → pipe closed
+            break;
+        }
+        else if (n < 0) {
+            // Error case → just stop (do not check errno)
+            break;
+        }
+    }
+
     return result;
 }
 
@@ -221,9 +245,26 @@ void CGIHandler::setup_child_process(const std::string& absPath, int input_pipe[
 }
 
 void CGIHandler::send_input_to_cgi(int input_fd) const {
-    if (!inputBody.empty()) {
-        write(input_fd, inputBody.c_str(), inputBody.size());
-        //Logger::log(LOG_DEBUG, "CGIHandler", "Sent " + to_str(written) + " bytes to CGI stdin");
+        if (inputBody.empty())
+        return;
+
+    ssize_t n = ::write(input_fd, inputBody.c_str(), inputBody.size());
+
+    if (n > 0) {
+        // Successfully wrote some or all data
+        // (we don’t loop for partial writes here, since simplicity is fine)
+        Logger::log(LOG_INFO, "CGIHandler",
+                    "Wrote " + to_str(n) + " bytes to CGI stdin");
+    }
+    else if (n == 0) {
+        // Pipe closed by peer
+        Logger::log(LOG_INFO, "CGIHandler",
+                    "Pipe closed while writing to CGI stdin");
+    }
+    else if (n < 0) {
+        // Error case (don’t check errno)
+        Logger::log(LOG_ERROR, "CGIHandler",
+                    "Write to CGI stdin failed");
     }
 }
 

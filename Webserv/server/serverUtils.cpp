@@ -166,21 +166,25 @@ bool WebServer::readClientData(int client_fd, char* buf, size_t buf_size, ssize_
 {
 	bytes_read = ::read(client_fd, buf, buf_size);
 
-	if (bytes_read > 0)
-    	return true;
-	
-	if (bytes_read == 0)
-	{
-		// Peer closed
-		Logger::log(LOG_INFO, "WebServer", "FD=" + to_str(client_fd) + " EOF from peer; closing");
-		closeClient(client_fd);
-		return false;
-	}
+    if (bytes_read > 0) {
+        return true;
+    }
 
-	/*Logger::log(LOG_DEBUG, "WebServer",
-                "FD=" + to_str(client_fd) + " read made no progress; will retry");*/
+    if (bytes_read == 0) {
+        // Peer closed
+        Logger::log(LOG_INFO, "WebServer",
+                    "FD=" + to_str(client_fd) + " EOF from peer; closing");
+        closeClient(client_fd);
+        return false;
+    }
 
-	return false; // successful read
+    if (bytes_read < 0) {
+        // Error (no errno check, just stop)
+        return false;
+    }
+
+    // Should never reach here, but keeps compiler happy
+    return false;
 }
 
 // Helper: Check if buffer size is within limits

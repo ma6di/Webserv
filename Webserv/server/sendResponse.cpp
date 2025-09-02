@@ -197,7 +197,7 @@ void WebServer::send_error_response(int client_fd,
 }
 
 
-void WebServer::send_continue_response(int client_fd)
+/*void WebServer::send_continue_response(int client_fd)
 {
     Response resp;
     resp.setStatus(100, Response::getStatusMessage(100));
@@ -216,7 +216,20 @@ void WebServer::send_continue_response(int client_fd)
         cleanup_client(client_fd, 0);
         return;
     }
-    // n < 0: don’t check errno — just schedule retry via POLLOUT by buffering:
+    if (n < 0) {
+        Connection &conn = conns_[client_fd];
+        conn.writeBuf.append(response);
+        Logger::log(LOG_DEBUG, "send_continue_response",
+                    "Deferring 100 Continue; queued for POLLOUT on fd=" + to_str(client_fd));
+        return;
+    }   
+}*/
+
+void WebServer::send_continue_response(int client_fd) {
+    Response resp; resp.setStatus(100, Response::getStatusMessage(100)); resp.setBody("");
+    std::string response = resp.toString();
     Connection &conn = conns_[client_fd];
     conn.writeBuf.append(response);
+    // do NOT send now; POLLOUT will flush
 }
+
