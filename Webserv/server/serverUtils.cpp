@@ -4,13 +4,14 @@ std::string WebServer::resolve_path(const std::string &raw_path,
                                     const std::string &method,
                                     const LocationConfig *loc)
 {
-    Logger::log(LOG_DEBUG, "resolve_path",
-                "raw_path = \"" + raw_path + "\", method = " + method);
+    /*Logger::log(LOG_DEBUG, "resolve_path",
+                "raw_path = \"" + raw_path + "\", method = " + method);*/
 
     // 1) Pick the base filesystem root:
     //    - If the location block set a root, use it.
     //    - Otherwise fall back to the server-level root from config_.
-    const std::string &serverRoot = config_->getRoot();
+    (void)method;
+	const std::string &serverRoot = config_->getRoot();
     std::string base = (loc && !loc->root.empty())
                            ? loc->root
                            : serverRoot;
@@ -29,21 +30,21 @@ std::string WebServer::resolve_path(const std::string &raw_path,
     if (!rel.empty())
         candidate += "/" + rel;
 
-    Logger::log(LOG_DEBUG, "resolve_path", "Candidate path: " + candidate);
+    //Logger::log(LOG_DEBUG, "resolve_path", "Candidate path: " + candidate);
 
     // 4) If it’s a directory, hand it off to handle_directory_request()
     if (is_directory(candidate))
     {
-        Logger::log(LOG_DEBUG, "resolve_path",
-                    "Directory detected, returning: " + candidate);
+        /*Logger::log(LOG_DEBUG, "resolve_path",
+                    "Directory detected, returning: " + candidate);*/
         return candidate;
     }
 
     // 5) If it’s an existing file, return it
     if (file_exists(candidate))
     {
-        Logger::log(LOG_DEBUG, "resolve_path",
-                    "File exists, returning: " + candidate);
+        /*Logger::log(LOG_DEBUG, "resolve_path",
+                    "File exists, returning: " + candidate);*/
         return candidate;
     }
 
@@ -51,14 +52,14 @@ std::string WebServer::resolve_path(const std::string &raw_path,
     std::string html_fallback = candidate + ".html";
     if (file_exists(html_fallback))
     {
-        Logger::log(LOG_DEBUG, "resolve_path",
-                    "HTML fallback, returning: " + html_fallback);
+        /*Logger::log(LOG_DEBUG, "resolve_path",
+                    "HTML fallback, returning: " + html_fallback);*/
         return html_fallback;
     }
 
     // 7) Nothing matched: return candidate so your 404 logic fires
-    Logger::log(LOG_DEBUG, "resolve_path",
-                "Nothing found, returning: " + candidate);
+    /*Logger::log(LOG_DEBUG, "resolve_path",
+                "Nothing found, returning: " + candidate);*/
     return candidate;
 }
 
@@ -176,8 +177,8 @@ bool WebServer::readClientData(int client_fd, char* buf, size_t buf_size, ssize_
 		return false;
 	}
 
-	Logger::log(LOG_DEBUG, "WebServer",
-                "FD=" + to_str(client_fd) + " read made no progress; will retry");
+	/*Logger::log(LOG_DEBUG, "WebServer",
+                "FD=" + to_str(client_fd) + " read made no progress; will retry");*/
 
 	return false; // successful read
 }
@@ -342,8 +343,8 @@ void WebServer::processBufferedRequests(int client_fd)
 		// Validate buffer state after processing
 		if (needed > buffer2.size())
 		{
-			Logger::log(LOG_DEBUG, "WebServer",
-						"Buffer smaller than expected after process_request; stopping. FD=" + to_str(client_fd));
+			/*Logger::log(LOG_DEBUG, "WebServer",
+						"Buffer smaller than expected after process_request; stopping. FD=" + to_str(client_fd));*/
 			return;
 		}
 
@@ -379,10 +380,10 @@ bool WebServer::performBasicValidation(Request& request, int client_fd, size_t i
 	std::string uri = request.getPath();
 	const LocationConfig *loc = match_location(config_->getLocations(), uri);
 
-	if (loc)
+	/*if (loc)
 		Logger::log(LOG_DEBUG, "WebServer", "Matched location: " + loc->path);
 	else
-		Logger::log(LOG_DEBUG, "WebServer", "No location matched!");
+		Logger::log(LOG_DEBUG, "WebServer", "No location matched!");*/
 
 	// Check if method is supported
 	if (method != "GET" && method != "POST" && method != "DELETE")
@@ -435,7 +436,7 @@ bool WebServer::handleCGIRequest(Request& request, const LocationConfig* loc, in
 	
 	if ((method == "GET" || method == "DELETE") && loc && is_cgi)
 	{
-		Logger::log(LOG_DEBUG, "WebServer", "is_cgi_request: " + to_str(is_cgi));
+		//Logger::log(LOG_DEBUG, "WebServer", "is_cgi_request: " + to_str(is_cgi));
 		handle_cgi(loc, request, client_fd, i);
 		return true; // request handled
 	}
@@ -465,7 +466,7 @@ bool WebServer::handleRedirection(Request& request, const LocationConfig* loc, i
 		if (!conns_[client_fd].shouldCloseAfterWrite)
 		{
 			conns_[client_fd].readBuf.clear();
-			Logger::log(LOG_DEBUG, "RESET", "fd=" + to_str(client_fd) + " cleared readBuf after internal redirect");
+			//Logger::log(LOG_DEBUG, "RESET", "fd=" + to_str(client_fd) + " cleared readBuf after internal redirect");
 		}
 		return true; // request handled
 	}
@@ -492,15 +493,15 @@ void WebServer::dispatchMethodHandler(Request& request, const LocationConfig* lo
 		int is_cgi = (loc && !loc->cgi_extension.empty() && is_cgi_request(*loc, request.getPath())) ? 1 : 0;
 		if (loc && is_cgi)
 		{
-			Logger::log(LOG_DEBUG, "WebServer", "is_cgi_request: " + to_str(is_cgi));
+			//Logger::log(LOG_DEBUG, "WebServer", "is_cgi_request: " + to_str(is_cgi));
 			handle_cgi(loc, request, client_fd, i);
 			return;
 		}
 		
-		Logger::log(LOG_DEBUG, "process_request",
+		/*Logger::log(LOG_DEBUG, "process_request",
 					"POST " + request.getPath() +
 						" matched to location " + (loc ? loc->path : "NULL") +
-						" upload_dir=" + (loc ? loc->upload_dir : "<none>"));
+						" upload_dir=" + (loc ? loc->upload_dir : "<none>"));*/
 		handle_post(request, loc, client_fd, i);
 	}
 	else if (method == "DELETE")
@@ -515,6 +516,6 @@ void WebServer::finalizeRequestProcessing(int client_fd)
 	if (!conns_[client_fd].shouldCloseAfterWrite)
 	{
 		conns_[client_fd].readBuf.clear();
-		Logger::log(LOG_DEBUG, "RESET", "fd=" + to_str(client_fd) + " keeping alive; cleared readBuf");
+		//Logger::log(LOG_DEBUG, "RESET", "fd=" + to_str(client_fd) + " keeping alive; cleared readBuf");
 	}
 }

@@ -127,7 +127,7 @@ void Config::handleRootDirective(std::istringstream &iss)
     r = stripSemicolon(r);
     if (!pathExists(r))
     {
-        Logger::log(LOG_DEBUG, "Config", "root value: [" + root + "]");
+        //Logger::log(LOG_DEBUG, "Config", "root value: [" + root + "]");
         throw std::runtime_error("Invalid root path: " + r);
     }
     root = r;

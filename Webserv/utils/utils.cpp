@@ -3,14 +3,14 @@
 bool file_exists(const std::string& path) {
     struct stat buffer;
     bool exists = (stat(path.c_str(), &buffer) == 0);
-    Logger::log(LOG_DEBUG, "file_exists", "Checked: " + path + " exists=" + (exists ? "true" : "false"));
+    //Logger::log(LOG_DEBUG, "file_exists", "Checked: " + path + " exists=" + (exists ? "true" : "false"));
     return exists;
 }
 
 std::string get_mime_type(const std::string& path) {
     size_t dot = path.rfind('.');
     if (dot == std::string::npos) {
-        Logger::log(LOG_DEBUG, "get_mime_type", "No extension for: " + path);
+        //Logger::log(LOG_DEBUG, "get_mime_type", "No extension for: " + path);
         return "application/octet-stream";
     }
 
@@ -34,29 +34,9 @@ std::string get_mime_type(const std::string& path) {
     else
         mime = "application/octet-stream";
 
-    Logger::log(LOG_DEBUG, "get_mime_type", "Path: " + path + " -> " + mime);
+    //Logger::log(LOG_DEBUG, "get_mime_type", "Path: " + path + " -> " + mime);
     return mime;
 }
-
-/*const LocationConfig* match_location(const std::vector<LocationConfig>& locations, const std::string& path) {
-    const LocationConfig* bestMatch = NULL;
-    size_t bestLength = 0;
-
-    for (size_t i = 0; i < locations.size(); ++i) {
-        const std::string& locPath = locations[i].path;
-        if (path.find(locPath) == 0 && locPath.length() > bestLength) {
-            bestLength = locPath.length();
-            bestMatch = &locations[i];
-        }
-    }
-
-    if (bestMatch)
-        Logger::log(LOG_DEBUG, "match_location", "Matched: " + bestMatch->path + " for path: " + path);
-    else
-        Logger::log(LOG_DEBUG, "match_location", "No match for path: " + path);
-
-    return bestMatch;
-}*/
 
 const LocationConfig* match_location(
     const std::vector<LocationConfig>& locations,
@@ -87,14 +67,14 @@ const LocationConfig* match_location(
         }
     }
 
-    if (best)
+    /*if (best)
         Logger::log(LOG_DEBUG,
                     "match_location",
                     "Matched: " + best->path + " for path: " + path);
     else
         Logger::log(LOG_DEBUG,
                     "match_location",
-                    "No match for path: " + path);
+                    "No match for path: " + path);*/
 
     return best;
 }
@@ -123,37 +103,11 @@ bool is_cgi_request(const LocationConfig& loc, const std::string& uri) {
         abs_script += "/";
     abs_script += script_name;
 
-    Logger::log(LOG_DEBUG, "is_cgi_request", "abs_script: [" + abs_script + "]");
+    //Logger::log(LOG_DEBUG, "is_cgi_request", "abs_script: [" + abs_script + "]");
     bool valid = file_exists(abs_script) && access(abs_script.c_str(), X_OK) == 0;
-    Logger::log(LOG_DEBUG, "is_cgi_request", std::string("CGI valid: ") + (valid ? "true" : "false"));
+    //Logger::log(LOG_DEBUG, "is_cgi_request", std::string("CGI valid: ") + (valid ? "true" : "false"));
     return valid;
 }
-
-// std::string decode_chunked_body(const std::string& body) {
-//     std::istringstream in(body);
-//     std::string decoded, line;
-//     while (std::getline(in, line)) {
-//         // Remove trailing \r if present
-//         if (!line.empty() && line[line.size() - 1] == '\r')
-//             line.erase(line.size() - 1);
-//         if (line.empty())
-//             continue;
-//         // Parse chunk size (hex)
-//         size_t chunk_size = 0;
-//         std::istringstream chunk_size_stream(line);
-//         chunk_size_stream >> std::hex >> chunk_size;
-//         if (chunk_size == 0)
-//             break;
-//         // Read chunk data
-//         std::string chunk(chunk_size, '\0');
-//         in.read(&chunk[0], chunk_size);
-//         decoded += chunk;
-//         // Read the trailing \r\n after chunk data
-//         std::getline(in, line);
-//     }
-//     Logger::log(LOG_DEBUG, "decode_chunked_body", "Decoded chunked body, size=" + to_str(decoded.size()));
-//     return decoded;
-// }
 
 std::string decode_chunked_body(const std::string& raw) {
     std::istringstream in(raw);
@@ -222,7 +176,7 @@ std::string decode_chunked_body(const std::string& raw) {
 bool is_directory(const std::string& path) {
     struct stat statbuf;
     bool dir = stat(path.c_str(), &statbuf) == 0 && S_ISDIR(statbuf.st_mode);
-    Logger::log(LOG_DEBUG, "is_directory", path + " is_directory=" + (dir ? "true" : "false"));
+    //Logger::log(LOG_DEBUG, "is_directory", path + " is_directory=" + (dir ? "true" : "false"));
     return dir;
 }
 
@@ -261,7 +215,7 @@ std::string generate_directory_listing(const std::string& dir_path, const std::s
         html << "<tr><td><a href=\"" << href << "\">" << name << "</a></td></tr>";
     }
     html << "</table></body></html>";
-    Logger::log(LOG_DEBUG, "generate_directory_listing", "Generated listing for: " + dir_path);
+    //Logger::log(LOG_DEBUG, "generate_directory_listing", "Generated listing for: " + dir_path);
     return html.str();
 }
 

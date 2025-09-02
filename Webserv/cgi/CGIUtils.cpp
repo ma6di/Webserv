@@ -105,6 +105,6 @@ std::string CGIHandler::resolve_script_path() const {
         throw std::runtime_error("getcwd failed");
     }
     std::string abs = std::string(cwd) + "/" + scriptPath;
-    Logger::log(LOG_DEBUG, "CGIHandler", "Resolved script path: " + abs);
+    //Logger::log(LOG_DEBUG, "CGIHandler", "Resolved script path: " + abs);
     return abs;
 }

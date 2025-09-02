@@ -132,57 +132,9 @@ static std::string resolve_error_page_path(const std::string &err_uri)
         cleaned_uri = cleaned_uri.substr(1);
 
     std::string full_path = fallback_root + "/" + cleaned_uri;
-    Logger::log(LOG_DEBUG, "resolve_error_page_path", "Resolved error path: " + full_path);
+    //Logger::log(LOG_DEBUG, "resolve_error_page_path", "Resolved error path: " + full_path);
     return full_path;
 }
-
-/*void WebServer::send_error_response(int client_fd,
-                                    int code,
-                                    const std::string &msg,
-                                    size_t i)
-{
-    (void)i;
-    (void)msg; // Suppress unused parameter warning
-    const std::string *err_page = config_->getErrorPage(code);
-    std::string status_msg = Response::getStatusMessage(code);
-    Response resp;
-    resp.setStatus(code, status_msg);
-    resp.setHeader("Content-Type", "text/html");
-    bool loaded = false;
-    if (err_page && !err_page->empty())
-    {
-        std::string resolved_path = resolve_error_page_path(*err_page);
-        Logger::log(LOG_DEBUG, "send_error_response", "Trying custom error page: " + resolved_path);
-        loaded = resp.loadBodyFromFile(resolved_path);
-        if (!loaded)
-        {
-            Logger::log(LOG_ERROR, "send_error_response", "Custom error page not found or not readable: " + resolved_path);
-        }
-    }
-    if (!loaded)
-    {
-        std::ostringstream oss;
-        oss << "<!DOCTYPE html><html><head><title>" << code << " " << status_msg
-            << "</title></head><body><h1>" << code << " " << status_msg
-            << "</h1><p>The server could not fulfill your request.</p></body></html>";
-        resp.setBody(oss.str());
-    }
-    // For error responses, close connection after sending unless informational (1xx) or 204
-    if (code < 200 || code == 204)
-    {
-        conns_[client_fd].shouldCloseAfterWrite = false;
-    }
-    else
-    {
-        conns_[client_fd].shouldCloseAfterWrite = true;
-    }
-    bool keepAlive = !conns_[client_fd].shouldCloseAfterWrite;
-    resp.applyConnectionHeaders(keepAlive);
-    std::string raw = resp.toString();
-    queueResponse(client_fd, raw);
-    // Always flush writes for error responses
-    flushPendingWrites(client_fd);
-}*/
 
 void WebServer::send_error_response(int client_fd,
                                     int code,
@@ -208,8 +160,8 @@ void WebServer::send_error_response(int client_fd,
     if (err_page && !err_page->empty())
     {
         std::string resolved_path = resolve_error_page_path(*err_page);
-        Logger::log(LOG_DEBUG, "send_error_response",
-                    "Trying custom error page: " + resolved_path);
+        /*Logger::log(LOG_DEBUG, "send_error_response",
+                    "Trying custom error page: " + resolved_path);*/
         loaded = resp.loadBodyFromFile(resolved_path);
         if (!loaded)
             Logger::log(LOG_ERROR, "send_error_response",
@@ -244,69 +196,6 @@ void WebServer::send_error_response(int client_fd,
     // No flushPendingWrites() here — POLLOUT will handle it in the main poll loop.
 }
 
-
-// ...existing code...
-
-// void WebServer::send_length_required_response(int client_fd, const std::string &details)
-// {
-//     Response resp;
-//     resp.setStatus(411, Response::getStatusMessage(411));
-//     resp.setHeader("Content-Type", "text/html");
-
-//     // Try to load custom error page first
-//     if (!resp.loadBodyFromFile("./www/error_pages/411.html")) {
-//         // Fallback to default error page
-//         std::ostringstream oss;
-//         oss << "<!DOCTYPE html><html><head><title>411 Length Required</title></head>"
-//             << "<body><h1>411 Length Required</h1>";
-
-//         if (!details.empty()) {
-//             oss << "<p>" << details << "</p>";
-//         } else {
-//             oss << "<p>Length Required</p>";
-//         }
-//         oss << "</body></html>";
-//         resp.setBody(oss.str());
-//     }
-
-//     bool keepAlive = !conns_[client_fd].shouldCloseAfterWrite;
-//     resp.applyConnectionHeaders(keepAlive);
-//     queueResponse(client_fd, resp.toString());
-// }
-
-// void WebServer::send_request_timeout_response(int client_fd, size_t i) {
-//     (void)i;
-//     Logger::log(LOG_INFO, "send_request_timeout_response",
-//                 "Sending 408 Request Timeout response to fd=" + to_str(client_fd));
-
-//     Response resp;
-//     resp.setStatus(408, Response::getStatusMessage(408));
-//     resp.setHeader("Content-Type", "text/html; charset=utf-8");
-//     resp.setHeader("Connection", "close");
-
-//     // Try to load custom error page first
-//     if (!resp.loadBodyFromFile("./www/error_pages/408.html")) {
-//         // Fallback to default error page
-//         std::string body = "<!DOCTYPE html><html><head><title>408 Request Timeout</title></head>"
-//                           "<body><h1>408 Request Timeout</h1>"
-//                           "<p>Your request took too long to complete.</p>"
-//                           "<p><a href=\"/\">Go back to homepage</a></p>"
-//                           "</body></html>";
-//         resp.setBody(body);
-//     }
-
-//     // Send immediately without queuing (for timeout situations)
-//     std::string response = resp.toString();
-//     ssize_t n = ::write(client_fd, response.data(), response.size());
-//     if (n < 0) {
-//         Logger::log(LOG_ERROR, "send_request_timeout_response",
-//                    "Failed to send 408 response to fd=" + to_str(client_fd) +
-//                    " (errno=" + to_str(errno) + ")");
-//     } else {
-//         Logger::log(LOG_INFO, "send_request_timeout_response",
-//                    "Successfully sent 408 response (" + to_str(n) + " bytes) to fd=" + to_str(client_fd));
-//     }
-// }
 
 void WebServer::send_continue_response(int client_fd)
 {

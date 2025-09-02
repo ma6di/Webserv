@@ -38,12 +38,12 @@ void WebServer::handle_directory_request(const std::string& path, const std::str
 
     std::string index_path = path + "/" + index_file;
     if (file_exists(index_path)) {
-        Logger::log(LOG_DEBUG, "handle_directory_request", "Serving index: " + index_path);
+        //Logger::log(LOG_DEBUG, "handle_directory_request", "Serving index: " + index_path);
         send_file_response(client_fd, index_path, i);
         return;
     }
     if (loc && loc->autoindex) {
-        Logger::log(LOG_DEBUG, "handle_directory_request", "Autoindex enabled for: " + path);
+        //Logger::log(LOG_DEBUG, "handle_directory_request", "Autoindex enabled for: " + path);
         std::string html = generate_directory_listing(path, uri);
         send_ok_response(client_fd, html, content_type_html(), i);
         return;
@@ -119,10 +119,10 @@ void WebServer::handle_cgi(const LocationConfig* loc, const Request& request, in
 void WebServer::handle_post(const Request& request, const LocationConfig* loc, int client_fd, size_t i) {
     std::string uri = request.getPath();
     std::string path = resolve_path(uri, "POST", loc);
-    Logger::log(LOG_DEBUG, "handle_post", "method=" + request.getMethod() + ", uri=" + uri + " path=" + path);
+    //Logger::log(LOG_DEBUG, "handle_post", "method=" + request.getMethod() + ", uri=" + uri + " path=" + path);
 
     if (loc && is_cgi_request(*loc, request.getPath())) {
-        Logger::log(LOG_DEBUG, "handle_post", "Detected CGI POST");
+        //Logger::log(LOG_DEBUG, "handle_post", "Detected CGI POST");
         handle_cgi(loc, request, client_fd, i);
         return;
     }
@@ -186,7 +186,7 @@ void WebServer::handle_delete(const Request& request, const LocationConfig* loc,
         path = resolve_path(uri, "DELETE", loc);
     }
 
-    Logger::log(LOG_DEBUG, "handle_delete", "uri=" + uri + " path=" + path);
+    //Logger::log(LOG_DEBUG, "handle_delete", "uri=" + uri + " path=" + path);
 
     if (!file_exists(path)) {
         Logger::log(LOG_ERROR, "handle_delete", "File not found: " + path);
@@ -261,10 +261,10 @@ std::string extract_file_from_multipart(const std::string& body, std::string& fi
 bool WebServer::handle_upload(const Request& request, const LocationConfig* loc, int client_fd, size_t i) {
 	// Check if the request is a POST and the location config has an upload directory.
     if (!is_valid_upload_request(request, loc)) {
-        Logger::log(LOG_DEBUG, "is_valid_upload_request",
+        /*Logger::log(LOG_DEBUG, "is_valid_upload_request",
             "method=" + request.getMethod() +
             " upload_dir=" + (loc? loc->upload_dir : "<none>"));
-        Logger::log(LOG_DEBUG, "handle_upload", "Not an upload request.");
+        Logger::log(LOG_DEBUG, "handle_upload", "Not an upload request.");*/
         return false;
     }
 
@@ -332,7 +332,7 @@ void WebServer::process_upload_content(const Request& request,
     std::string content_type = request.getHeader("Content-Type");
 
     if (content_type.find("multipart/form-data") != std::string::npos) {
-        Logger::log(LOG_DEBUG, "process_upload_content", "Detected multipart upload");
+        //Logger::log(LOG_DEBUG, "process_upload_content", "Detected multipart upload");
         std::string boundary = get_boundary_from_content_type(content_type);
 
         std::string fn, data;
@@ -346,7 +346,7 @@ void WebServer::process_upload_content(const Request& request,
             content  = request.getBody();
         }
     } else {
-        Logger::log(LOG_DEBUG, "process_upload_content", "Detected non-multipart upload");
+        //Logger::log(LOG_DEBUG, "process_upload_content", "Detected non-multipart upload");
         filename = "upload";
         content  = request.getBody(); // raw bytes already
     }

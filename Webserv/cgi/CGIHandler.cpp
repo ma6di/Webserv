@@ -45,7 +45,7 @@ std::string CGIHandler::execute() {
     int status = 0;
     bool timed_out = false;
     int ret = wait_for_child_with_timeout(pid, status, timed_out);
-
+    (void)ret; // suppress unused warning
     if (timed_out) {
         handle_timeout(pid, status);
         return "__CGI_TIMEOUT__";
@@ -56,7 +56,7 @@ std::string CGIHandler::execute() {
     std::string error_output = read_from_pipe(error_pipe[0]);
     close(error_pipe[0]);
 
-    log_cgi_debug(status, ret, output, error_output);
+    //log_cgi_debug(status, ret, output, error_output);
 
     if (!check_child_status(status, error_output))
         return "__CGI_INTERNAL_ERROR__";
@@ -222,8 +222,8 @@ void CGIHandler::setup_child_process(const std::string& absPath, int input_pipe[
 
 void CGIHandler::send_input_to_cgi(int input_fd) const {
     if (!inputBody.empty()) {
-        ssize_t written = write(input_fd, inputBody.c_str(), inputBody.size());
-        Logger::log(LOG_DEBUG, "CGIHandler", "Sent " + to_str(written) + " bytes to CGI stdin");
+        write(input_fd, inputBody.c_str(), inputBody.size());
+        //Logger::log(LOG_DEBUG, "CGIHandler", "Sent " + to_str(written) + " bytes to CGI stdin");
     }
 }
 
@@ -249,7 +249,7 @@ bool CGIHandler::check_child_status(int status, const std::string& error_output)
             Logger::log(LOG_ERROR, "CGIHandler", "CGI script stderr: " + error_output);
         return false;
     }
-    Logger::log(LOG_DEBUG, "CGIHandler", "WIFEXITED: " + to_str(WIFEXITED(status)) + ", WEXITSTATUS: " + to_str(WEXITSTATUS(status)));
+    //Logger::log(LOG_DEBUG, "CGIHandler", "WIFEXITED: " + to_str(WIFEXITED(status)) + ", WEXITSTATUS: " + to_str(WEXITSTATUS(status)));
     if (WEXITSTATUS(status) != 0) {
         Logger::log(LOG_ERROR, "CGIHandler", "CGI script exited with status: " + to_str(WEXITSTATUS(status)));
         if (!error_output.empty())

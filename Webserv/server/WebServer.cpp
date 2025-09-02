@@ -135,8 +135,8 @@ void WebServer::handleClientDataOn(int client_fd)
 
 	// Append new data to buffer
 	data.append(buf, static_cast<size_t>(bytes_read));
-	Logger::log(LOG_DEBUG, "WebServer",
-				"FD=" + to_str(client_fd) + " buffer size after append: " + to_str(data.size()));
+	//Logger::log(LOG_DEBUG, "WebServer",
+				//"FD=" + to_str(client_fd) + " buffer size after append: " + to_str(data.size()));
 
 	// Process all complete requests in buffer
 	processBufferedRequests(client_fd);
@@ -273,7 +273,7 @@ void WebServer::flushPendingWrites(int client_fd)
 				return;
 			}
 			// Drained but keeping open (keep-alive). No POLLOUT next time.
-			Logger::log(LOG_DEBUG, "flush", "fd=" + to_str(client_fd) + " drained; keeping open");
+			//Logger::log(LOG_DEBUG, "flush", "fd=" + to_str(client_fd) + " drained; keeping open");
 		}
 		return; // one write done this cycle
 	}
