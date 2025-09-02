@@ -252,6 +252,26 @@ bool is_directory(const std::string &path)
     Logger::log(LOG_DEBUG, "is_directory", path + " is_directory=" + (dir ? "true" : "false"));
     return dir;
 }
+// JESS: generates JSON response from directory listing if get request comes from client
+std::string generate_directory_listing_json(const std::string& fs_dir) {
+    std::ostringstream out;
+    out << "{\"ok\":true,\"files\":[";
+    DIR* d = opendir(fs_dir.c_str());
+    if (!d) { out << "]}"; return out.str(); }
+    struct dirent* e;
+    bool first = true;
+    while ((e = readdir(d))) {
+        const char* name = e->d_name;
+        if (std::strcmp(name,".")==0 || std::strcmp(name,"..")==0) continue;
+        if (!first) out << ",";
+        out << "\"" << name << "\"";
+        first = false;
+    }
+    closedir(d);
+    out << "]}";
+    return out.str();
+}
+
 
 std::string generate_directory_listing(const std::string &dir_path, const std::string &uri_path)
 {

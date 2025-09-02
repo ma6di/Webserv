@@ -24,6 +24,7 @@ bool is_cgi_request(const LocationConfig &loc, const std::string &uri);
 // std::string resolve_script_path(const std::string& uri, const LocationConfig& loc);
 std::string decode_chunked_body(const std::string &body);
 bool is_directory(const std::string &path);
+std::string generate_directory_listing_json(const std::string& fs_dir); // JESS: sends directory listing as json if requested from client
 std::string generate_directory_listing(const std::string &dir_path, const std::string &uri_path);
 std::string sanitize_filename(const std::string& in);
 void split_basename_ext(const std::string& name, std::string& base, std::string& ext);

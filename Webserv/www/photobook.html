@@ -105,7 +105,8 @@
                             </div>
                             <div class="modal-body">
                                 <p>Click the button below to add your photo.</p>
-                                <input type="file" name="file" id="modalFileInput" class="form-control mb-3" required />
+                                <input type="file" accept="image/*" name="file" id="modalFileInput"
+                                    class="form-control mb-3" required />
                                 <div id="fileReady" class="text-success d-none">
                                     ✅ Photo ready to upload
                                 </div>
@@ -236,15 +237,23 @@
                     });
             });
 
+        function isImageFile(name) {
+            return /\.(jpe?g|png|gif|webp)$/i.test(name);
+        }
 
         //GET REQUEST
         console.time("⏰ Completed in");
-        fetch("../cgi-bin/photobook_json.py")
+        fetch("/upload", {
+            headers: { "X-Frontend": "1", "Accept": "application/json" }
+        })
             .then((res) => {
                 if (!res.ok) throw new Error("HTTP error " + res.status);
-                return res.json();
+                return res.json();// { ok:true, files:[...]}
             })
-            .then((data) => {
+            .then(({ files = [] }) => {
+                // console.log(res.json)
+                // const data = files;
+                const data = files.filter(isImageFile);   // ← client-only filter
                 // makes the "empty photobooth" warning visible or not
                 if (!Array.isArray(data) || data.length === 0) {
                     document

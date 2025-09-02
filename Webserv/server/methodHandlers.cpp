@@ -3,29 +3,39 @@
 
 // --- GET Handler ---
 // Handles HTTP GET requests: resolves path, serves file or directory, or sends 404.
-void WebServer::handle_get(const Request& req,
-                           const LocationConfig* loc,
+void WebServer::handle_get(const Request &req,
+                           const LocationConfig *loc,
                            int client_fd,
                            size_t idx)
 {
-    std::string fs_path = resolve_path(req.getPath(),
+    //JESS: just storing the req.getPath() in uri for cleaner code
+    std::string uri = req.getPath();
+    std::string fs_path = resolve_path(uri,
                                        req.getMethod(),
                                        loc);
 
-	/*stat is a system call that checks if a file or directory exists and gathers its metadata.
-	If the path does not exist or cannot be accessed, stat returns a value less than 0.
-	If stat succeeds, the st structure is filled with information about the file or directory 
-	(such as its type, permissions, size, etc.)*/
+    /*stat is a system call that checks if a file or directory exists and gathers its metadata.
+    If the path does not exist or cannot be accessed, stat returns a value less than 0.
+    If stat succeeds, the st structure is filled with information about the file or directory
+    (such as its type, permissions, size, etc.)*/
     struct stat st;
     if (stat(fs_path.c_str(), &st) < 0) {
         send_error_response(client_fd, 404, "Not Found", idx);
         return;
     }
-
     if (S_ISDIR(st.st_mode)) {
-        handle_directory_request(fs_path, req.getPath(), loc, client_fd, idx);
+        // JESS: if statement to check if get request comes from client
+        if (wants_json(req))
+        {
+            std::string json = generate_directory_listing_json(fs_path);
+            send_ok_response(client_fd, json, json_headers(), idx);
+            std::cout << "SENT OK RESPONS JSON " << std::endl;
+            return;
+        }
+        handle_directory_request(fs_path, uri, loc, client_fd, idx); // JESS: untouched function
     }
-    else {
+    else
+    {
         handle_file_request(fs_path, client_fd, idx);
     }
 }
@@ -162,7 +172,7 @@ void WebServer::handle_post(const Request& request, const LocationConfig* loc, i
         send_error_response(client_fd, 403, "Forbidden", i);
     } else if (remove(path.c_str()) == 0) {
         Logger::log(LOG_INFO, "handle_delete", "File deleted: " + path);
-		send_no_content_response(client_fd, i);
+        send_no_content_response(client_fd, i);
     } else {
         Logger::log(LOG_ERROR, "handle_delete", "Failed to delete file: " + path);
         send_error_response(client_fd, 500, "Internal Server Error", i);
