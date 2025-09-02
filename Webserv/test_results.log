@@ -32,9 +32,9 @@ Connection: keep-alive
 Content-Length: 803
 Content-Type: text/html; charset=utf-8
 Keep-Alive: timeout=5, max=100
-Location: www/upload/test_20250901_190040.txt
+Location: www/upload/test_20250902_115439.txt
 
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Upload Successful</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"></head><body class="bg-dark text-light d-flex flex-column justify-content-center align-items-center" style="font-family:sans-serif;min-height:100vh;"><h1 class="mb-3">✅ File uploaded successfully!</h1><p class="mb-4">Saved as: <code>www/upload/test_20250901_190040.txt</code></p><div class="d-flex gap-3"><a href="/" class="btn btn-outline-light">Home</a><a href="/methods.html#demos" class="btn btn-success">Go back</a></div><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script></body></html>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Upload Successful</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"></head><body class="bg-dark text-light d-flex flex-column justify-content-center align-items-center" style="font-family:sans-serif;min-height:100vh;"><h1 class="mb-3">✅ File uploaded successfully!</h1><p class="mb-4">Saved as: <code>www/upload/test_20250902_115439.txt</code></p><div class="d-flex gap-3"><a href="/" class="btn btn-outline-light">Home</a><a href="/methods.html#demos" class="btn btn-success">Go back</a></div><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script></body></html>
 HTTP 201
 
 [OK] POST /upload returned 201 created
@@ -47,9 +47,9 @@ Connection: keep-alive
 Content-Length: 807
 Content-Type: text/html; charset=utf-8
 Keep-Alive: timeout=5, max=100
-Location: server2/banana/test_20250901_190040.txt
+Location: server2/banana/test_20250902_115439.txt
 
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Upload Successful</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"></head><body class="bg-dark text-light d-flex flex-column justify-content-center align-items-center" style="font-family:sans-serif;min-height:100vh;"><h1 class="mb-3">✅ File uploaded successfully!</h1><p class="mb-4">Saved as: <code>server2/banana/test_20250901_190040.txt</code></p><div class="d-flex gap-3"><a href="/" class="btn btn-outline-light">Home</a><a href="/methods.html#demos" class="btn btn-success">Go back</a></div><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script></body></html>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Upload Successful</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"></head><body class="bg-dark text-light d-flex flex-column justify-content-center align-items-center" style="font-family:sans-serif;min-height:100vh;"><h1 class="mb-3">✅ File uploaded successfully!</h1><p class="mb-4">Saved as: <code>server2/banana/test_20250902_115439.txt</code></p><div class="d-flex gap-3"><a href="/" class="btn btn-outline-light">Home</a><a href="/methods.html#demos" class="btn btn-success">Go back</a></div><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script></body></html>
 HTTP 201
 
 [OK] POST /upload returned 201 created
@@ -111,10 +111,10 @@ Content-Type: text/html
 >> curl -s -i -X POST http://localhost:8080/cgi-bin/cgi_post.py -F "file=@test.cpp"
 HTTP/1.1 200 OK
 Connection: close
-Content-Length: 118
+Content-Length: 110
 Content-Type: text/html
 
-<h1>File 'test.cpp' uploaded successfully to /Users/mahdicheraghali/Desktop/webserv/Webserv/www/upload/test.cpp!</h1>
+<h1>File 'test.cpp' uploaded successfully to /home/mcheragh/Desktop/webserv/Webserv/www/upload/test.cpp!</h1>
 
 [OK] CGI POST (file) returned 200 OK
 ------------------------------------------------------------
@@ -208,8 +208,13 @@ Content-Type: text/html
 == Test 13: 400 Bad Request ==
 ------------------------------------------------------------
 >> printf "GET /missing_http_version\r\n\r\n" | nc localhost 8080
+HTTP/1.1 400 Bad Request
+Connection: close
+Content-Length: 157
+Content-Type: text/html
 
-[FAIL] 400 Bad Request error returned.
+<!DOCTYPE html><html><head><title>400 Bad Request</title></head><body><h1>400 Bad Request</h1><p>The server could not fulfill your request.</p></body></html>
+[OK] 400 Bad Request error returned.
 ------------------------------------------------------------
 == Test 15: 403 Forbidden ==
 ------------------------------------------------------------
@@ -269,7 +274,7 @@ Content-Type: text/html
 >> curl http://localhost:8080/cgi-bin/error500.py
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   389  100   389    0     0   1534      0 --:--:-- --:--:-- --:--:--  1537
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   389  100   389    0     0   9609      0 --:--:-- --:--:-- --:--:--  9725
 <!DOCTYPE html>
 <html>
 <head>
@@ -293,7 +298,7 @@ Content-Type: text/html
 >> curl http://localhost:8080/cgi-bin/test502.py
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   157  100   157    0     0    597      0 --:--:-- --:--:-- --:--:--   599
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   157  100   157    0     0   3880      0 --:--:-- --:--:-- --:--:--  3925
 <!DOCTYPE html><html><head><title>502 Bad Gateway</title></head><body><h1>502 Bad Gateway</h1><p>The server could not fulfill your request.</p></body></html>
 [OK] 502 (Bad Gateway)
 ------------------------------------------------------------
@@ -349,20 +354,35 @@ Content-Type: text/html
 == Test 22: Unsupported HTTP Version (HTTP/0.9) ==
 ------------------------------------------------------------
 >> printf 'GET /upload HTTP/0.9\r\nHost: localhost:8080\r\n\r\n' | nc localhost 8080
+HTTP/1.1 505 HTTP Version Not Supported
+Connection: close
+Content-Length: 187
+Content-Type: text/html
 
-[FAIL] 505 HTTP Version Not Supported
+<!DOCTYPE html><html><head><title>505 HTTP Version Not Supported</title></head><body><h1>505 HTTP Version Not Supported</h1><p>The server could not fulfill your request.</p></body></html>
+[OK] 505 HTTP Version Not Supported
 ------------------------------------------------------------
 == Test 23: Malformed HTTP Version ==
 ------------------------------------------------------------
 >> printf 'GET /upload HTTP/ABC\r\nHost: localhost:8080\r\n\r\n' | nc localhost 8080
+HTTP/1.1 400 Bad Request
+Connection: close
+Content-Length: 157
+Content-Type: text/html
 
-[FAIL] 400 Bad Request for malformed version
+<!DOCTYPE html><html><head><title>400 Bad Request</title></head><body><h1>400 Bad Request</h1><p>The server could not fulfill your request.</p></body></html>
+[OK] 400 Bad Request for malformed version
 ------------------------------------------------------------
 == Test 24: Missing Colon in Content-Length Header ==
 ------------------------------------------------------------
 >> printf 'POST /upload HTTP/1.1\r\nHost: localhost:8080\r\nContent-Length 5\r\n\r\nhello' | nc localhost 8080
+HTTP/1.1 400 Bad Request
+Connection: close
+Content-Length: 157
+Content-Type: text/html
 
-[FAIL] 400 Bad Request
+<!DOCTYPE html><html><head><title>400 Bad Request</title></head><body><h1>400 Bad Request</h1><p>The server could not fulfill your request.</p></body></html>
+[OK] 400 Bad Request
 ------------------------------------------------------------
 == Transfer-Encoding: chunked Edge Cases ==
 ------------------------------------------------------------
@@ -513,14 +533,24 @@ Content-Type: text/html
 == Test 37: Transfer-Encoding with both chunked and Content-Length ==
 ------------------------------------------------------------
 >> printf 'POST /cgi-bin/echo_body.py HTTP/1.1\r\nHost: localhost:8080\r\nTransfer-Encoding: chunked\r\nContent-Length: 5\r\n\r\n5\r\nhello\r\n0\r\n\r\n' | nc -w 3 localhost 8080
+HTTP/1.1 400 Bad Request
+Connection: close
+Content-Length: 157
+Content-Type: text/html
 
-[FAIL] Both Transfer-Encoding and Content-Length headers handled
+<!DOCTYPE html><html><head><title>400 Bad Request</title></head><body><h1>400 Bad Request</h1><p>The server could not fulfill your request.</p></body></html>
+[OK] Both Transfer-Encoding and Content-Length headers handled
 ------------------------------------------------------------
 == Test 38: Malformed chunked claim with plain body ==
 ------------------------------------------------------------
 >> printf 'POST /cgi-bin/echo_body.py HTTP/1.1\r\nHost: localhost:8080\r\nTransfer-Encoding: chunked\r\n\r\nhello world without chunks\r\n\r\n' | nc -w 3 localhost 8080
+HTTP/1.1 400 Bad Request
+Connection: close
+Content-Length: 157
+Content-Type: text/html
 
-[FAIL] Claiming chunked but sending plain body
+<!DOCTYPE html><html><head><title>400 Bad Request</title></head><body><h1>400 Bad Request</h1><p>The server could not fulfill your request.</p></body></html>
+[OK] Claiming chunked but sending plain body
 ------------------------------------------------------------
 == Expect Header Tests ==
 ------------------------------------------------------------
@@ -565,20 +595,35 @@ ExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectDataExpectData
 == Test 41: Invalid chunk size (non-hex) ==
 ------------------------------------------------------------
 >> printf 'POST /cgi-bin/echo_body.py HTTP/1.1\r\nHost: localhost:8080\r\nTransfer-Encoding: chunked\r\n\r\nGG\r\nhello\r\n0\r\n\r\n' | nc -w 3 localhost 8080
+HTTP/1.1 400 Bad Request
+Connection: close
+Content-Length: 157
+Content-Type: text/html
 
-[FAIL] Invalid chunk size returns 400 Bad Request
+<!DOCTYPE html><html><head><title>400 Bad Request</title></head><body><h1>400 Bad Request</h1><p>The server could not fulfill your request.</p></body></html>
+[OK] Invalid chunk size returns 400 Bad Request
 ------------------------------------------------------------
 == Test 42: Missing final chunk (0) ==
 ------------------------------------------------------------
 >> printf 'POST /cgi-bin/echo_body.py HTTP/1.1\r\nHost: localhost:8080\r\nTransfer-Encoding: chunked\r\n\r\n5\r\nhello\r\n' | nc -w 3 localhost 8080
+HTTP/1.1 400 Bad Request
+Connection: close
+Content-Length: 157
+Content-Type: text/html
 
-[FAIL] Missing final chunk returns 400 Bad Request
+<!DOCTYPE html><html><head><title>400 Bad Request</title></head><body><h1>400 Bad Request</h1><p>The server could not fulfill your request.</p></body></html>
+[OK] Missing final chunk returns 400 Bad Request
 ------------------------------------------------------------
 == Test 43: Chunk size larger than actual data ==
 ------------------------------------------------------------
 >> printf 'POST /cgi-bin/echo_body.py HTTP/1.1\r\nHost: localhost:8080\r\nTransfer-Encoding: chunked\r\n\r\nA\r\nhello\r\n0\r\n\r\n' | nc -w 3 localhost 8080
+HTTP/1.1 400 Bad Request
+Connection: close
+Content-Length: 157
+Content-Type: text/html
 
-[FAIL] Chunk size mismatch returns 400 Bad Request
+<!DOCTYPE html><html><head><title>400 Bad Request</title></head><body><h1>400 Bad Request</h1><p>The server could not fulfill your request.</p></body></html>
+[OK] Chunk size mismatch returns 400 Bad Request
 ------------------------------------------------------------
 == Test 44: Invalid Transfer-Encoding (not chunked) ==
 ------------------------------------------------------------
@@ -594,8 +639,13 @@ Content-Type: text/html
 == Test 45: Very long chunk size line ==
 ------------------------------------------------------------
 >> printf 'POST /cgi-bin/echo_body.py HTTP/1.1\r\nHost: localhost:8080\r\nTransfer-Encoding: chunked\r\n\r\n%s\r\nhello\r\n0\r\n\r\n' "55555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555" | nc -w 3 localhost 8080
+HTTP/1.1 400 Bad Request
+Connection: close
+Content-Length: 157
+Content-Type: text/html
 
-[FAIL] Very long chunk size line returns 400 Bad Request
+<!DOCTYPE html><html><head><title>400 Bad Request</title></head><body><h1>400 Bad Request</h1><p>The server could not fulfill your request.</p></body></html>
+[OK] Very long chunk size line returns 400 Bad Request
 ------------------------------------------------------------
 == Test 46: Chunked POST to upload endpoint ==
 ------------------------------------------------------------
@@ -605,9 +655,9 @@ Connection: keep-alive
 Content-Length: 801
 Content-Type: text/html; charset=utf-8
 Keep-Alive: timeout=5, max=100
-Location: www/upload/upload_20250901_190044
+Location: www/upload/upload_20250902_115442
 
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Upload Successful</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"></head><body class="bg-dark text-light d-flex flex-column justify-content-center align-items-center" style="font-family:sans-serif;min-height:100vh;"><h1 class="mb-3">✅ File uploaded successfully!</h1><p class="mb-4">Saved as: <code>www/upload/upload_20250901_190044</code></p><div class="d-flex gap-3"><a href="/" class="btn btn-outline-light">Home</a><a href="/methods.html#demos" class="btn btn-success">Go back</a></div><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script></body></html>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Upload Successful</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"></head><body class="bg-dark text-light d-flex flex-column justify-content-center align-items-center" style="font-family:sans-serif;min-height:100vh;"><h1 class="mb-3">✅ File uploaded successfully!</h1><p class="mb-4">Saved as: <code>www/upload/upload_20250902_115442</code></p><div class="d-flex gap-3"><a href="/" class="btn btn-outline-light">Home</a><a href="/methods.html#demos" class="btn btn-success">Go back</a></div><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script></body></html>
 [OK] Chunked POST to upload endpoint returned 201 Created
 ------------------------------------------------------------
 == Test 47: Chunked with Connection: close ==
@@ -624,7 +674,7 @@ connection test
 ------------------------------------------------------------
 == Test 48: Expect 100-continue with oversized Content-Length (should get 413) ==
 ------------------------------------------------------------
->> curl -i -s -X POST http://localhost:8080/ -H 'Expect: 100-continue' -H 'Content-Length: 204800' --data-binary @<(head -c 1024000 /dev/zero)
+>> curl -i -s -X POST http://localhost:8080/ -H 'Expect: 100-continue' -H 'Content-Length: 100001' --data-binary @<(head -c 100001 /dev/zero)
 HTTP/1.1 413 Payload Too Large
 Connection: close
 Content-Length: 393
@@ -651,6 +701,7 @@ Content-Type: text/html
 == Test 49: POST with Expect: 100-continue and no Content-Length or chunked encoding (should get 411) ==
 ------------------------------------------------------------
 >> curl -i -s -X POST http://127.0.0.1:8080/upload -H 'Expect: 100-continue' --data-binary "$(head -c 10240 /dev/zero)"
+./test_all.sh: line 40: warning: command substitution: ignored null byte in input
 HTTP/1.1 411 Length Required
 Connection: close
 Content-Length: 165
@@ -664,7 +715,7 @@ Content-Type: text/html
 >> curl localhost:8080/old
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   126  100   126    0     0   121k      0 --:--:-- --:--:-- --:--:--  123k
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   126  100   126    0     0  14136      0 --:--:-- --:--:-- --:--:-- 15750
 <html><head><title>301 Redirect</title></head><body><h1>301 Redirect</h1><p>Redirecting to <a href="/">/</a></p></body></html>
 [OK] Redirect
 ------------------------------------------------------------
@@ -673,13 +724,13 @@ Content-Type: text/html
 >> curl -i localhost:8080/upload
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100  1350  100  1350    0     0  1222k      0 --:--:-- --:--:-- --:--:-- 1318k
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100  1698  100  1698    0     0   129k      0 --:--:-- --:--:-- --:--:--  138k
 HTTP/1.1 200 OK
 Connection: close
-Content-Length: 1350
+Content-Length: 1698
 Content-Type: text/html
 
-<!DOCTYPE html><html><head><title>Index of /upload</title><style>body{font-family:sans-serif;}table{width:60%;margin:auto;}th,td{text-align:left;padding:4px;}tr:nth-child(even){background:#f9f9f9;}a{text-decoration:none;}</style></head><body><h1>Index of /upload</h1><table><tr><th>Name</th></tr><tr><td><a href="/upload/henri_20250826_152537.txt">henri_20250826_152537.txt</a></td></tr><tr><td><a href="/upload/henri_20250826_152618.txt">henri_20250826_152618.txt</a></td></tr><tr><td><a href="/upload/mahdiii.jpeg">mahdiii.jpeg</a></td></tr><tr><td><a href="/upload/photo_20250825-182206-891.jpeg">photo_20250825-182206-891.jpeg</a></td></tr><tr><td><a href="/upload/photo_20250825-182222-875.jpeg">photo_20250825-182222-875.jpeg</a></td></tr><tr><td><a href="/upload/test.cpp">test.cpp</a></td></tr><tr><td><a href="/upload/test_20250901_185150.txt">test_20250901_185150.txt</a></td></tr><tr><td><a href="/upload/test_20250901_185910.txt">test_20250901_185910.txt</a></td></tr><tr><td><a href="/upload/test_20250901_185926.txt">test_20250901_185926.txt</a></td></tr><tr><td><a href="/upload/test_20250901_190040.txt">test_20250901_190040.txt</a></td></tr><tr><td><a href="/upload/upload_20250826_160633">upload_20250826_160633</a></td></tr><tr><td><a href="/upload/upload_20250901_190044">upload_20250901_190044</a></td></tr></table></body></html>
+<!DOCTYPE html><html><head><title>Index of /upload</title><style>body{font-family:sans-serif;}table{width:60%;margin:auto;}th,td{text-align:left;padding:4px;}tr:nth-child(even){background:#f9f9f9;}a{text-decoration:none;}</style></head><body><h1>Index of /upload</h1><table><tr><th>Name</th></tr><tr><td><a href="/upload/henri_20250826_152537.txt">henri_20250826_152537.txt</a></td></tr><tr><td><a href="/upload/henri_20250826_152618.txt">henri_20250826_152618.txt</a></td></tr><tr><td><a href="/upload/mahdiii.jpeg">mahdiii.jpeg</a></td></tr><tr><td><a href="/upload/photo_20250825-182206-891.jpeg">photo_20250825-182206-891.jpeg</a></td></tr><tr><td><a href="/upload/photo_20250825-182222-875.jpeg">photo_20250825-182222-875.jpeg</a></td></tr><tr><td><a href="/upload/test.cpp">test.cpp</a></td></tr><tr><td><a href="/upload/test_20250901_185150.txt">test_20250901_185150.txt</a></td></tr><tr><td><a href="/upload/test_20250901_185910.txt">test_20250901_185910.txt</a></td></tr><tr><td><a href="/upload/test_20250901_185926.txt">test_20250901_185926.txt</a></td></tr><tr><td><a href="/upload/test_20250901_190040.txt">test_20250901_190040.txt</a></td></tr><tr><td><a href="/upload/test_20250902_115251.txt">test_20250902_115251.txt</a></td></tr><tr><td><a href="/upload/test_20250902_115439.txt">test_20250902_115439.txt</a></td></tr><tr><td><a href="/upload/upload_20250826_160633">upload_20250826_160633</a></td></tr><tr><td><a href="/upload/upload_20250901_190044">upload_20250901_190044</a></td></tr><tr><td><a href="/upload/upload_20250902_115254">upload_20250902_115254</a></td></tr><tr><td><a href="/upload/upload_20250902_115442">upload_20250902_115442</a></td></tr></table></body></html>
 [OK] Directory Listing
 ------------------------------------------------------------
 == Test 52: 408 Request Timeout ==

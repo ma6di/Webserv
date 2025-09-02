@@ -64,6 +64,24 @@ public:
 
 private:
     bool validate_post_request(Request &request, int client_fd, size_t i);
+    
+    // Helper functions for handleClientDataOn modularity
+    bool readClientData(int client_fd, char* buf, size_t buf_size, ssize_t& bytes_read);
+    bool validateBufferSize(int client_fd, size_t current_size, size_t new_bytes);
+    bool validateContentLength(int client_fd, const std::string& headers);
+    size_t calculateRequestSize(const std::string& buffer, size_t header_bytes, const std::string& headers);
+    bool processCompleteRequest(int client_fd, const std::string& frame);
+    void processBufferedRequests(int client_fd);
+    
+    // Helper functions for process_request modularity
+    void setupConnectionPolicy(Request& request, int client_fd);
+    bool performBasicValidation(Request& request, int client_fd, size_t i);
+    bool handleExpectContinue(Request& request, int client_fd, size_t i);
+    bool handleCGIRequest(Request& request, const LocationConfig* loc, int client_fd, size_t i);
+    bool handleRedirection(Request& request, const LocationConfig* loc, int client_fd, size_t i);
+    void dispatchMethodHandler(Request& request, const LocationConfig* loc, int client_fd, size_t i);
+    void finalizeRequestProcessing(int client_fd);
+    
     const Config*                 config_;
 
     std::vector<int>              listening_sockets;

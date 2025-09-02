@@ -160,3 +160,372 @@ bool WebServer::is_full_body_received(const Request &request, const std::string 
     }
     return true;
 }
+
+// ===== Helper functions for handleClientDataOn =====
+
+// Helper: Read data from client socket
+bool WebServer::readClientData(int client_fd, char* buf, size_t buf_size, ssize_t& bytes_read)
+{
+	bytes_read = ::read(client_fd, buf, buf_size);
+
+	if (bytes_read == 0)
+	{
+		// Peer closed
+		Logger::log(LOG_INFO, "WebServer", "FD=" + to_str(client_fd) + " EOF from peer; closing");
+		closeClient(client_fd);
+		return false;
+	}
+
+	if (bytes_read < 0)
+	{
+		if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)
+		{
+			Logger::log(LOG_DEBUG, "WebServer",
+						"FD=" + to_str(client_fd) + " read would block/interrupt; returning");
+			return false; // not fatal, try again later
+		}
+		Logger::log(LOG_ERROR, "WebServer",
+					"FD=" + to_str(client_fd) + " read error errno=" + to_str(errno) + "; closing");
+		closeClient(client_fd);
+		return false;
+	}
+
+	return true; // successful read
+}
+
+// Helper: Check if buffer size is within limits
+bool WebServer::validateBufferSize(int client_fd, size_t current_size, size_t new_bytes)
+{
+	if (current_size + new_bytes > 100 * 1024 * 1024) // 100MB limit
+	{
+		Logger::log(LOG_ERROR, "WebServer",
+					"Client buffer too large, possible DoS. FD=" + to_str(client_fd));
+		send_error_response(client_fd, 413, "Payload Too Large", 0);
+		
+		std::map<int, Connection>::iterator it = conns_.find(client_fd);
+		if (it != conns_.end())
+			it->second.shouldCloseAfterWrite = true;
+		return false;
+	}
+	return true;
+}
+
+// Helper: Validate Content-Length against max body size
+bool WebServer::validateContentLength(int client_fd, const std::string& headers)
+{
+	long maxBodySize = static_cast<long>(config_->getMaxBodySize());
+	long len = parse_content_length(headers);
+	
+	if (len > maxBodySize)
+	{
+		Logger::log(LOG_ERROR, "WebServer",
+					"FD=" + to_str(client_fd) + " declared Content-Length exceeds max body size");
+		send_error_response(client_fd, 413, "Payload Too Large", 0);
+		
+		std::map<int, Connection>::iterator it = conns_.find(client_fd);
+		if (it != conns_.end())
+			it->second.shouldCloseAfterWrite = true;
+		return false;
+	}
+	return true;
+}
+
+// Helper: Calculate how many bytes are needed for a complete request
+size_t WebServer::calculateRequestSize(const std::string& buffer, size_t header_bytes, const std::string& headers)
+{
+	if (has_chunked_encoding(headers))
+	{
+		if (buffer.size() <= header_bytes)
+			return 0; // need more data
+		return buffer.size(); // hand over entire buffer for chunked parsing
+	}
+	else
+	{
+		long len = parse_content_length(headers);
+		if (len < 0)
+			len = 0;
+		
+		size_t total_needed = header_bytes + static_cast<size_t>(len);
+		if (buffer.size() < total_needed)
+			return 0; // need more data
+		
+		return total_needed;
+	}
+}
+
+// Helper: Handle request parsing and execution
+bool WebServer::processCompleteRequest(int client_fd, const std::string& frame)
+{
+	try
+	{
+		Request req(frame);
+		process_request(req, client_fd, 0);
+		return true;
+	}
+	catch (const std::exception &e)
+	{
+		std::string error_msg = e.what();
+		Logger::log(LOG_ERROR, "WebServer", std::string("Request parse failed: ") + error_msg);
+
+		// Determine appropriate error code
+		int error_code = 400;
+		std::string error_type = "Bad Request";
+		
+		if (error_msg.find("HTTP Version Not Supported") != std::string::npos)
+		{
+			error_code = 505;
+			error_type = "HTTP Version Not Supported";
+		}
+		else if (error_msg.find("501:") == 0)
+		{
+			error_code = 501;
+			error_type = "Not Implemented";
+		}
+
+		send_error_response(client_fd, error_code, error_type, 0);
+		
+		if (conns_.count(client_fd))
+			conns_[client_fd].shouldCloseAfterWrite = true;
+		
+		return false;
+	}
+}
+
+// Helper: Process all complete requests in the buffer
+void WebServer::processBufferedRequests(int client_fd)
+{
+	for (;;)
+	{
+		// Connection might have been closed by processing
+		std::map<int, Connection>::iterator it = conns_.find(client_fd);
+		if (it == conns_.end())
+			return;
+
+		std::string &buffer = it->second.readBuf;
+
+		// Do we have complete headers?
+		size_t hdr_end = find_header_end(buffer);
+		if (hdr_end == std::string::npos)
+		{
+			// Need more data to get headers
+			return;
+		}
+
+		const size_t header_bytes = hdr_end + 4;
+		std::string headers = buffer.substr(0, header_bytes);
+
+		// Validate Content-Length
+		if (!validateContentLength(client_fd, headers))
+			return;
+
+		// Calculate how many bytes we need for a complete request
+		size_t needed = calculateRequestSize(buffer, header_bytes, headers);
+		if (needed == 0)
+		{
+			// Need more data
+			return;
+		}
+
+		// Validate buffer consistency
+		if (needed > buffer.size())
+		{
+			Logger::log(LOG_ERROR, "WebServer",
+						"Needed bytes exceed buffer size before parsing! FD=" + to_str(client_fd));
+			send_error_response(client_fd, 400, "Bad Request", 0);
+			it->second.shouldCloseAfterWrite = true;
+			return;
+		}
+
+		// Extract complete request frame
+		std::string frame = buffer.substr(0, needed);
+
+		// Process the request
+		if (!processCompleteRequest(client_fd, frame))
+			return;
+
+		// Re-fetch connection (might have been closed)
+		std::map<int, Connection>::iterator it2 = conns_.find(client_fd);
+		if (it2 == conns_.end())
+			return;
+
+		std::string &buffer2 = it2->second.readBuf;
+
+		// Validate buffer state after processing
+		if (needed > buffer2.size())
+		{
+			Logger::log(LOG_DEBUG, "WebServer",
+						"Buffer smaller than expected after process_request; stopping. FD=" + to_str(client_fd));
+			return;
+		}
+
+		// Consume processed request and continue with any remaining pipelined requests
+		buffer2.erase(0, needed);
+		if (buffer2.empty())
+			return;
+	}
+}
+
+// ===== Helper functions for process_request =====
+
+// Helper: Setup connection policy based on HTTP version and Connection header
+void WebServer::setupConnectionPolicy(Request& request, int client_fd)
+{
+	std::string ver = request.getVersion();
+	std::string connHdr = request.getHeader("Connection");
+	bool close_conn = (connHdr == "close") || (ver == "HTTP/1.0" && connHdr != "keep-alive");
+	conns_[client_fd].shouldCloseAfterWrite = close_conn;
+
+	Logger::log(LOG_INFO, "POLICY",
+				"fd=" + to_str(client_fd) +
+					" path=" + request.getPath() +
+					" ver=" + ver +
+					" conn=" + (connHdr.empty() ? std::string("<none>") : connHdr) +
+					" closeAfter=" + (close_conn ? "true" : "false"));
+}
+
+// Helper: Perform basic request validation (method, body size, location permissions)
+bool WebServer::performBasicValidation(Request& request, int client_fd, size_t i)
+{
+	std::string method = request.getMethod();
+	std::string uri = request.getPath();
+	const LocationConfig *loc = match_location(config_->getLocations(), uri);
+
+	if (loc)
+		Logger::log(LOG_DEBUG, "WebServer", "Matched location: " + loc->path);
+	else
+		Logger::log(LOG_DEBUG, "WebServer", "No location matched!");
+
+	// Check if method is supported
+	if (method != "GET" && method != "POST" && method != "DELETE")
+	{
+		send_error_response(client_fd, 501, "Not Implemented", i);
+		return false;
+	}
+
+	// Check body size limits
+	if (request.getContentLength() > static_cast<int>(config_->getMaxBodySize()))
+	{
+		send_error_response(client_fd, 413, "Payload Too Large", i);
+		return false;
+	}
+	if (request.getBody().size() > config_->getMaxBodySize())
+	{
+		send_error_response(client_fd, 413, "Payload Too Large", i);
+		return false;
+	}
+
+	// Check if method is allowed for this location
+	if (loc && std::find(loc->allowed_methods.begin(), loc->allowed_methods.end(), method) == loc->allowed_methods.end())
+	{
+		send_error_response(client_fd, 405, "Method Not Allowed", i);
+		return false;
+	}
+
+	return true;
+}
+
+// Helper: Handle Expect: 100-continue header
+bool WebServer::handleExpectContinue(Request& request, int client_fd, size_t i)
+{
+	if (request.hasExpectContinue())
+	{
+		if (!validate_post_request(request, client_fd, i))
+			return false;
+		
+		Logger::log(LOG_INFO, "WebServer", "Client expects 100-continue, sending 100 Continue response");
+		send_continue_response(client_fd);
+	}
+	return true;
+}
+
+// Helper: Handle CGI requests for GET/DELETE methods
+bool WebServer::handleCGIRequest(Request& request, const LocationConfig* loc, int client_fd, size_t i)
+{
+	std::string method = request.getMethod();
+	int is_cgi = (loc && !loc->cgi_extension.empty() && is_cgi_request(*loc, request.getPath())) ? 1 : 0;
+	
+	if ((method == "GET" || method == "DELETE") && loc && is_cgi)
+	{
+		Logger::log(LOG_DEBUG, "WebServer", "is_cgi_request: " + to_str(is_cgi));
+		handle_cgi(loc, request, client_fd, i);
+		return true; // request handled
+	}
+	return false; // not a CGI request
+}
+
+// Helper: Handle location-based redirections
+bool WebServer::handleRedirection(Request& request, const LocationConfig* loc, int client_fd, size_t i)
+{
+	if (loc && !loc->redirect_url.empty())
+	{
+		const std::string hostHdr = request.getHeader("Host");
+		const bool external = isExternalRedirect(loc->redirect_url, hostHdr);
+		
+		if (external)
+		{
+			conns_[client_fd].shouldCloseAfterWrite = true;
+			Logger::log(LOG_INFO, "redirect", "External → " + loc->redirect_url + " (will close)");
+		}
+		else
+		{
+			Logger::log(LOG_INFO, "redirect", "Internal → " + loc->redirect_url + " (keep-alive)");
+		}
+		
+		send_redirect_response(client_fd, loc->redirect_code == 0 ? 301 : loc->redirect_code, loc->redirect_url, i);
+		
+		if (!conns_[client_fd].shouldCloseAfterWrite)
+		{
+			conns_[client_fd].readBuf.clear();
+			Logger::log(LOG_DEBUG, "RESET", "fd=" + to_str(client_fd) + " cleared readBuf after internal redirect");
+		}
+		return true; // request handled
+	}
+	return false; // no redirection
+}
+
+// Helper: Dispatch to appropriate method handler
+void WebServer::dispatchMethodHandler(Request& request, const LocationConfig* loc, int client_fd, size_t i)
+{
+	std::string method = request.getMethod();
+	
+	Logger::log(LOG_INFO, "request", "Ver=" + request.getVersion() + " ConnHdr=" + request.getHeader("Connection"));
+
+	if (method == "GET")
+	{
+		handle_get(request, loc, client_fd, i);
+	}
+	else if (method == "POST")
+	{
+		if (!validate_post_request(request, client_fd, i))
+			return;
+		
+		// Check CGI for POST
+		int is_cgi = (loc && !loc->cgi_extension.empty() && is_cgi_request(*loc, request.getPath())) ? 1 : 0;
+		if (loc && is_cgi)
+		{
+			Logger::log(LOG_DEBUG, "WebServer", "is_cgi_request: " + to_str(is_cgi));
+			handle_cgi(loc, request, client_fd, i);
+			return;
+		}
+		
+		Logger::log(LOG_DEBUG, "process_request",
+					"POST " + request.getPath() +
+						" matched to location " + (loc ? loc->path : "NULL") +
+						" upload_dir=" + (loc ? loc->upload_dir : "<none>"));
+		handle_post(request, loc, client_fd, i);
+	}
+	else if (method == "DELETE")
+	{
+		handle_delete(request, loc, client_fd, i);
+	}
+}
+
+// Helper: Finalize request processing (cleanup for keep-alive connections)
+void WebServer::finalizeRequestProcessing(int client_fd)
+{
+	if (!conns_[client_fd].shouldCloseAfterWrite)
+	{
+		conns_[client_fd].readBuf.clear();
+		Logger::log(LOG_DEBUG, "RESET", "fd=" + to_str(client_fd) + " keeping alive; cleared readBuf");
+	}
+}
