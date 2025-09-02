@@ -102,11 +102,7 @@ int WebServer::handleNewConnection(int listen_fd)
 	socklen_t addrlen = sizeof(client_addr);
 	int client_fd = accept(listen_fd, (sockaddr *)&client_addr, &addrlen);
 	if (client_fd < 0)
-	{
-		if (errno != EAGAIN && errno != EWOULDBLOCK)
-			perror("accept");
 		return -1;
-	}
 
 	make_socket_non_blocking(client_fd);
 	conns_[client_fd]; // Create new connection (last_active already set in constructor)
@@ -294,15 +290,7 @@ void WebServer::flushPendingWrites(int client_fd)
 		return;
 	}
 
-	// n < 0: only look at errno because write() failed
-	if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)
-	{
-		// Not fatal; try again on next POLLOUT
-		return;
-	}
-
-	// Any other error => drop the client
-	closeClient(client_fd); // or cleanup_client(client_fd, 0);
+	return;
 }
 
 // Timeout management methods

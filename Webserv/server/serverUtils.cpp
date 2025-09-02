@@ -101,9 +101,6 @@ bool WebServer::read_and_append_client_data(int client_fd, size_t i)
     }
     if (bytes_read < 0)
     {
-        if (errno == EAGAIN || errno == EWOULDBLOCK)
-            return false;             // not fatal
-        cleanup_client(client_fd, i); // real error
         return false;
     }
     conns_[client_fd].readBuf.append(buffer, static_cast<size_t>(bytes_read));
@@ -168,6 +165,9 @@ bool WebServer::readClientData(int client_fd, char* buf, size_t buf_size, ssize_
 {
 	bytes_read = ::read(client_fd, buf, buf_size);
 
+	if (bytes_read > 0)
+    	return true;
+	
 	if (bytes_read == 0)
 	{
 		// Peer closed
@@ -176,21 +176,10 @@ bool WebServer::readClientData(int client_fd, char* buf, size_t buf_size, ssize_
 		return false;
 	}
 
-	if (bytes_read < 0)
-	{
-		if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)
-		{
-			Logger::log(LOG_DEBUG, "WebServer",
-						"FD=" + to_str(client_fd) + " read would block/interrupt; returning");
-			return false; // not fatal, try again later
-		}
-		Logger::log(LOG_ERROR, "WebServer",
-					"FD=" + to_str(client_fd) + " read error errno=" + to_str(errno) + "; closing");
-		closeClient(client_fd);
-		return false;
-	}
+	Logger::log(LOG_DEBUG, "WebServer",
+                "FD=" + to_str(client_fd) + " read made no progress; will retry");
 
-	return true; // successful read
+	return false; // successful read
 }
 
 // Helper: Check if buffer size is within limits

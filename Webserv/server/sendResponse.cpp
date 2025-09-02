@@ -312,34 +312,22 @@ void WebServer::send_continue_response(int client_fd)
 {
     Response resp;
     resp.setStatus(100, Response::getStatusMessage(100));
-    // 100 Continue should have no body and minimal headers
     resp.setBody("");
 
     std::string response = resp.toString();
-    /*ssize_t n = send(client_fd, response.c_str(), response.length(), MSG_NOSIGNAL);
-    if (n == -1) {
-        Logger::log(LOG_ERROR, "send_continue_response",
-                   "Failed to send 100 Continue response to fd=" + to_str(client_fd) +
-                   " (errno=" + to_str(errno) + ")");
-    }*/
+    
     ssize_t n = send(client_fd, response.c_str(), response.length(), MSG_NOSIGNAL);
-    if (n == -1)
-    {
-        if (errno == EAGAIN || errno == EWOULDBLOCK)
-        {
-            Logger::log(LOG_DEBUG, "send_continue_response",
-                        "FD=" + to_str(client_fd) + " would block (EAGAIN); skipping for now");
-            return; // not fatal; try again later if you want
-        }
-        Logger::log(LOG_ERROR, "send_continue_response",
-                    "FD=" + to_str(client_fd) +
-                        " send failed, errno=" + to_str(errno) + "; closing client");
-        cleanup_client(client_fd, 0); // real error → remove client
+    if (n > 0) {
+        Logger::log(LOG_INFO, "send_continue_response",
+                    "Sent 100 Continue (" + to_str(n) + " bytes) to fd=" + to_str(client_fd));
         return;
     }
-    else
-    {
-        Logger::log(LOG_INFO, "send_continue_response",
-                    "Successfully sent 100 Continue response (" + to_str(n) + " bytes) to fd=" + to_str(client_fd));
+    if (n == 0) {
+        // peer closed
+        cleanup_client(client_fd, 0);
+        return;
     }
+    // n < 0: don’t check errno — just schedule retry via POLLOUT by buffering:
+    Connection &conn = conns_[client_fd];
+    conn.writeBuf.append(response);
 }
