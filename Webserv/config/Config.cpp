@@ -107,16 +107,10 @@ void Config::handleListenDirective(std::istringstream &iss)
     ports.push_back(parsed);
     hosts.push_back(host);  // always present now
 
-    Logger::log(
-        LOG_DEBUG, "Config",
-        std::string("listen: host=[") + host + "], port=" + to_str(parsed));
-
     // keep your existing "first port is primary" behavior
     if (port == 0)
         port = parsed;
     else if (port != parsed)
-        Logger::log(LOG_DEBUG, "Config",
-                    "Multiple listen ports detected, using first: " + to_str(port));
 
     if (parsed < 1 || parsed > 65535)
     {
@@ -188,11 +182,6 @@ void Config::handleLocationEnd(LocationConfig &currentLocation, bool &insideLoca
 {
     if (insideLocation)
     {
-        if (currentLocation.index.empty())
-        {
-            Logger::log(LOG_INFO, "Config", "No index set for " + currentLocation.path + " → using default: index.html");
-            currentLocation.index = "index.html";
-        }
         if (currentLocation.allowed_methods.empty())
             currentLocation.allowed_methods.push_back("GET");
         locations.push_back(currentLocation);

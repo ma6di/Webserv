@@ -56,18 +56,6 @@ static void logConfigurationDetails(const std::vector<Config> &configs)
                     methods << ","; // Add comma between methods
                 methods << L.allowed_methods[mi]; // Add method name
             }
-            // Log the configuration details for this location:
-            // - server index
-            // - location index
-            // - path
-            // - allowed methods
-            // - upload directory
-            Logger::log(LOG_INFO,
-                        "ConfigDump",
-                        "server[" + to_str(ci) + "].loc[" + to_str(li) + "] "
-                        "path='" + L.path + "' "
-                        "methods=[" + methods.str() + "] "
-                        "upload_dir='" + L.upload_dir + "'");
         }
     }
 }
