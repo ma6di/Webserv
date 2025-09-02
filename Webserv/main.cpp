@@ -221,37 +221,6 @@ static void handlePollEvents(const std::vector<struct pollfd> &fds)
     }
 }
 
-/**
- * Check for client timeouts and close idle connections
- */
-/*static void checkClientTimeouts()
-{
-    time_t now = time(NULL);
-    int client_timeout = 10; // 10 seconds timeout for testing
-
-    for (size_t si = 0; si < g_servers.size(); ++si)
-    {
-        WebServer *srv = g_servers[si];
-        std::vector<int> cs = srv->getClientSockets();
-        
-        // Check each client for timeout (iterate backwards to safely remove)
-        for (int j = static_cast<int>(cs.size()) - 1; j >= 0; --j)
-        {
-            int fd = cs[j];
-            time_t last_active = srv->getClientLastActive(fd);
-            if (last_active > 0 && (now - last_active) > client_timeout)
-            {
-                Logger::log(LOG_INFO, "main", 
-                          "Client fd=" + to_str(fd) + " timed out after " + 
-                          to_str(now - last_active) + " seconds");
-                srv->send_error_response(fd, 408, "Request Timeout", si);
-                srv->flushPendingWrites(fd);
-				srv->closeClient(fd);
-            }
-        }
-    }
-}*/
-
 static void checkClientTimeouts()
 {
     time_t now = time(NULL);
