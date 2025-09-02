@@ -32,9 +32,9 @@ Connection: keep-alive
 Content-Length: 803
 Content-Type: text/html; charset=utf-8
 Keep-Alive: timeout=5, max=100
-Location: www/upload/test_20250902_141242.txt
+Location: www/upload/test_20250902_152054.txt
 
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Upload Successful</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"></head><body class="bg-dark text-light d-flex flex-column justify-content-center align-items-center" style="font-family:sans-serif;min-height:100vh;"><h1 class="mb-3">✅ File uploaded successfully!</h1><p class="mb-4">Saved as: <code>www/upload/test_20250902_141242.txt</code></p><div class="d-flex gap-3"><a href="/" class="btn btn-outline-light">Home</a><a href="/methods.html#demos" class="btn btn-success">Go back</a></div><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script></body></html>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Upload Successful</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"></head><body class="bg-dark text-light d-flex flex-column justify-content-center align-items-center" style="font-family:sans-serif;min-height:100vh;"><h1 class="mb-3">✅ File uploaded successfully!</h1><p class="mb-4">Saved as: <code>www/upload/test_20250902_152054.txt</code></p><div class="d-flex gap-3"><a href="/" class="btn btn-outline-light">Home</a><a href="/methods.html#demos" class="btn btn-success">Go back</a></div><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script></body></html>
 HTTP 201
 
 [OK] POST /upload returned 201 created
@@ -47,9 +47,9 @@ Connection: keep-alive
 Content-Length: 807
 Content-Type: text/html; charset=utf-8
 Keep-Alive: timeout=5, max=100
-Location: server2/upload/test_20250902_141242.txt
+Location: server2/upload/test_20250902_152054.txt
 
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Upload Successful</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"></head><body class="bg-dark text-light d-flex flex-column justify-content-center align-items-center" style="font-family:sans-serif;min-height:100vh;"><h1 class="mb-3">✅ File uploaded successfully!</h1><p class="mb-4">Saved as: <code>server2/upload/test_20250902_141242.txt</code></p><div class="d-flex gap-3"><a href="/" class="btn btn-outline-light">Home</a><a href="/methods.html#demos" class="btn btn-success">Go back</a></div><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script></body></html>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Upload Successful</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"></head><body class="bg-dark text-light d-flex flex-column justify-content-center align-items-center" style="font-family:sans-serif;min-height:100vh;"><h1 class="mb-3">✅ File uploaded successfully!</h1><p class="mb-4">Saved as: <code>server2/upload/test_20250902_152054.txt</code></p><div class="d-flex gap-3"><a href="/" class="btn btn-outline-light">Home</a><a href="/methods.html#demos" class="btn btn-success">Go back</a></div><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script></body></html>
 HTTP 201
 
 [OK] POST /upload returned 201 created
@@ -163,46 +163,16 @@ Content-Type: text/html
 >> curl -s -i -X DELETE http://localhost:8080/
 HTTP/1.1 405 Method Not Allowed
 Connection: close
-Content-Length: 393
+Content-Length: 171
 Content-Type: text/html
 
-<!DOCTYPE html>
-<html>
-<head>
-    <title>405 Method Not Allowed</title>
-    <style>
-        body { font-family: Arial; background: #fff0f0; color: #a00; text-align: center; margin-top: 5em; }
-        a { color: #3366cc; }
-    </style>
-</head>
-<body>
-    <h1>405 Method Not Allowed</h1>
-    <p>The method is not allowed for the requested URL.</p>
-    <a href="/">Go to Home</a>
-</body>
-</html>
-
+<!DOCTYPE html><html><head><title>405 Method Not Allowed</title></head><body><h1>405 Method Not Allowed</h1><p>The server could not fulfill your request.</p></body></html>
 [OK] 405 Method Not Allowed error returned.
 ------------------------------------------------------------
 == Test 12: 413 Payload Too Large ==
 ------------------------------------------------------------
 >> curl -s -X POST http://localhost:8080/upload -F file=@bigfile.txt
-<!DOCTYPE html>
-<html>
-<head>
-    <title>413 Payload Too Large</title>
-    <style>
-        body { font-family: Arial; background: #fff0f0; color: #a00; text-align: center; margin-top: 5em; }
-        a { color: #3366cc; }
-    </style>
-</head>
-<body>
-    <h1>413 Payload Too Large</h1>
-    <p>The request is too large for the server to handle.</p>
-    <a href="/">Go to Home</a>
-</body>
-</html>
-
+<!DOCTYPE html><html><head><title>413 Payload Too Large</title></head><body><h1>413 Payload Too Large</h1><p>The server could not fulfill your request.</p></body></html>
 [OK] 413 Payload Too Large error returned.
 ------------------------------------------------------------
 == Test 13: 400 Bad Request ==
@@ -221,25 +191,10 @@ Content-Type: text/html
 >> touch www/upload/forbidden.txt && chmod 444 www/upload/forbidden.txt && curl -s -i -F file=@test.cpp http://localhost:8080/upload/forbidden.txt
 HTTP/1.1 403 Forbidden
 Connection: close
-Content-Length: 378
+Content-Length: 153
 Content-Type: text/html
 
-<!DOCTYPE html>
-<html>
-<head>
-    <title>403 Forbidden</title>
-    <style>
-        body { font-family: Arial; background: #fff0f0; color: #a00; text-align: center; margin-top: 5em; }
-        a { color: #3366cc; }
-    </style>
-</head>
-<body>
-    <h1>403 Forbidden</h1>
-    <p>You do not have permission to access this resource.</p>
-    <a href="/">Go to Home</a>
-</body>
-</html>
-
+<!DOCTYPE html><html><head><title>403 Forbidden</title></head><body><h1>403 Forbidden</h1><p>The server could not fulfill your request.</p></body></html>
 [OK] 403 Forbidden error returned.
 ------------------------------------------------------------
 == Test 16: 404 Not Found ==
@@ -247,26 +202,10 @@ Content-Type: text/html
 >> curl -s -i http://localhost:8080/doesnotexist.txt
 HTTP/1.1 404 Not Found
 Connection: close
-Content-Length: 483
+Content-Length: 153
 Content-Type: text/html
 
-<!DOCTYPE html>
-<html>
-<head>
-    <title>404 Not Found</title>
-    <style>
-        body { font-family: Arial; background: #fff0f0; color: #a00; text-align: center; margin-top: 5em; }
-        a { color: #3366cc; }
-    </style>
-</head>
-<body>
-    <h1>404 Not Found</h1>
-    <p>The requested resource could not be found on this server.</p>
-    <p>If you believe this is an error, please <a href="mailto:your@email.com">contact us</a>.</p>
-    <a href="/">Go to Home</a>
-</body>
-</html>
-
+<!DOCTYPE html><html><head><title>404 Not Found</title></head><body><h1>404 Not Found</h1><p>The server could not fulfill your request.</p></body></html>
 [OK] 404 Not Found error returned.
 ------------------------------------------------------------
 == Test 17: 500 Internal Server Error ==
@@ -274,23 +213,8 @@ Content-Type: text/html
 >> curl http://localhost:8080/cgi-bin/error500.py
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   389  100   389    0     0  36928      0 --:--:-- --:--:-- --:--:-- 38900
-<!DOCTYPE html>
-<html>
-<head>
-    <title>500 Internal Server Error</title>
-    <style>
-        body { font-family: Arial; background: #fff0f0; color: #a00; text-align: center; margin-top: 5em; }
-        a { color: #3366cc; }
-    </style>
-</head>
-<body>
-    <h1>500 Internal Server Error</h1>
-    <p>Oops! Something went wrong on our end.</p>
-    <a href="/">Go to Home</a>
-</body>
-</html>
-
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   177  100   177    0     0  16647      0 --:--:-- --:--:-- --:--:-- 17700
+<!DOCTYPE html><html><head><title>500 Internal Server Error</title></head><body><h1>500 Internal Server Error</h1><p>The server could not fulfill your request.</p></body></html>
 [OK] 500 Internal Server Error returned.
 ------------------------------------------------------------
 == Test 18: 502 Bad Gateway ==
@@ -298,7 +222,7 @@ Content-Type: text/html
 >> curl http://localhost:8080/cgi-bin/test502.py
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   157  100   157    0     0  14911      0 --:--:-- --:--:-- --:--:-- 15700
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   157  100   157    0     0  14836      0 --:--:-- --:--:-- --:--:-- 15700
 <!DOCTYPE html><html><head><title>502 Bad Gateway</title></head><body><h1>502 Bad Gateway</h1><p>The server could not fulfill your request.</p></body></html>
 [OK] 502 (Bad Gateway)
 ------------------------------------------------------------
@@ -329,26 +253,10 @@ Content-Type: text/html
 >> curl -s -i http://localhost:8080/%00test/
 HTTP/1.1 404 Not Found
 Connection: close
-Content-Length: 483
+Content-Length: 153
 Content-Type: text/html
 
-<!DOCTYPE html>
-<html>
-<head>
-    <title>404 Not Found</title>
-    <style>
-        body { font-family: Arial; background: #fff0f0; color: #a00; text-align: center; margin-top: 5em; }
-        a { color: #3366cc; }
-    </style>
-</head>
-<body>
-    <h1>404 Not Found</h1>
-    <p>The requested resource could not be found on this server.</p>
-    <p>If you believe this is an error, please <a href="mailto:your@email.com">contact us</a>.</p>
-    <a href="/">Go to Home</a>
-</body>
-</html>
-
+<!DOCTYPE html><html><head><title>404 Not Found</title></head><body><h1>404 Not Found</h1><p>The server could not fulfill your request.</p></body></html>
 [OK] 404 Not Found
 ------------------------------------------------------------
 == Test 22: Unsupported HTTP Version (HTTP/0.9) ==
@@ -655,9 +563,9 @@ Connection: keep-alive
 Content-Length: 801
 Content-Type: text/html; charset=utf-8
 Keep-Alive: timeout=5, max=100
-Location: www/upload/upload_20250902_141245
+Location: www/upload/upload_20250902_152056
 
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Upload Successful</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"></head><body class="bg-dark text-light d-flex flex-column justify-content-center align-items-center" style="font-family:sans-serif;min-height:100vh;"><h1 class="mb-3">✅ File uploaded successfully!</h1><p class="mb-4">Saved as: <code>www/upload/upload_20250902_141245</code></p><div class="d-flex gap-3"><a href="/" class="btn btn-outline-light">Home</a><a href="/methods.html#demos" class="btn btn-success">Go back</a></div><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script></body></html>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Upload Successful</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"></head><body class="bg-dark text-light d-flex flex-column justify-content-center align-items-center" style="font-family:sans-serif;min-height:100vh;"><h1 class="mb-3">✅ File uploaded successfully!</h1><p class="mb-4">Saved as: <code>www/upload/upload_20250902_152056</code></p><div class="d-flex gap-3"><a href="/" class="btn btn-outline-light">Home</a><a href="/methods.html#demos" class="btn btn-success">Go back</a></div><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script></body></html>
 [OK] Chunked POST to upload endpoint returned 201 Created
 ------------------------------------------------------------
 == Test 47: Chunked with Connection: close ==
@@ -677,25 +585,10 @@ connection test
 >> curl -i -s -X POST http://localhost:8080/ -H 'Expect: 100-continue' -H 'Content-Length: 100001' --data-binary @<(head -c 100001 /dev/zero)
 HTTP/1.1 413 Payload Too Large
 Connection: close
-Content-Length: 393
+Content-Length: 169
 Content-Type: text/html
 
-<!DOCTYPE html>
-<html>
-<head>
-    <title>413 Payload Too Large</title>
-    <style>
-        body { font-family: Arial; background: #fff0f0; color: #a00; text-align: center; margin-top: 5em; }
-        a { color: #3366cc; }
-    </style>
-</head>
-<body>
-    <h1>413 Payload Too Large</h1>
-    <p>The request is too large for the server to handle.</p>
-    <a href="/">Go to Home</a>
-</body>
-</html>
-
+<!DOCTYPE html><html><head><title>413 Payload Too Large</title></head><body><h1>413 Payload Too Large</h1><p>The server could not fulfill your request.</p></body></html>
 [OK] Expect: 100-continue oversized CL triggers 413
 ------------------------------------------------------------
 == Test 49: POST with Expect: 100-continue and no Content-Length or chunked encoding (should get 411) ==
@@ -715,7 +608,7 @@ Content-Type: text/html
 >> curl localhost:8080/old
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   126  100   126    0     0   417k      0 --:--:-- --:--:-- --:--:--  123k
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   126  100   126    0     0   437k      0 --:--:-- --:--:-- --:--:--  123k
 <html><head><title>301 Redirect</title></head><body><h1>301 Redirect</h1><p>Redirecting to <a href="/">/</a></p></body></html>
 [OK] Redirect
 ------------------------------------------------------------
@@ -724,13 +617,13 @@ Content-Type: text/html
 >> curl -i localhost:8080/upload
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100  2394  100  2394    0     0  7041k      0 --:--:-- --:--:-- --:--:-- 2337k
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   549  100   549    0     0  1019k      0 --:--:-- --:--:-- --:--:--  536k
 HTTP/1.1 200 OK
 Connection: close
-Content-Length: 2394
+Content-Length: 549
 Content-Type: text/html
 
-<!DOCTYPE html><html><head><title>Index of /upload</title><style>body{font-family:sans-serif;}table{width:60%;margin:auto;}th,td{text-align:left;padding:4px;}tr:nth-child(even){background:#f9f9f9;}a{text-decoration:none;}</style></head><body><h1>Index of /upload</h1><table><tr><th>Name</th></tr><tr><td><a href="/upload/henri_20250826_152537.txt">henri_20250826_152537.txt</a></td></tr><tr><td><a href="/upload/henri_20250826_152618.txt">henri_20250826_152618.txt</a></td></tr><tr><td><a href="/upload/mahdiii.jpeg">mahdiii.jpeg</a></td></tr><tr><td><a href="/upload/photo_20250825-182206-891.jpeg">photo_20250825-182206-891.jpeg</a></td></tr><tr><td><a href="/upload/photo_20250825-182222-875.jpeg">photo_20250825-182222-875.jpeg</a></td></tr><tr><td><a href="/upload/test.cpp">test.cpp</a></td></tr><tr><td><a href="/upload/test_20250901_185150.txt">test_20250901_185150.txt</a></td></tr><tr><td><a href="/upload/test_20250901_185910.txt">test_20250901_185910.txt</a></td></tr><tr><td><a href="/upload/test_20250901_185926.txt">test_20250901_185926.txt</a></td></tr><tr><td><a href="/upload/test_20250901_190040.txt">test_20250901_190040.txt</a></td></tr><tr><td><a href="/upload/test_20250902_135435.txt">test_20250902_135435.txt</a></td></tr><tr><td><a href="/upload/test_20250902_135905.txt">test_20250902_135905.txt</a></td></tr><tr><td><a href="/upload/test_20250902_135923.txt">test_20250902_135923.txt</a></td></tr><tr><td><a href="/upload/test_20250902_140103.txt">test_20250902_140103.txt</a></td></tr><tr><td><a href="/upload/test_20250902_141104.txt">test_20250902_141104.txt</a></td></tr><tr><td><a href="/upload/test_20250902_141242.txt">test_20250902_141242.txt</a></td></tr><tr><td><a href="/upload/upload_20250826_160633">upload_20250826_160633</a></td></tr><tr><td><a href="/upload/upload_20250901_190044">upload_20250901_190044</a></td></tr><tr><td><a href="/upload/upload_20250902_135437">upload_20250902_135437</a></td></tr><tr><td><a href="/upload/upload_20250902_135907">upload_20250902_135907</a></td></tr><tr><td><a href="/upload/upload_20250902_135926">upload_20250902_135926</a></td></tr><tr><td><a href="/upload/upload_20250902_140106">upload_20250902_140106</a></td></tr><tr><td><a href="/upload/upload_20250902_141106">upload_20250902_141106</a></td></tr><tr><td><a href="/upload/upload_20250902_141245">upload_20250902_141245</a></td></tr></table></body></html>
+<!DOCTYPE html><html><head><title>Index of /upload</title><style>body{font-family:sans-serif;}table{width:60%;margin:auto;}th,td{text-align:left;padding:4px;}tr:nth-child(even){background:#f9f9f9;}a{text-decoration:none;}</style></head><body><h1>Index of /upload</h1><table><tr><th>Name</th></tr><tr><td><a href="/upload/test.cpp">test.cpp</a></td></tr><tr><td><a href="/upload/test_20250902_152054.txt">test_20250902_152054.txt</a></td></tr><tr><td><a href="/upload/upload_20250902_152056">upload_20250902_152056</a></td></tr></table></body></html>
 [OK] Directory Listing
 ------------------------------------------------------------
 == Test 52: 200 File Request ==
@@ -738,7 +631,7 @@ Content-Type: text/html
 >> curl -i -X GET http://localhost:8080/upload/test.cpp
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   216  100   216    0     0   750k      0 --:--:-- --:--:-- --:--:--  210k
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   216  100   216    0     0   761k      0 --:--:-- --:--:-- --:--:--  210k
 HTTP/1.1 200 OK
 Connection: close
 Content-Length: 216
@@ -767,29 +660,14 @@ Content-Type: application/octet-stream
 ------------------------------------------------------------
 HTTP/1.1 504 Gateway Timeout
 Connection: close
-Content-Length: 375
+Content-Length: 165
 Content-Type: text/html
 
-<!DOCTYPE html>
-<html>
-<head>
-    <title>504 Gateway Timeout</title>
-    <style>
-        body { font-family: Arial; background: #fff0f0; color: #a00; text-align: center; margin-top: 5em; }
-        a { color: #3366cc; }
-    </style>
-</head>
-<body>
-    <h1>504 Gateway Timeout</h1>
-    <p>The server took too long to respond.</p>
-    <a href="/">Go to Home</a>
-</body>
-</html>
-[OK] 504 Gateway Timeout error returned for CGI timeout.
+<!DOCTYPE html><html><head><title>504 Gateway Timeout</title></head><body><h1>504 Gateway Timeout</h1><p>The server could not fulfill your request.</p></body></html>[OK] 504 Gateway Timeout error returned for CGI timeout.
 ------------------------------------------------------------
 == Checking Results ==
 ------------------------------------------------------------
-[OK] File uploaded successfully as www/upload/test_20250901_185150.txt.
+[OK] File uploaded successfully as www/upload/test_20250902_152054.txt.
 [OK] File deleted successfully.
 [OK] CGI GET returned Content-Type header.
 [OK] CGI POST returned Content-Type header.

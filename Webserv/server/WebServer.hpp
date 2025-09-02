@@ -39,12 +39,9 @@ public:
     }
     return v;
 }
-    void handle_new_connection(int listen_fd);
-    void handleNewConnectionOn(int listen_fd) { handle_new_connection(listen_fd); };
     std::string read_file(const std::string& path);
     void queueResponse(int client_fd,
                       const std::string& rawResponse);
-
     bool hasPendingWrite(int client_fd) const;
     void flushPendingWrites(int client_fd);
     
@@ -52,19 +49,13 @@ public:
     time_t getClientLastActive(int client_fd) const;
     void updateClientActivity(int client_fd);
     void closeClient(int client_fd);
-	// void send_request_timeout_response(int client_fd, size_t i);
-	// void send_bad_request_response(int client_fd, const std::string &details);
-	// void send_length_required_response(int client_fd, const std::string &details);
 	void send_continue_response(int client_fd);
 	void send_error_response  (int, int, const std::string&, size_t);
     void markCloseAfterWrite(int fd);
 	// int check_headers(const std::string &headers, long maxBodySize);
 
-
-
 private:
     bool validate_post_request(Request &request, int client_fd, size_t i);
-    
     // Helper functions for handleClientDataOn modularity
     bool readClientData(int client_fd, char* buf, size_t buf_size, ssize_t& bytes_read);
     bool validateBufferSize(int client_fd, size_t current_size, size_t new_bytes);
@@ -126,7 +117,6 @@ private:
                                       const std::map<std::string, std::string> &headers, 
                                       size_t i);
 	void send_no_content_response(int client_fd, size_t i);
-
 
     size_t find_header_end          (const std::string&);
     bool   read_and_append_client_data(int, size_t);

@@ -155,7 +155,7 @@ static void handlePollIn(int fd)
         {
             if (ls[j] == fd)
             {
-                srv->handleNewConnectionOn(fd);
+                srv->handleNewConnection(fd);
                 handled = true;
                 break;
             }

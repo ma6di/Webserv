@@ -227,11 +227,6 @@ void WebServer::cleanup_client(int client_fd, int i)
 	Logger::log(LOG_INFO, "WebServer", "Cleaned up client FD=" + to_str(client_fd));
 }
 
-void WebServer::handle_new_connection(int listen_fd)
-{
-	handleNewConnection(listen_fd);
-}
-
 void WebServer::queueResponse(int client_fd,
 							  const std::string &rawResponse)
 {
