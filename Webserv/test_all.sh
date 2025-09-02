@@ -275,7 +275,7 @@ log_and_run "Test 47: Chunked with Connection: close" \
 
 # Test 48: Expect 100-continue with oversized Content-Length (should get 413)
 log_and_run "Test 48: Expect 100-continue with oversized Content-Length (should get 413)" \
-    "curl -i -s -X POST http://localhost:8080/ -H 'Expect: 100-continue' -H 'Content-Length: 204800' --data-binary @<(head -c 1024000 /dev/zero)" \
+    "curl -i -s -X POST http://localhost:8080/ -H 'Expect: 100-continue' -H 'Content-Length: 100001' --data-binary @<(head -c 100001 /dev/zero)" \
     result_expect_413.txt "413 Payload Too Large" "Expect: 100-continue oversized CL triggers 413"
 
 # Test 49: POST with Expect: 100-continue and no Content-Length or chunked encoding (should get 411)

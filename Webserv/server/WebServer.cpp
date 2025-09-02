@@ -173,15 +173,6 @@ void WebServer::handleClientDataOn(int client_fd)
 	Logger::log(LOG_DEBUG, "WebServer",
 				"FD=" + to_str(client_fd) + " buffer size after append: " + to_str(data.size()));
 
-	// --- Immediate error if buffer exceeds max body size ---
-	long maxBodySize = static_cast<long>(config_->getMaxBodySize());
-	if (data.size() > static_cast<size_t>(maxBodySize)) {
-		Logger::log(LOG_ERROR, "WebServer",
-					"FD=" + to_str(client_fd) + " buffer exceeds max body size");
-		send_error_response(client_fd, 413, "Payload Too Large", 0);
-		return;
-	}
-
 	// --- Handle pipelined requests present in the buffer (no more reads here) ---
 	for (;;)
 	{
@@ -200,6 +191,14 @@ void WebServer::handleClientDataOn(int client_fd)
 		}
 
 		const size_t header_bytes = hdr_end + 4;
+			// --- Immediate error if buffer exceeds max body size ---
+		long maxBodySize = static_cast<long>(config_->getMaxBodySize());
+		if (data.size() > static_cast<size_t>(maxBodySize) + header_bytes) {
+			Logger::log(LOG_ERROR, "WebServer",
+						"FD=" + to_str(client_fd) + " buffer exceeds max body size");
+			send_error_response(client_fd, 413, "Payload Too Large", 0);
+			return;
+		}
 		std::string headers = buffer.substr(0, header_bytes);
 
 		// Header protocol checks
@@ -270,9 +269,7 @@ void WebServer::handleClientDataOn(int client_fd)
 
 		try
 		{
-			std::cout << "in the try/catch req before making req object\n";
 			Request req(frame);
-			std::cout << "in the try/catch req \n";
 			process_request(req, client_fd, 0); // MUST enqueue response only; no direct write()
 		}
 		catch (const std::exception &e)
@@ -328,7 +325,6 @@ void WebServer::handleClientDataOn(int client_fd)
 // --- Helper: Process the request ---
 void WebServer::process_request(Request &request, int client_fd, size_t i)
 {
-	std::cout << "method: " << request.getMethod() << "\n";
 	std::string ver = request.getVersion();
 	std::string connHdr = request.getHeader("Connection");
 	bool close_conn = (connHdr == "close") || (ver == "HTTP/1.0" && connHdr != "keep-alive");
@@ -508,8 +504,6 @@ bool WebServer::validate_post_request(Request &request, int client_fd, size_t i)
 	bool isChunked = request.isChunked();
 	long maxBodySize = config_->getMaxBodySize();
 
-	std::cout << "max body size: " << maxBodySize << "\n";
-	std::cout << "content lenght: " << contentLength << "\n";
 	// Must have either Content-Length or chunked, but not both
 	if (contentLength && isChunked)
 	{
