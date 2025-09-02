@@ -291,7 +291,11 @@ log_and_run "Test 51: 301 redirect" \
     "curl -i localhost:8080/upload" \
     result_dir_listing.txt "200 OK" "Directory Listing"
 
-section "Test 52: 408 Request Timeout"
+log_and_run "Test 52: 200 File Request" \
+    "curl -i -X GET http://localhost:8080/upload/test.cpp" \
+    result_file_request.txt "200 OK" "File Request"
+
+section "Test 53: 408 Request Timeout"
 # echo "Testing 408 Request Timeout by connecting but not sending data..." >> "$LOGFILE"
 # Connect to server and wait for server to respond or close after timeout
 nc -w 15 localhost 8080 > result_408.txt 
@@ -317,7 +321,7 @@ else
     fi
 fi
 
-section "Test 53: 504 Gateway Timeout (CGI timeout test)"
+section "Test 54: 504 Gateway Timeout (CGI timeout test)"
 echo -e '#!/usr/bin/env python3\nimport time\ntime.sleep(100)' > www/cgi-bin/hang.py
 chmod +x www/cgi-bin/hang.py
 curl -s -i --max-time 10 http://localhost:8080/cgi-bin/hang.py > result_504.txt

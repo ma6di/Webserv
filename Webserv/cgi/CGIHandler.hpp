@@ -53,7 +53,6 @@ private:
     std::map<std::string, std::string> environment; // Environment variables for the CGI execution
     std::string inputBody;   
 	std::string requestedUri;
-                   // Input body for POST requests (sent to stdin)
 
     // Internal method that handles process creation, piping, and reading output
     std::string runCGI(); 

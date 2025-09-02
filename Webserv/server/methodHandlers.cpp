@@ -149,26 +149,6 @@ void WebServer::handle_post(const Request& request, const LocationConfig* loc, i
     send_error_response(client_fd, 400, "Bad POST Request", i);
 }
 
-// --- DELETE Handler ---
-/*void WebServer::handle_delete(const Request& request, const LocationConfig* loc, int client_fd, size_t i) {
-    std::string uri = request.getPath();
-    std::string path = resolve_path(uri, "DELETE", loc);
-    Logger::log(LOG_DEBUG, "handle_delete", "uri=" + uri + " path=" + path);
-    if (!file_exists(path)) {
-        Logger::log(LOG_ERROR, "handle_delete", "File not found: " + path);
-        send_error_response(client_fd, 404, "Not Found", i);
-    } else if (access(path.c_str(), W_OK) != 0) {
-        Logger::log(LOG_ERROR, "handle_delete", "File not writable: " + path);
-        send_error_response(client_fd, 403, "Forbidden", i);
-    } else if (remove(path.c_str()) == 0) {
-        Logger::log(LOG_INFO, "handle_delete", "File deleted: " + path);
-		send_no_content_response(client_fd, i);
-    } else {
-        Logger::log(LOG_ERROR, "handle_delete", "Failed to delete file: " + path);
-        send_error_response(client_fd, 500, "Internal Server Error", i);
-    }
-}*/
-
 void WebServer::handle_delete(const Request& request, const LocationConfig* loc, int client_fd, size_t i) {
     std::string uri = request.getPath();
     std::string path;

@@ -1,54 +1,32 @@
 #include "Config.hpp"
 
-Config::Config() : port(0), root(""), max_body_size(1048576) 
-{
-}
+Config::Config() : port(0), root(""), max_body_size(1048576) {}
 
-Config::Config(const std::string &filename) : max_body_size(1048576)
-{ 
+Config::Config(const std::string &filename) : max_body_size(1048576) { 
     parseConfigFile(filename);
 }
 
 const std::string &Config::getRoot() const { return root; }
 const std::vector<LocationConfig> &Config::getLocations() const { return locations; }
-const std::map<int, std::string> &Config::getErrorPages() const
-{
+const std::map<int, std::string> &Config::getErrorPages() const {
     return error_pages;
 }
 
-const std::string *Config::getErrorPage(int code) const
-{
+const std::string *Config::getErrorPage(int code) const {
     std::map<int, std::string>::const_iterator it = error_pages.find(code);
     if (it != error_pages.end())
         return &it->second;
     return NULL;
 }
 
-static std::string stripSemicolon(const std::string &token)
-{
+static std::string stripSemicolon(const std::string &token) {
     if (!token.empty() && token[token.size() - 1] == ';')
         return token.substr(0, token.size() - 1);
     return token;
 }
 
-/*int Config::parseListenDirective(const std::string &token)
-{
-    std::string portStr = stripSemicolon(token);
 
-    if (portStr.empty() || portStr.find_first_not_of("0123456789") != std::string::npos)
-        throw std::runtime_error("Invalid listen port: not a number");
-
-    int parsedPort = std::atoi(portStr.c_str());
-
-    if (parsedPort <= 0 || parsedPort > 65535)
-        throw std::runtime_error("Invalid listen port: must be between 1 and 65535");
-
-    return parsedPort;
-}*/
-
-// --- leave this helper as "port-only" validator ---
-int Config::parseListenDirective(const std::string &token)
-{
+int Config::parseListenDirective(const std::string &token) {
     std::string portStr = stripSemicolon(token);
 
     if (portStr.empty() || portStr.find_first_not_of("0123456789") != std::string::npos)
@@ -63,36 +41,10 @@ int Config::parseListenDirective(const std::string &token)
 }
 
 
-bool Config::pathExists(const std::string &path)
-{
+bool Config::pathExists(const std::string &path) {
     struct stat s;
     return stat(path.c_str(), &s) == 0 && S_ISDIR(s.st_mode);
 }
-
-// --- Helper functions ---
-
-/*void Config::handleListenDirective(std::istringstream &iss)
-{
-    std::string token;
-    iss >> token;
-    int parsed = parseListenDirective(token);
-    ports.push_back(parsed);
-    Logger::log(LOG_DEBUG, "Config", "listen port: " + to_str(parsed));
-    if (port == 0)
-    {
-        port = parsed; 
-    }
-    else if (port != parsed)
-    {
-        Logger::log(LOG_DEBUG, "Config", "Multiple listen ports detected, using first: " + to_str(port));
-    }
-    if (parsed < 1 || parsed > 65535)
-    {
-        std::ostringstream oss;
-        oss << "Invalid listen port: " << parsed;
-        throw std::runtime_error(oss.str());
-    }
-}*/
 
 static bool isValidIPv4(const std::string &s) {
     int dots = 0;
@@ -232,7 +184,6 @@ void Config::handleClientMaxBodySizeDirective(std::istringstream &iss)
     max_body_size = static_cast<size_t>(n);
 }
 
-
 void Config::handleLocationEnd(LocationConfig &currentLocation, bool &insideLocation)
 {
     if (insideLocation)
@@ -300,18 +251,13 @@ void Config::handleLocationDirective(const std::string &keyword, std::istringstr
     }
 }
 
-size_t Config::getMaxBodySize() const
-{
-    return max_body_size; 
-}
+size_t Config::getMaxBodySize() const {return max_body_size;}
 
-const std::vector<int> &Config::getPorts() const
-{
-    return ports;
-}
+const std::vector<int> &Config::getPorts() const {return ports;}
 
-std::vector<Config> parseConfigFile(const std::string &filename)
-{
+const std::vector<std::string>& Config::getHosts() const {return hosts;}
+
+std::vector<Config> parseConfigFile(const std::string &filename) {
     std::ifstream file(filename.c_str());
     if (!file.is_open())
         throw std::runtime_error("Could not open config file");
@@ -336,8 +282,7 @@ std::vector<Config> parseConfigFile(const std::string &filename)
     return servers;
 }
 
-void Config::parseServerBlock(std::ifstream &file)
-{
+void Config::parseServerBlock(std::ifstream &file) {
     bool insideLocation = false;
     int braceDepth = 1;
 
@@ -360,36 +305,28 @@ void Config::parseServerBlock(std::ifstream &file)
 
         if (insideLocation)
         {
-            if (keyword == "{")
-            {
+            if (keyword == "{") {
                 braceDepth++;
             }
-            else if (keyword == "}")
-            {
+            else if (keyword == "}") {
                 handleLocationEnd(currentLocation, insideLocation);
                 braceDepth--;
             }
             else
-            {
                 handleLocationDirective(keyword, iss, currentLocation);
-            }
             continue;
         }
 
-        if (keyword == "{")
-        {
+        if (keyword == "{") {
             braceDepth++;
         }
-        else if (keyword == "}")
-        {
+        else if (keyword == "}") {
             braceDepth--;
-            if (braceDepth == 0)
-            {
+            if (braceDepth == 0) {
                 break;
             }
         }
-        else
-        {
+        else {
             if (keyword == "listen")
                 handleListenDirective(iss);
             else if (keyword == "root")
@@ -403,5 +340,3 @@ void Config::parseServerBlock(std::ifstream &file)
     if (!ports.empty())
         port = ports.front();
 }
-
-const std::vector<std::string>& Config::getHosts() const { return hosts; }

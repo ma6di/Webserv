@@ -15,9 +15,6 @@
 #include <stdexcept>
 #include <cstdlib>
 
-
-
-
 class Config {
 public:
 

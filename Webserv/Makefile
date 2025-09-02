@@ -12,6 +12,7 @@ INC_DIRS    := config cgi utils server Request_Response logger
 SRC_FILES   := main.cpp \
                config/Config.cpp \
                cgi/CGIHandler.cpp \
+			   cgi/CGIUtils.cpp \
 			   utils/utils.cpp \
 			   server/WebServer.cpp \
 			   server/sendResponse.cpp \
