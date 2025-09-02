@@ -334,7 +334,16 @@ bool WebServer::handle_upload(const Request& request, const LocationConfig* loc,
     }
 
     Logger::log(LOG_INFO, "handle_upload", "Upload successful: " + target_path);
-    send_upload_success_response(client_fd, target_path, i);
+    /* 
+    JESS: added an if statement for the server to recognise when the post request
+    is coming from the frontend, if that is the case it will send a json as a response.
+    Added this change so the client can use the server directly instead of using the python script
+    */
+    if (wants_json(request)) {
+        send_upload_success_json(client_fd, target_path, i); // sends json response if request comes from client
+    } else {
+    send_upload_success_response(client_fd, target_path, i); // sends response when using curl, this was previous code
+}
     return true;
 }
 

@@ -16,21 +16,20 @@
 </head>
 
 <body class="text-dark fw-light">
-         <nav class="navbar sticky-top">
-            <div class="px-5 pt-4">
-                <a
-                    href="/index.html#features"
-                    class="back-button text-muted">
-                    <i class="fa-solid fa-angle-left"></i>
-                    Back to features
-                </a>
-            </div>
-        </nav>
+    <nav class="navbar sticky-top">
+        <div class="px-5 pt-4">
+            <a href="/index.html#features" class="back-button text-muted">
+                <i class="fa-solid fa-angle-left"></i>
+                Back to features
+            </a>
+        </div>
+    </nav>
     <div class="container py-5">
         <h2 class="h1 text-center">About the Photobook</h2>
         <p class="text-center text-muted py-2">
             A simple photobook app that loads images from the server’s <code>upload/</code> folder, lets you add new
-            photos, name them, and delete them. </br>Changes persist on the server and are rendered dynamically on the browser. How requests work when interacting
+            photos, name them, and delete them. </br>Changes persist on the server and are rendered dynamically on the
+            browser. How requests work when interacting
             with this
             simple app:
         </p>
@@ -113,10 +112,6 @@
 
                                 <label for="photoName" class="form-label mt-3">Photo name</label>
                                 <input type="text" name="name" id="photoName" class="form-control" required />
-
-                                <label for="photoDescription" class="form-label mt-3">Description</label>
-                                <textarea name="description" id="photoDescription" class="form-control"
-                                    rows="2"></textarea>
                             </div>
                             <div class="modal-footer">
                                 <button type="submit" class="btn btn-primary">
@@ -168,32 +163,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        console.info(`
-        Dear evaluator,
-        This app demonstrates how HTTP requests work on the frontend using JavaScript.
-
-        🧠 The frontend makes a GET request using the fetch() API:
-        https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch
-
-        ✅ If the request succeeds:
-        - the CGI script (cgi-bin/photobook_json.py) returns a JSON file which lists all uploaded images.
-        - We use this list to dynamically create <img> elements and insert them into the page (aka "manipulating the DOM").
-        💡 Why use JSON when you already have HTML listings?
-        - JSON is the standard for frontend/backend communication.
-        - It's clean, fast, and easy to work with using JavaScript.
-        - Scraping directory listings is fragile and outdated (we're not building tools in 2003 👵🏻).
-
-
-        ❌ If the request fails or if something is wrong with one of the pictures:
-        - A fallback message is shown in the image card.
-
-        ⏳ Why a timeout and spinner?
-        - We artificially delay image rendering (~800ms) to simulate real-world async behavior,
-        normalize rendering timing across network conditions, and prevent layout instability (CLS).
-        - It also reflects best practices in frontend architecture: by decoupling render timing
-        from asset arrival, we keep UI predictable even with cache, CDN, or latency variati
-        `);
-
         function showModal() {
             const modal = new bootstrap.Modal(
                 document.getElementById("uploadModal")
@@ -237,34 +206,37 @@
                 e.preventDefault();
 
                 const form = e.target;
-                const formData = new FormData(form); // auto includes file + name + desc
+                const formData = new FormData(form);
 
-                fetch("/cgi-bin/photobook_upload.py", {
+                fetch("/upload", {               // your C++ upload route
                     method: "POST",
-                    body: new FormData(
-                        document.getElementById("photoUploadForm")
-                    ),
+                    headers: {
+                        "X-Frontend": "1",              // tell server to respond JSON
+                        "Accept": "application/json"
+                    },
+                    body: formData
                 })
                     .then((res) => {
-                        if (!res.ok) throw new Error("Upload failed");
-                        return res.text(); // or .json() if your backend returns metadata
+                        if (!res.ok) throw new Error("Post request failed: " + res.status);
+                        console.log(res.json);
+                        return res.json();              // server returns { ok:true, path:"..." }
                     })
-                    .then((msg) => {
-                        alert("✅ Upload complete!");
+                    .then((data) => {
+                        console.log("✅ Post request successful, uploaded the following file: " + data.path)
+                        alert("✅ Upload successful: " + data.path);
                         form.reset();
-                        document
-                            .getElementById("fileReady")
-                            .classList.add("d-none");
+                        document.getElementById("fileReady").classList.add("d-none");
                         bootstrap.Modal.getInstance(
                             document.getElementById("uploadModal")
                         ).hide();
-                        location.reload(); // or dynamically add to photo-grid
+                        location.reload();              // or append dynamically to gallery
                     })
                     .catch((err) => {
                         console.error("❌ Upload error:", err);
                         alert("Upload failed!");
                     });
             });
+
 
         //GET REQUEST
         console.time("⏰ Completed in");
@@ -286,9 +258,9 @@
                         .classList.add("d-none");
                 }
 
-                console.log("✅ Request handled successfully!");
-                console.timeEnd("⏰ Completed in");
-                console.log("Retrieved data:", data);
+                console.log("✅ Get request handled successfully!");
+                console.timeEnd("⏰ Get request completed in");
+                console.log("Retrieved data from Get request:", data);
 
                 const grid = document.querySelector(".photo-grid");
                 let fileToDelete = null;
@@ -320,12 +292,12 @@
                                     )
                                 ).hide();
 
-                                // shows "empty phitobook" message
+                                // shows "empty photobook" message
                                 if (
                                     document.querySelectorAll(".photo-card")
                                         .length === 1
                                 ) {
-                                    // Only the upload button remains
+                                    // Only the upload button shows if empty
                                     document
                                         .getElementById("emptyMessage")
                                         .classList.remove("d-none");

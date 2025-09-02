@@ -1,15 +1,51 @@
 #include "utils.hpp"
 
-bool file_exists(const std::string& path) {
+/*
+JESS: json helper functions
+    wants_json: a bool that returns true or false based on if the server has to give json response or not
+    json_headers: returns header in json format
+*/
+bool wants_json(const Request &req)
+{
+    // 1) custom header from your frontend
+    std::string xf = req.getHeader("X-Frontend");
+    if (!xf.empty() && (xf == "1" || xf == "true"))
+        return true;
+
+    // 2) Accept header
+    std::string acc = req.getHeader("Accept");
+    if (acc.find("application/json") != std::string::npos)
+        return true;
+
+    // 3) query flag ?json=1
+    const std::string &p = req.getPath();
+    std::string::size_type q = p.find('?');
+    if (q != std::string::npos && p.find("json=1", q) != std::string::npos)
+        return true;
+
+    return false;
+}
+
+std::map<std::string, std::string> json_headers()
+{
+    std::map<std::string, std::string> h;
+    h["Content-Type"] = "application/json; charset=utf-8";
+    return h;
+}
+
+bool file_exists(const std::string &path)
+{
     struct stat buffer;
     bool exists = (stat(path.c_str(), &buffer) == 0);
     Logger::log(LOG_DEBUG, "file_exists", "Checked: " + path + " exists=" + (exists ? "true" : "false"));
     return exists;
 }
 
-std::string get_mime_type(const std::string& path) {
+std::string get_mime_type(const std::string &path)
+{
     size_t dot = path.rfind('.');
-    if (dot == std::string::npos) {
+    if (dot == std::string::npos)
+    {
         Logger::log(LOG_DEBUG, "get_mime_type", "No extension for: " + path);
         return "application/octet-stream";
     }
@@ -38,35 +74,16 @@ std::string get_mime_type(const std::string& path) {
     return mime;
 }
 
-/*const LocationConfig* match_location(const std::vector<LocationConfig>& locations, const std::string& path) {
-    const LocationConfig* bestMatch = NULL;
-    size_t bestLength = 0;
-
-    for (size_t i = 0; i < locations.size(); ++i) {
-        const std::string& locPath = locations[i].path;
-        if (path.find(locPath) == 0 && locPath.length() > bestLength) {
-            bestLength = locPath.length();
-            bestMatch = &locations[i];
-        }
-    }
-
-    if (bestMatch)
-        Logger::log(LOG_DEBUG, "match_location", "Matched: " + bestMatch->path + " for path: " + path);
-    else
-        Logger::log(LOG_DEBUG, "match_location", "No match for path: " + path);
-
-    return bestMatch;
-}*/
-
-const LocationConfig* match_location(
-    const std::vector<LocationConfig>& locations,
-    const std::string& path)
+const LocationConfig *match_location(
+    const std::vector<LocationConfig> &locations,
+    const std::string &path)
 {
-    const LocationConfig* best = NULL;
+    const LocationConfig *best = NULL;
     size_t bestLen = 0;
 
-    for (size_t i = 0; i < locations.size(); ++i) {
-        const std::string& loc = locations[i].path;
+    for (size_t i = 0; i < locations.size(); ++i)
+    {
+        const std::string &loc = locations[i].path;
 
         // 1) must be prefix …
         if (path.compare(0, loc.length(), loc) != 0)
@@ -81,9 +98,10 @@ const LocationConfig* match_location(
         }
 
         // 3) take the longest valid prefix
-        if (loc.length() > bestLen) {
+        if (loc.length() > bestLen)
+        {
             bestLen = loc.length();
-            best    = &locations[i];
+            best = &locations[i];
         }
     }
 
@@ -99,8 +117,8 @@ const LocationConfig* match_location(
     return best;
 }
 
-
-bool is_cgi_request(const LocationConfig& loc, const std::string& uri) {
+bool is_cgi_request(const LocationConfig &loc, const std::string &uri)
+{
     std::string cgi_uri = loc.path;  // e.g. /cgi-bin
     std::string cgi_root = loc.root; // e.g. www/cgi-bin
 
@@ -155,12 +173,14 @@ bool is_cgi_request(const LocationConfig& loc, const std::string& uri) {
 //     return decoded;
 // }
 
-std::string decode_chunked_body(const std::string& raw) {
+std::string decode_chunked_body(const std::string &raw)
+{
     std::istringstream in(raw);
     std::string decoded;
     std::string line;
     bool first_line = true;
-    while (true) {
+    while (true)
+    {
         // Read chunk size line
         if (!std::getline(in, line))
             throw std::runtime_error("400: Malformed chunked body (missing chunk size line)");
@@ -177,15 +197,20 @@ std::string decode_chunked_body(const std::string& raw) {
         std::istringstream iss;
         iss.str(size_str);
         iss >> std::hex >> chunk_size;
-        if (iss.fail() || chunk_size < 0) {
-            if (first_line) {
+        if (iss.fail() || chunk_size < 0)
+        {
+            if (first_line)
+            {
                 throw std::runtime_error("400: Malformed chunked body (body does not start with valid chunk size line)");
-            } else {
+            }
+            else
+            {
                 throw std::runtime_error("400: Malformed chunked body (invalid chunk size)");
             }
         }
         first_line = false;
-        if (chunk_size == 0) {
+        if (chunk_size == 0)
+        {
             // Last chunk, expect CRLF after
             if (!std::getline(in, line))
                 throw std::runtime_error("400: Malformed chunked body (missing final CRLF)");
@@ -210,7 +235,8 @@ std::string decode_chunked_body(const std::string& raw) {
             throw std::runtime_error("400: Malformed chunked body (extra data after chunk data)");
     }
     // If any data remains, it's a malformed chunked body
-    if (in.peek() != EOF) {
+    if (in.peek() != EOF)
+    {
         std::string extra;
         std::getline(in, extra);
         if (!extra.empty())
@@ -219,25 +245,30 @@ std::string decode_chunked_body(const std::string& raw) {
     return decoded;
 }
 
-bool is_directory(const std::string& path) {
+bool is_directory(const std::string &path)
+{
     struct stat statbuf;
     bool dir = stat(path.c_str(), &statbuf) == 0 && S_ISDIR(statbuf.st_mode);
     Logger::log(LOG_DEBUG, "is_directory", path + " is_directory=" + (dir ? "true" : "false"));
     return dir;
 }
 
-std::string generate_directory_listing(const std::string& dir_path, const std::string& uri_path) {
-    DIR* dir = opendir(dir_path.c_str());
-    if (!dir) {
+std::string generate_directory_listing(const std::string &dir_path, const std::string &uri_path)
+{
+    DIR *dir = opendir(dir_path.c_str());
+    if (!dir)
+    {
         Logger::log(LOG_ERROR, "generate_directory_listing", "Failed to open dir: " + dir_path);
         return "<html><body><h1>403 Forbidden</h1></body></html>";
     }
 
     std::vector<std::string> entries;
-    struct dirent* entry;
-    while ((entry = readdir(dir)) != NULL) {
+    struct dirent *entry;
+    while ((entry = readdir(dir)) != NULL)
+    {
         std::string name = entry->d_name;
-        if (name == "." || name == "..") continue; // skip current and parent dir entries
+        if (name == "." || name == "..")
+            continue; // skip current and parent dir entries
         entries.push_back(name);
     }
     closedir(dir);
@@ -253,10 +284,12 @@ std::string generate_directory_listing(const std::string& dir_path, const std::s
 
     // No parent directory link
 
-    for (size_t i = 0; i < entries.size(); ++i) {
+    for (size_t i = 0; i < entries.size(); ++i)
+    {
         std::string name = entries[i];
         std::string href = uri_path;
-        if (!href.empty() && href[href.length()-1] != '/') href += "/";
+        if (!href.empty() && href[href.length() - 1] != '/')
+            href += "/";
         href += name;
         html << "<tr><td><a href=\"" << href << "\">" << name << "</a></td></tr>";
     }
@@ -265,73 +298,90 @@ std::string generate_directory_listing(const std::string& dir_path, const std::s
     return html.str();
 }
 
-std::string sanitize_filename(const std::string& in) {
+std::string sanitize_filename(const std::string &in)
+{
     std::string out;
-    for (size_t i = 0; i < in.size(); ++i) {
+    for (size_t i = 0; i < in.size(); ++i)
+    {
         char c = in[i];
-        if (c == '/' || c == '\\') continue; 
+        if (c == '/' || c == '\\')
+            continue;
         if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
-            (c >= '0' && c <= '9') || c == '.' || c == '-' || c == '_') {
+            (c >= '0' && c <= '9') || c == '.' || c == '-' || c == '_')
+        {
             out += c;
         }
     }
     return out.empty() ? std::string("upload") : out;
 }
 
-void split_basename_ext(const std::string& name, std::string& base, std::string& ext) {
+void split_basename_ext(const std::string &name, std::string &base, std::string &ext)
+{
     size_t dot = name.find_last_of('.');
-    if (dot == std::string::npos || dot == 0) {
+    if (dot == std::string::npos || dot == 0)
+    {
         base = name;
-        ext  = "";
-    } else {
+        ext = "";
+    }
+    else
+    {
         base = name.substr(0, dot);
-        ext  = name.substr(dot); 
+        ext = name.substr(dot);
     }
 }
 
-
-std::string get_boundary_from_content_type(const std::string& contentType) {
+std::string get_boundary_from_content_type(const std::string &contentType)
+{
     const std::string key = "boundary=";
     size_t pos = contentType.find(key);
-    if (pos == std::string::npos) return "";
+    if (pos == std::string::npos)
+        return "";
     std::string b = contentType.substr(pos + key.size());
-    if (!b.empty() && b[0] == '"' && b[b.size()-1] == '"')
+    if (!b.empty() && b[0] == '"' && b[b.size() - 1] == '"')
         b = b.substr(1, b.size() - 2);
     return b;
 }
 
-bool extract_multipart_file_raw(const std::string& body,
-                                       const std::string& boundary,
-                                       std::string& outFilename,
-                                       std::string& outContent)
+bool extract_multipart_file_raw(const std::string &body,
+                                const std::string &boundary,
+                                std::string &outFilename,
+                                std::string &outContent)
 {
-    if (boundary.empty()) return false;
+    if (boundary.empty())
+        return false;
 
     const std::string dashBoundary = std::string("--") + boundary;
     const std::string CRLF = "\r\n";
 
     // Find first boundary line
     size_t pos = body.find(dashBoundary + CRLF);
-    if (pos == std::string::npos) return false;
+    if (pos == std::string::npos)
+        return false;
     pos += dashBoundary.size() + CRLF.size();
 
-    while (true) {
+    while (true)
+    {
         // Find headers end
         size_t headersEnd = body.find(CRLF + CRLF, pos);
-        if (headersEnd == std::string::npos) return false;
+        if (headersEnd == std::string::npos)
+            return false;
 
         std::string headers = body.substr(pos, headersEnd - pos);
 
         // Parse filename from Content-Disposition
         std::string filename;
         size_t cd = headers.find("Content-Disposition:");
-        if (cd != std::string::npos) {
+        if (cd != std::string::npos)
+        {
             size_t fn = headers.find("filename=", cd);
-            if (fn != std::string::npos) {
+            if (fn != std::string::npos)
+            {
                 size_t q1 = headers.find('"', fn);
-                if (q1 != std::string::npos) {
+                if (q1 != std::string::npos)
+                {
                     size_t q2 = headers.find('"', q1 + 1);
-                    if (q2 != std::string::npos) {
+                    if (q2 != std::string::npos)
+                    {
                         filename = headers.substr(q1 + 1, q2 - q1 - 1);
                     }
                 }
@@ -342,10 +392,12 @@ bool extract_multipart_file_raw(const std::string& body,
 
         // Next boundary (either middle or closing)
         size_t next = body.find(CRLF + dashBoundary, contentStart);
-        if (next == std::string::npos) {
+        if (next == std::string::npos)
+        {
             // Try without preceding CRLF (edge case)
             next = body.find(dashBoundary, contentStart);
-            if (next == std::string::npos) return false;
+            if (next == std::string::npos)
+                return false;
         }
 
         // Content ends just before the CRLF preceding the next boundary (if present)
@@ -354,10 +406,12 @@ bool extract_multipart_file_raw(const std::string& body,
             contentEnd -= 2;
 
         // If this part has a filename, we treat it as the file part
-        if (!filename.empty()) {
+        if (!filename.empty())
+        {
             // strip any path components
             size_t slash = filename.find_last_of("/\\");
-            if (slash != std::string::npos) filename = filename.substr(slash + 1);
+            if (slash != std::string::npos)
+                filename = filename.substr(slash + 1);
 
             outFilename = sanitize_filename(filename);
             outContent.assign(body.data() + contentStart, body.data() + contentEnd);
@@ -366,7 +420,8 @@ bool extract_multipart_file_raw(const std::string& body,
 
         // Move to the start of the next part
         size_t afterBoundary = body.find(CRLF, next + dashBoundary.size());
-        if (afterBoundary == std::string::npos) return false;
+        if (afterBoundary == std::string::npos)
+            return false;
         // closing boundary ends with "--"
         if (body.compare(next, dashBoundary.size() + 2, dashBoundary + "--") == 0)
             return false; // reached end without finding a file
@@ -375,75 +430,86 @@ bool extract_multipart_file_raw(const std::string& body,
 }
 
 // 1) Check "Transfer-Encoding: chunked" in a header substring (case-insensitive)
-bool has_chunked_encoding(const std::string& headers) {
+bool has_chunked_encoding(const std::string &headers)
+{
     std::string h = headers; // copy
-    for (size_t i = 0; i < h.size(); ++i) {
+    for (size_t i = 0; i < h.size(); ++i)
+    {
         char c = h[i];
-        if (c >= 'A' && c <= 'Z') h[i] = char(c - 'A' + 'a');
+        if (c >= 'A' && c <= 'Z')
+            h[i] = char(c - 'A' + 'a');
     }
-    return h.find("transfer-encoding:") != std::string::npos
-        && h.find("chunked") != std::string::npos;
+    return h.find("transfer-encoding:") != std::string::npos && h.find("chunked") != std::string::npos;
 }
 
 // 2) Find the end of a chunked body quickly (looks for the 0-chunk terminator)
-size_t find_chunked_terminator(const std::string& buf, size_t body_start) {
+size_t find_chunked_terminator(const std::string &buf, size_t body_start)
+{
     size_t pos = body_start;
-    
-    while (pos < buf.size()) {
+
+    while (pos < buf.size())
+    {
         // Find the next chunk size line
         size_t line_end = buf.find("\r\n", pos);
-        if (line_end == std::string::npos) {
+        if (line_end == std::string::npos)
+        {
             return std::string::npos; // need more data
         }
-        
+
         // Extract chunk size line
         std::string chunk_line = buf.substr(pos, line_end - pos);
-        
+
         // Parse chunk size (ignore chunk extensions after semicolon)
         size_t semicolon_pos = chunk_line.find(';');
-        if (semicolon_pos != std::string::npos) {
+        if (semicolon_pos != std::string::npos)
+        {
             chunk_line = chunk_line.substr(0, semicolon_pos);
         }
-        
+
         // Convert hex chunk size
         size_t chunk_size = 0;
         std::istringstream iss(chunk_line);
         iss >> std::hex >> chunk_size;
-        
-        if (iss.fail()) {
+
+        if (iss.fail())
+        {
             return std::string::npos; // invalid chunk size
         }
-        
+
         // If chunk size is 0, this is the final chunk
-        if (chunk_size == 0) {
+        if (chunk_size == 0)
+        {
             // Look for the final \r\n\r\n after possible trailing headers
             size_t final_pos = line_end + 2; // after chunk size line
-            
+
             // Skip any trailing headers
-            while (final_pos < buf.size()) {
+            while (final_pos < buf.size())
+            {
                 size_t header_end = buf.find("\r\n", final_pos);
-                if (header_end == std::string::npos) {
+                if (header_end == std::string::npos)
+                {
                     return std::string::npos; // need more data
                 }
-                
+
                 // If we found an empty line, we're done
-                if (header_end == final_pos) {
+                if (header_end == final_pos)
+                {
                     return header_end + 2; // return position after final \r\n
                 }
-                
+
                 final_pos = header_end + 2;
             }
             return std::string::npos; // need more data for final \r\n
         }
-        
+
         // Skip to after this chunk's data and trailing \r\n
         pos = line_end + 2 + chunk_size + 2; // chunk_size + data + \r\n
-        
-        if (pos > buf.size()) {
+
+        if (pos > buf.size())
+        {
             return std::string::npos; // need more data
         }
     }
-    
+
     return std::string::npos; // need more data
 }
-
