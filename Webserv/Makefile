@@ -52,4 +52,12 @@ fclean: clean
 
 re: fclean all
 
+# # === Valgrind command ===
+# ARGS       ?=
+# VALGRIND   ?= valgrind
+# VG_OPTS    ?= --leak-check=full --show-leak-kinds=all --track-origins=yes -s
+
+# vg: $(NAME)
+# 	$(VALGRIND) $(VG_OPTS) ./$(NAME) $(ARGS)
+
 .PHONY: all clean fclean re
