@@ -56,8 +56,8 @@ document
                 return res.json();              // server returns { ok:true, path:"..." }
             })
             .then((data) => {
-                console.log("✅ Post request successful, uploaded the following file: " + data.path)
-                alert("✅ Upload successful: " + data.path);
+                console.log("✅ POST request successful, uploaded the following file: " + data.path)
+                alert("Upload successful: " + data.path);
                 form.reset();
                 document.getElementById("fileReady").classList.add("d-none");
                 bootstrap.Modal.getInstance(
@@ -76,7 +76,6 @@ function isImageFile(name) {
 }
 
 //GET REQUEST
-console.time("⏰ Completed in");
 fetch("/upload", {
     headers: { "X-Frontend": "1", "Accept": "application/json" }
 })
@@ -85,9 +84,9 @@ fetch("/upload", {
         return res.json();// { ok:true, files:[...]}
     })
     .then(({ files = [] }) => {
-        // console.log(res.json)
-        // const data = files;
-        const data = files.filter(isImageFile);   // ← client-only filter
+        console.log("✅ GET request handled successfully!");
+        console.log("Returned array from upload folder:", files);
+        const data = files.filter(isImageFile);
         // makes the "empty photobooth" warning visible or not
         if (!Array.isArray(data) || data.length === 0) {
             document
@@ -99,10 +98,6 @@ fetch("/upload", {
                 .getElementById("emptyMessage")
                 .classList.add("d-none");
         }
-
-        console.log("✅ Get request handled successfully!");
-        console.log("Retrieved array:", data);
-
         const grid = document.querySelector(".photo-grid");
         let fileToDelete = null;
         let cardToDelete = null;
@@ -123,7 +118,7 @@ fetch("/upload", {
                             document.getElementById("deleteToast")
                         );
                         toast.show();
-
+                        storedeleteFileName = fileToDelete
                         fileToDelete = null;
                         cardToDelete = null;
 
@@ -132,7 +127,6 @@ fetch("/upload", {
                                 "confirmDeleteModal"
                             )
                         ).hide();
-
                         // shows "empty photobook" message
                         if (
                             document.querySelectorAll(".photo-card")
@@ -143,6 +137,8 @@ fetch("/upload", {
                                 .getElementById("emptyMessage")
                                 .classList.remove("d-none");
                         }
+                        console.log("✅ DELETE request handled successfully!");
+                        console.log("Deleted file: upload/" + storedeleteFileName);
                     })
                     .catch((err) => {
                         console.error(
@@ -156,8 +152,7 @@ fetch("/upload", {
         data.forEach((filename) => {
             const card = document.createElement("div");
             card.className = "photo-card";
-
-            // Creates the spinner
+            // Creates the spinner on each loading photo
             const spinner = document.createElement("div");
             spinner.className = "spinner-border text-secondary";
             spinner.setAttribute("role", "status");
@@ -220,6 +215,5 @@ fetch("/upload", {
     })
     .catch((err) => {
         console.log("❌ Fetch failed!");
-        console.timeEnd("⏰ Completed in");
         console.error("Request returned:", err);
     });

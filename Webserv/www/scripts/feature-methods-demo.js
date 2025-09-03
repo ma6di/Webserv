@@ -1,4 +1,4 @@
-// panel toggle
+// methods: static vs dynamic switch
 const btnStatic = document.getElementById("showStatic");
 const btnDynamic = document.getElementById("showDynamic");
 const panelStatic = document.getElementById("panel-static");
@@ -39,6 +39,8 @@ async function loadFiles() {
         const { files = [] } = await res.json();     // server shape: { ok:true, files:[...] }
         render(files);
         statusEl.textContent = `GET REQUEST SUCCESS ✅ (${files.length}) files found`;
+        console.log("✅ Get request handled successfully!");
+        console.log("Returned array from upload folder:", files);
     } catch (e) {
         showError(e.message || String(e));
         statusEl.textContent = "GET REQUEST FAILED ❌";
@@ -82,6 +84,8 @@ async function onListClick(e) {
             listEl.children.length !== 0
         );
         statusEl.textContent = `Deleted: ${name}`;
+        console.log("✅ DELETE request handled successfully!");
+        console.log("Deleted file: upload/" + name);
     } catch (e2) {
         showError(e2.message || String(e2));
     }

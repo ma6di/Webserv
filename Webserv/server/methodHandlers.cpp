@@ -32,7 +32,7 @@ void WebServer::handle_get(const Request& req,
         {
             std::string json = generate_directory_listing_json(fs_path);
             send_ok_response(client_fd, json, json_headers(), idx);
-            std::cout << "SENT OK RESPONS JSON " << std::endl;
+            std::cout << "[JSON] json requested and sent to client " << std::endl;
             return;
         }
         handle_directory_request(fs_path, uri, loc, client_fd, idx);
