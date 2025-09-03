@@ -1,5 +1,8 @@
 #include "WebServer.hpp"
 
+// Define the same constant as in utils.cpp
+#define CHUNKED_ERROR_MARKER (static_cast<size_t>(-2))
+
 std::string WebServer::resolve_path(const std::string &raw_path,
                                     const std::string &method,
                                     const LocationConfig *loc)
@@ -172,7 +175,27 @@ bool WebServer::readClientData(int client_fd, char* buf, size_t buf_size, ssize_
     }
 
     if (bytes_read == 0) {
-        // Peer closed
+        // Peer closed - check if we have an incomplete chunked request
+        std::map<int, Connection>::iterator conn_it = conns_.find(client_fd);
+        if (conn_it != conns_.end() && !conn_it->second.readBuf.empty()) {
+            std::string& buffer = conn_it->second.readBuf;
+            size_t hdr_end = find_header_end(buffer);
+            
+            if (hdr_end != std::string::npos) {
+                const size_t header_bytes = hdr_end + 4;
+                std::string headers = buffer.substr(0, header_bytes);
+                
+                // Check if this was a chunked request
+                if (has_chunked_encoding(headers)) {
+                    // We have a chunked request but the connection closed before completion
+                    Logger::log(LOG_ERROR, "WebServer",
+                                "FD=" + to_str(client_fd) + " EOF from peer with incomplete chunked request");
+                    send_error_response(client_fd, 400, "Bad Request", 0);
+                    usleep(50000); // Give time for response to be sent
+                }
+            }
+        }
+        
         Logger::log(LOG_INFO, "WebServer",
                     "FD=" + to_str(client_fd) + " EOF from peer; closing");
         closeClient(client_fd);
@@ -229,24 +252,16 @@ bool WebServer::validateContentLength(int client_fd, const std::string& headers)
 // Helper: Calculate how many bytes are needed for a complete request
 size_t WebServer::calculateRequestSize(const std::string& buffer, size_t header_bytes, const std::string& headers)
 {
-	if (has_chunked_encoding(headers))
-	{
-		if (buffer.size() <= header_bytes)
-			return 0; // need more data
-		return buffer.size(); // hand over entire buffer for chunked parsing
-	}
-	else
-	{
-		long len = parse_content_length(headers);
-		if (len < 0)
-			len = 0;
-		
-		size_t total_needed = header_bytes + static_cast<size_t>(len);
-		if (buffer.size() < total_needed)
-			return 0; // need more data
-		
-		return total_needed;
-	}
+	// This function is now only called for non-chunked requests
+	long len = parse_content_length(headers);
+	if (len < 0)
+		len = 0;
+	
+	size_t total_needed = header_bytes + static_cast<size_t>(len);
+	if (buffer.size() < total_needed)
+		return 0; // need more data
+	
+	return total_needed;
 }
 
 // Helper: Handle request parsing and execution
@@ -310,30 +325,177 @@ void WebServer::processBufferedRequests(int client_fd)
 		const size_t header_bytes = hdr_end + 4;
 		std::string headers = buffer.substr(0, header_bytes);
 
-		// Validate Content-Length
-		if (!validateContentLength(client_fd, headers))
-			return;
+		// Check if chunked encoding
+		bool is_chunked = has_chunked_encoding(headers);
+		size_t needed = 0;
+		std::string frame;
 
-		// Calculate how many bytes we need for a complete request
-		size_t needed = calculateRequestSize(buffer, header_bytes, headers);
-		if (needed == 0)
-		{
-			// Need more data
-			return;
+		if (is_chunked) {
+			// Find end of chunked body
+			needed = find_chunked_terminator(buffer, header_bytes);
+			if (needed == CHUNKED_ERROR_MARKER) {
+				// Malformed chunked body detected
+				Logger::log(LOG_ERROR, "WebServer",
+							"Malformed chunked body detected! FD=" + to_str(client_fd));
+				send_error_response(client_fd, 400, "Bad Request", 0);
+				it->second.shouldCloseAfterWrite = true;
+				return;
+			}
+			if (needed == std::string::npos) {
+				// For chunked requests, we need to validate if what we have so far is potentially malformed
+				// Check if we can see obvious malformed patterns
+				std::string body_part = buffer.substr(header_bytes);
+				
+				// Look for incomplete chunk patterns that indicate malformed data
+				size_t first_crlf = body_part.find("\r\n");
+				if (first_crlf != std::string::npos) {
+					std::string first_chunk_line = body_part.substr(0, first_crlf);
+					
+					// Try to parse the first chunk size
+					size_t chunk_size = 0;
+					bool valid_hex = true;
+					for (size_t i = 0; i < first_chunk_line.size() && valid_hex; ++i) {
+						char c = first_chunk_line[i];
+						if ((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
+							chunk_size = chunk_size * 16;
+							if (c >= '0' && c <= '9') chunk_size += (c - '0');
+							else if (c >= 'a' && c <= 'f') chunk_size += (c - 'a' + 10);
+							else chunk_size += (c - 'A' + 10);
+						} else if (c == ' ' || c == '\t') {
+							continue;
+						} else {
+							valid_hex = false;
+						}
+					}
+					
+					if (!valid_hex) {
+						// Invalid hex in chunk size line
+						Logger::log(LOG_ERROR, "WebServer",
+									"Invalid chunk size format detected! FD=" + to_str(client_fd));
+						send_error_response(client_fd, 400, "Bad Request", 0);
+						it->second.shouldCloseAfterWrite = true;
+						return;
+					}
+					
+					// Check if we have enough data to validate the first chunk
+					size_t expected_chunk_end = header_bytes + first_crlf + 2 + chunk_size + 2; // headers + chunk_size_line + data + \r\n
+					if (buffer.size() >= expected_chunk_end) {
+						// We have enough data to check if the chunk is properly formatted
+						size_t chunk_data_start = header_bytes + first_crlf + 2;
+						size_t chunk_data_end = chunk_data_start + chunk_size;
+						
+						if (chunk_data_end + 2 <= buffer.size()) {
+							// Check if chunk data is followed by \r\n
+							if (buffer.substr(chunk_data_end, 2) != "\r\n") {
+								Logger::log(LOG_ERROR, "WebServer",
+											"Chunk size mismatch detected! FD=" + to_str(client_fd));
+								send_error_response(client_fd, 400, "Bad Request", 0);
+								it->second.shouldCloseAfterWrite = true;
+								return;
+							}
+							
+							// Now check what comes after this chunk
+							size_t next_chunk_start = chunk_data_end + 2;
+							if (next_chunk_start < buffer.size()) {
+								// We have more data - check if it's a valid next chunk
+								std::string remaining = buffer.substr(next_chunk_start);
+								size_t next_crlf = remaining.find("\r\n");
+								
+								if (next_crlf == std::string::npos && remaining.size() > 0) {
+									// We have partial data that doesn't contain a complete line
+									// This might be incomplete, wait for more unless it's clearly invalid
+									if (remaining.size() > 20) { // If we have > 20 chars without \r\n, it's likely malformed
+										Logger::log(LOG_ERROR, "WebServer",
+													"Malformed chunk size line detected! FD=" + to_str(client_fd));
+										send_error_response(client_fd, 400, "Bad Request", 0);
+										it->second.shouldCloseAfterWrite = true;
+										return;
+									}
+								}
+							} else if (next_chunk_start == buffer.size()) {
+								// We have exactly one complete chunk, but no indication of what follows
+								// This is suspicious - in a proper chunked request, we should see either:
+								// 1. Another chunk size line, or 2. The final "0\r\n\r\n"
+								// If we've been waiting for a while without more data, consider it malformed
+								
+								// Check if this looks like it might be the end of incomplete data
+								// For a quick detection, if we have waited enough time, assume malformed
+								// We can use a heuristic: if buffer hasn't grown in a certain period
+								
+								// For now, let's be more aggressive about incomplete single chunks
+								if (chunk_size > 0) {
+									// Non-zero chunk with nothing following is likely incomplete
+									Logger::log(LOG_ERROR, "WebServer",
+												"Incomplete chunked request: single chunk with no terminator! FD=" + to_str(client_fd));
+									send_error_response(client_fd, 400, "Bad Request", 0);
+									it->second.shouldCloseAfterWrite = true;
+									return;
+								}
+							}
+						}
+					}
+				}
+				
+				// If the buffer is getting large without finding a terminator, it might be malformed
+				if (buffer.size() > header_bytes + 1000) { // reasonable threshold
+					Logger::log(LOG_ERROR, "WebServer",
+								"Chunked body too large without terminator! FD=" + to_str(client_fd));
+					send_error_response(client_fd, 400, "Bad Request", 0);
+					it->second.shouldCloseAfterWrite = true;
+					return;
+				}
+				
+				// Need more data for full chunked body
+				return;
+			}
+			
+			// Validate buffer consistency for chunked
+			if (needed > buffer.size()) {
+				Logger::log(LOG_ERROR, "WebServer",
+							"Chunked body incomplete! FD=" + to_str(client_fd));
+				send_error_response(client_fd, 400, "Bad Request", 0);
+				it->second.shouldCloseAfterWrite = true;
+				return;
+			}
+
+			// Extract and decode chunked body
+			std::string raw_chunked_body = buffer.substr(header_bytes, needed - header_bytes);
+			std::string decoded_body;
+			try {
+				decoded_body = decode_chunked_body(raw_chunked_body);
+			} catch (const std::exception& e) {
+				Logger::log(LOG_ERROR, "WebServer", std::string("Chunked body decode failed: ") + e.what());
+				send_error_response(client_fd, 400, "Bad Request", 0);
+				it->second.shouldCloseAfterWrite = true;
+				return;
+			}
+			
+			// Rebuild frame: headers + decoded body
+			frame = buffer.substr(0, header_bytes) + decoded_body;
+		} else {
+			// Validate Content-Length for non-chunked
+			if (!validateContentLength(client_fd, headers))
+				return;
+			
+			// Calculate how many bytes we need for a complete request
+			needed = calculateRequestSize(buffer, header_bytes, headers);
+			if (needed == 0) {
+				// Need more data
+				return;
+			}
+			
+			// Validate buffer consistency for non-chunked
+			if (needed > buffer.size()) {
+				Logger::log(LOG_ERROR, "WebServer",
+							"Needed bytes exceed buffer size! FD=" + to_str(client_fd));
+				send_error_response(client_fd, 400, "Bad Request", 0);
+				it->second.shouldCloseAfterWrite = true;
+				return;
+			}
+			
+			// Extract complete request frame as-is
+			frame = buffer.substr(0, needed);
 		}
-
-		// Validate buffer consistency
-		if (needed > buffer.size())
-		{
-			Logger::log(LOG_ERROR, "WebServer",
-						"Needed bytes exceed buffer size before parsing! FD=" + to_str(client_fd));
-			send_error_response(client_fd, 400, "Bad Request", 0);
-			it->second.shouldCloseAfterWrite = true;
-			return;
-		}
-
-		// Extract complete request frame
-		std::string frame = buffer.substr(0, needed);
 
 		// Process the request
 		if (!processCompleteRequest(client_fd, frame))
@@ -347,8 +509,7 @@ void WebServer::processBufferedRequests(int client_fd)
 		std::string &buffer2 = it2->second.readBuf;
 
 		// Validate buffer state after processing
-		if (needed > buffer2.size())
-		{
+		if (needed > buffer2.size()) {
 			/*Logger::log(LOG_DEBUG, "WebServer",
 						"Buffer smaller than expected after process_request; stopping. FD=" + to_str(client_fd));*/
 			return;

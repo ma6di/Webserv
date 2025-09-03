@@ -1,10 +1,46 @@
 #include "utils.hpp"
 
+// Define a constant for malformed chunked data error
+#define CHUNKED_ERROR_MARKER (static_cast<size_t>(-2))
+
 bool file_exists(const std::string& path) {
     struct stat buffer;
     bool exists = (stat(path.c_str(), &buffer) == 0);
     //Logger::log(LOG_DEBUG, "file_exists", "Checked: " + path + " exists=" + (exists ? "true" : "false"));
     return exists;
+}
+
+/*
+JESS: json helper functions
+    - wants_json: a bool that returns true or false based on if the server has to give json response or not
+    - json_headers: returns header in json format
+*/
+bool wants_json(const Request &req)
+{
+    // 1) custom header from your frontend
+    std::string xf = req.getHeader("X-Frontend");
+    if (!xf.empty() && (xf == "1" || xf == "true"))
+        return true;
+
+    // 2) Accept header
+    std::string acc = req.getHeader("Accept");
+    if (acc.find("application/json") != std::string::npos)
+        return true;
+
+    // 3) query flag ?json=1
+    const std::string &p = req.getPath();
+    std::string::size_type q = p.find('?');
+    if (q != std::string::npos && p.find("json=1", q) != std::string::npos)
+        return true;
+
+    return false;
+}
+
+std::map<std::string, std::string> json_headers()
+{
+    std::map<std::string, std::string> h;
+    h["Content-Type"] = "application/json; charset=utf-8";
+    return h;
 }
 
 std::string get_mime_type(const std::string& path) {
@@ -178,6 +214,26 @@ bool is_directory(const std::string& path) {
     bool dir = stat(path.c_str(), &statbuf) == 0 && S_ISDIR(statbuf.st_mode);
     //Logger::log(LOG_DEBUG, "is_directory", path + " is_directory=" + (dir ? "true" : "false"));
     return dir;
+}
+
+// JESS: generates JSON response from directory listing if get request comes from client
+std::string generate_directory_listing_json(const std::string& fs_dir) {
+    std::ostringstream out;
+    out << "{\"ok\":true,\"files\":[";
+    DIR* d = opendir(fs_dir.c_str());
+    if (!d) { out << "]}"; return out.str(); }
+    struct dirent* e;
+    bool first = true;
+    while ((e = readdir(d))) {
+        const char* name = e->d_name;
+        if (std::strcmp(name,".")==0 || std::strcmp(name,"..")==0) continue;
+        if (!first) out << ",";
+        out << "\"" << name << "\"";
+        first = false;
+    }
+    closedir(d);
+    out << "]}";
+    return out.str();
 }
 
 std::string generate_directory_listing(const std::string& dir_path, const std::string& uri_path) {
@@ -359,13 +415,43 @@ size_t find_chunked_terminator(const std::string& buf, size_t body_start) {
             chunk_line = chunk_line.substr(0, semicolon_pos);
         }
         
-        // Convert hex chunk size
+        // Convert hex chunk size - validate it's proper hex
         size_t chunk_size = 0;
-        std::istringstream iss(chunk_line);
-        iss >> std::hex >> chunk_size;
         
-        if (iss.fail()) {
-            return std::string::npos; // invalid chunk size
+        // Check for unreasonably long chunk size lines (security measure)
+        if (chunk_line.size() > 16) { // Max 16 hex digits is reasonable (2^64)
+            return CHUNKED_ERROR_MARKER;
+        }
+        
+        // Define a reasonable maximum for chunk size to prevent overflow
+        const size_t MAX_CHUNK_SIZE = static_cast<size_t>(-1) / 16; // SIZE_MAX / 16 in C++98
+        
+        for (size_t i = 0; i < chunk_line.size(); ++i) {
+            char c = chunk_line[i];
+            if ((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
+                // Check for potential overflow before multiplication
+                if (chunk_size > MAX_CHUNK_SIZE) {
+                    return CHUNKED_ERROR_MARKER; // Would overflow
+                }
+                
+                size_t old_size = chunk_size;
+                chunk_size = chunk_size * 16;
+                
+                if (c >= '0' && c <= '9') chunk_size += (c - '0');
+                else if (c >= 'a' && c <= 'f') chunk_size += (c - 'a' + 10);
+                else chunk_size += (c - 'A' + 10);
+                
+                // Additional overflow check
+                if (chunk_size < old_size) {
+                    return CHUNKED_ERROR_MARKER; // Overflow detected
+                }
+            } else if (c == ' ' || c == '\t') {
+                // Skip whitespace
+                continue;
+            } else {
+                // Invalid hex character
+                return CHUNKED_ERROR_MARKER;
+            }
         }
         
         // If chunk size is 0, this is the final chunk
@@ -390,12 +476,23 @@ size_t find_chunked_terminator(const std::string& buf, size_t body_start) {
             return std::string::npos; // need more data for final \r\n
         }
         
-        // Skip to after this chunk's data and trailing \r\n
-        pos = line_end + 2 + chunk_size + 2; // chunk_size + data + \r\n
+        // Calculate where this chunk's data should end
+        size_t chunk_data_start = line_end + 2;
+        size_t chunk_data_end = chunk_data_start + chunk_size;
+        size_t chunk_end_with_crlf = chunk_data_end + 2; // + \r\n after data
         
-        if (pos > buf.size()) {
+        // Check if we have enough data for this chunk
+        if (chunk_end_with_crlf > buf.size()) {
             return std::string::npos; // need more data
         }
+        
+        // Validate that the chunk data is followed by \r\n
+        if (buf.substr(chunk_data_end, 2) != "\r\n") {
+            return CHUNKED_ERROR_MARKER; // malformed - chunk size doesn't match data
+        }
+        
+        // Move to the next chunk
+        pos = chunk_end_with_crlf;
     }
     
     return std::string::npos; // need more data

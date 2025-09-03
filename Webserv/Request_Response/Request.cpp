@@ -129,9 +129,9 @@ void Request::parseRequest(const std::string& raw_data) {
         std::string raw_body;
         raw_body.assign(std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>());
 
-        // Handle chunked transfer encoding and body extraction
+        // Body assignment: chunked already validated by buffer logic
         if (isChunked()) {
-            body = decode_chunked_body(raw_body);
+            body = raw_body;
         } else if (strcasecmp(getHeader("Content-Length").c_str(), "") != 0) {
             // Content-Length header is present (any value, including zero)
             if (content_length < 0 || content_length > 100L*1024L*1024L)
