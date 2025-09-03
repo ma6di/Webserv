@@ -1,0 +1,52 @@
+@import url("components/back_button.css");
+
+body {
+    background: #111;
+    color: #e9ecef;
+    font-weight: 300;
+}
+
+.section-wrap {
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+}
+
+.card-dark {
+    background: #1c1f24;
+    border: 1px solid #343a40;
+}
+
+.metric-card.card {
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.metric-card.good {
+    border-color: #198754;
+}
+
+.metric-card.bad {
+    border-color: #dc3545;
+}
+
+.metric-badge {
+    font-size: 0.75rem;
+}
+
+.metric-value {
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.metric-label {
+    color: #adb5bd;
+}
+
+.back-button {
+    text-decoration: none;
+}
+
+.section-page {
+    min-height: 100vh;
+    display: flex;
+}

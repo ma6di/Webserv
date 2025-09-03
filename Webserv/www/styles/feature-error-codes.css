@@ -1,4 +1,4 @@
-@import url(components/back_button.css);
+@import url("components/back_button.css");
 
 @media screen and (orientation: landscape) {
     .carousel {
@@ -18,22 +18,7 @@ body {
     flex-direction: column;
     background: #DC3545;
     color: #fff;
-    /* font-family: "Roboto", sans-serif;
-    height: 100vh;
-    width: 100vw;
-    margin: 0;
-    padding: 0; */
-    /* box-sizing: border-box; */
-    /* overflow-x: hidden; */
-    /* display: flex; */
-    /* flex-direction: column; */
-    /* background: #212529; */
-    /* background: #DC3545;
-    color: #fff;
-    height: fit-content; */
-
 }
-
 
 .header {
     flex: 0 0 auto;
@@ -46,10 +31,17 @@ body {
 
 /* optional: remove oversizing */
 @media screen and (orientation: landscape) {
-  .carousel { height: auto; } /* or delete this rule entirely */
+    .carousel {
+        height: auto;
+    }
+
+    /* or delete this rule entirely */
 }
+
 /* change this from min-height to height */
-.carousel-slide-bg { height: 100%; }
+.carousel-slide-bg {
+    height: 100%;
+}
 
 /* make carousel fill remaining height */
 .carousel,

@@ -103,7 +103,7 @@ void WebServer::send_upload_success_response(int client_fd, const std::string &f
 
          << "<div class=\"d-flex gap-3\">"
          << "<a href=\"/\" class=\"btn btn-outline-light\">Home</a>"
-         << "<a href=\"/methods.html#demos\" class=\"btn btn-success\">Go back</a>"
+         << "<a href=\"/feature-methods-demo.html#demos\" class=\"btn btn-success\">Go back</a>"
          << "</div>"
 
          << "<script src=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js\"></script>"

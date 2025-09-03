@@ -4,31 +4,36 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Evaluator Photobook</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet" />
-    <link rel="stylesheet" type="text/css" href="/styles/photobook.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
-        referrerpolicy="no-referrer">
+    <title>Webserv: photobook demo</title>
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap"
         rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet"
+        referrerpolicy="no-referrer" />
+    <!-- Bootstrap & styles-->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <link rel="stylesheet" href="/styles/feature-photobook.css" />
 </head>
 
 <body class="text-dark fw-light">
     <nav class="navbar sticky-top">
         <div class="px-5 pt-4">
-            <a href="/index.html#features" class="back-button text-muted">
+            <a href="/index.html#features" class="back-button text-muted fw-normal">
                 <i class="fa-solid fa-angle-left"></i>
                 Back to features
             </a>
         </div>
     </nav>
     <div class="container py-5">
-        <h2 class="h1 text-center">About the Photobook</h2>
-        <p class="text-center text-muted py-2">
+        <h2 class="h1 text-center fw-semibold">About the Photobook</h2>
+        <p class="text-center text-muted py-2 fw-normal mt-4">
             A simple photobook app that loads images from the server’s <code>upload/</code> folder, lets you add new
-            photos, name them, and delete them. </br>Changes persist on the server and are rendered dynamically on the
+            photos, name them, and delete them. </br>Changes persist on the server and are re-rendered dynamically on
+            the
             browser. How requests work when interacting
             with this
             simple app:
@@ -38,7 +43,8 @@
                 <div class="p-3 border border-primary rounded p-3 h-100 request_card get">
                     <h4 class="h6 m-0 fw-normal">GET: load photos</h4>
                     <p class="text-muted mb-2 fs-6 fw-light">
-                        Before the gallery renders, the app sends a <strong>GET</strong> request to fetch the file
+                        Before the gallery renders, the app sends a <span
+                            class="fw-bold badge text-bg-primary">GET</span> request to fetch the file
                         list
                         from
                         <code>upload/</code>.</br>
@@ -50,12 +56,11 @@
                 <div class="p-3 border border-success rounded p-3 h-100 fw-light request_card post">
                     <h4 class="h6 m-0">POST: add a photo</h4>
                     <p class="text-muted mb-2 fs-6">
-                        Click the <span class="badge text-bg-secondary">+</span> button to open the upload dialog.
-                        Choose a file and
-                        enter a
-                        name.
-                        If you leave the name empty, the server assigns a generic name with a timestamp.
-                        Files larger than <strong>1&nbsp;MB</strong> are rejected.
+                        Click the <span class="badge text-bg-secondary">＋</span> button to open the upload dialog.
+                        Once you chose a file, its name will appear in the input box for you to edit. Clicking on the
+                        upload will make a <span class="badge text-bg-success">POST</span> request to the server to add
+                        it into the <code>upload/</code> folder.
+                        Files larger than <strong>1 MB</strong> are rejected.
                     </p>
                 </div>
             </div>
@@ -63,9 +68,9 @@
                 <div class="p-3  border border-danger rounded p-3 fw-light h-100 request_card delete">
                     <h4 class="h6 m-0">DELETE: remove a photo</h4>
                     <p class="text-muted mb-2 fs-6">
-                        Click the <span class="badge text-bg-secondary">✕</span> on a photo to send a
-                        <strong>DELETE</strong> request for that
-                        file.</br>
+                        Click the <span class="badge text-bg-secondary px-2">✕</span> on a photo to send a
+                        <span class="badge text-bg-danger">DELETE</span> request to the server, which will delete the
+                        requested file from the <code>upload/</code> folder.</br>
                         If all photos are deleted, an alert appears at the bottom of the page stating the Photobook
                         is
                         empty.

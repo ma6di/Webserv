@@ -1,9 +1,5 @@
 @import url("components/back_button.css");
 
-body {
-    font-family: "Roboto", sans-serif;
-}
-
 .get {
     background-color: #a7d8ff;
 }

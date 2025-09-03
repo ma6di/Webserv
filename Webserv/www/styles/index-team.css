@@ -1,5 +1,3 @@
-@import url("style.css");
-
 h1 {
     text-align: center;
     /* color: #fff; */
@@ -136,13 +134,11 @@ h1 {
 .team-hint {
     /* text-align: center; */
     margin: 0px;
-    background: linear-gradient(
-        to right,
-        #7953cd 20%,
-        #00affa 30%,
-        #0190cd 70%,
-        #764ada 80%
-    );
+    background: linear-gradient(to right,
+            #7953cd 20%,
+            #00affa 30%,
+            #0190cd 70%,
+            #764ada 80%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;

@@ -1,0 +1,53 @@
+ @import url("components/back_button.css");
+
+
+ .file-item {
+     display: flex;
+     align-items: center;
+     gap: 0.75rem;
+     padding: 0.5rem 0.75rem;
+     border: 1px solid #343a40;
+     border-radius: 0.5rem;
+ }
+
+ .file-name {
+     flex: 1;
+     /* font-family: ui-monospace, Menlo, Consolas, monospace; */
+     word-break: break-all;
+ }
+
+ .section-page {
+     min-height: 100vh;
+     display: flex;
+     align-items: center;
+ }
+
+ h1 {
+     font-size: 100px;
+     margin-top: -80px;
+     /* margin-bottom: 100px; */
+ }
+
+ .float {
+     animation: floatY 1s ease-in-out infinite;
+ }
+
+ @keyframes floatY {
+
+     0%,
+     100% {
+         transform: translateY(0);
+     }
+
+     50% {
+         transform: translateY(5px);
+     }
+ }
+
+ .jump-demo {
+     margin-top: 70px;
+ }
+
+ .navbar {
+     backdrop-filter: blur(10px);
+ }
