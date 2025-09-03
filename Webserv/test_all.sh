@@ -113,8 +113,11 @@ log_and_run "Test 11: 405 Method Not Allowed" \
     result_405.txt "405 Method Not Allowed" "405 Method Not Allowed error returned."
 
 log_and_run "Test 12: 413 Payload Too Large" \
-    "curl -s -X POST http://localhost:8080/upload -F "file=@bigfile.txt"" \
+    "truncate -s 110M bigfile.txt && curl -s -X POST http://localhost:8080/upload -F \"file=@bigfile.txt\"" \
     result_413.txt "413 Payload Too Large" "413 Payload Too Large error returned."
+# log_and_run "Test 12: 413 Payload Too Large" \
+#     "curl -s -X POST http://localhost:8080/upload -F "file=@bigfile.txt"" \
+#     result_413.txt "413 Payload Too Large" "413 Payload Too Large error returned."
 
 log_and_run "Test 13: 400 Bad Request" \
     "printf \"GET /missing_http_version\r\n\r\n\" | nc localhost 8080" \
