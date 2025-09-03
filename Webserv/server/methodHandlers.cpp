@@ -287,7 +287,7 @@ bool WebServer::handle_upload(const Request& request, const LocationConfig* loc,
         if (!uri_filename.empty()) {
             base_filename = uri_filename;
         } else if (!filename.empty()) {
-            base_filename = filename;
+            base_filename = make_upload_filename(filename);
         } else {
             base_filename = "upload";
         }
@@ -296,7 +296,7 @@ bool WebServer::handle_upload(const Request& request, const LocationConfig* loc,
         if (!filename.empty()) {
             base_filename = make_upload_filename(filename);
         } else {
-            base_filename = "upload";
+            base_filename = make_upload_filename("upload");;
         }
     }
 

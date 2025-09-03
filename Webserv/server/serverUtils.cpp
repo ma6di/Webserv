@@ -102,7 +102,8 @@ bool WebServer::read_and_append_client_data(int client_fd, size_t i)
     }
     if (bytes_read < 0)
     {
-        return false;
+        closeClient(client_fd);
+		return false;
     }
     conns_[client_fd].readBuf.append(buffer, static_cast<size_t>(bytes_read));
 
@@ -180,7 +181,8 @@ bool WebServer::readClientData(int client_fd, char* buf, size_t buf_size, ssize_
 
     if (bytes_read < 0) {
         // Error (no errno check, just stop)
-        return false;
+        closeClient(client_fd);
+		return false;
     }
 
     // Should never reach here, but keeps compiler happy

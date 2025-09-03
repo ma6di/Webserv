@@ -288,6 +288,7 @@ void WebServer::flushPendingWrites(int client_fd)
 	if (n < 0)
 	{	
 		Logger::log(LOG_INFO, "flush", "fd=" + to_str(client_fd) + " write made no progress; will retry");
+		closeClient(client_fd);
 		return;
 	}
 

@@ -9,6 +9,7 @@
  */
 
 #include "CGIHandler.hpp"
+#include "WebServer.hpp"
 
 
 CGIHandler::CGIHandler(const std::string& scriptPath,
@@ -52,9 +53,12 @@ std::string CGIHandler::execute() {
     close(output_pipe[1]);
     close(error_pipe[1]);
 
-    send_input_to_cgi(input_pipe[1]);
+    int ret2 = send_input_to_cgi(input_pipe[1]);
     close(input_pipe[1]);
-
+    if (ret2 == 500) {
+        // Error already logged in send_input_to_cgi
+        return "__CGI_INTERNAL_ERROR__";
+    }
     int status = 0;
     bool timed_out = false;
     int ret = wait_for_child_with_timeout(pid, status, timed_out);
@@ -236,10 +240,22 @@ void CGIHandler::setup_child_process(const std::string& absPath, int input_pipe[
     exit(127);
 }
 
-void CGIHandler::send_input_to_cgi(int input_fd) const {
-    if (!inputBody.empty()) {
-        ssize_t written = write(input_fd, inputBody.c_str(), inputBody.size());
-        Logger::log(LOG_DEBUG, "CGIHandler", "Sent " + to_str(written) + " bytes to CGI stdin");
+int CGIHandler::send_input_to_cgi(int input_fd) const {
+    if (inputBody.empty()) {
+        return 1;
+    }
+
+    ssize_t written = ::write(input_fd, inputBody.c_str(), inputBody.size());
+
+    if (written > 0) {
+        return 1;
+    }
+    else if (written == 0) {
+        return 1;
+    }
+    else { // written < 0
+        close(input_fd);
+        return 500;
     }
 }
 

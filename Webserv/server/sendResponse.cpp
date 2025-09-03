@@ -110,17 +110,20 @@ void WebServer::send_no_content_response(int client_fd, size_t i)
 
     // Empty headers (Content-Length/Content-Type not allowed for 204)
     std::map<std::string, std::string> headers;
-
+    std::cout << "we are in no conent response" << std::endl;
     // Build response object
     Response resp(204, "No Content", "", headers);
 
-    bool keepAlive = conns_[client_fd].shouldCloseAfterWrite;
-    resp.applyConnectionHeaders(keepAlive);
+    bool closeAfter = true; // For 204, usually close after write
+    conns_[client_fd].shouldCloseAfterWrite = closeAfter;
+    resp.applyConnectionHeaders(!closeAfter);
 
     // Let Response::toString() handle proper formatting
     std::string raw = resp.toString();
 
     queueResponse(client_fd, raw);
+    //flushPendingWrites(client_fd); // If implemented
+
 }
 
 static std::string resolve_error_page_path(const std::string &err_uri)
@@ -196,34 +199,6 @@ void WebServer::send_error_response(int client_fd,
     // No flushPendingWrites() here — POLLOUT will handle it in the main poll loop.
 }
 
-
-/*void WebServer::send_continue_response(int client_fd)
-{
-    Response resp;
-    resp.setStatus(100, Response::getStatusMessage(100));
-    resp.setBody("");
-
-    std::string response = resp.toString();
-    
-    ssize_t n = send(client_fd, response.c_str(), response.length(), MSG_NOSIGNAL);
-    if (n > 0) {
-        Logger::log(LOG_INFO, "send_continue_response",
-                    "Sent 100 Continue (" + to_str(n) + " bytes) to fd=" + to_str(client_fd));
-        return;
-    }
-    if (n == 0) {
-        // peer closed
-        cleanup_client(client_fd, 0);
-        return;
-    }
-    if (n < 0) {
-        Connection &conn = conns_[client_fd];
-        conn.writeBuf.append(response);
-        Logger::log(LOG_DEBUG, "send_continue_response",
-                    "Deferring 100 Continue; queued for POLLOUT on fd=" + to_str(client_fd));
-        return;
-    }   
-}*/
 
 void WebServer::send_continue_response(int client_fd) {
     Response resp; resp.setStatus(100, Response::getStatusMessage(100)); resp.setBody("");
