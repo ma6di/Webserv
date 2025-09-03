@@ -34,42 +34,48 @@ document.getElementById("modalFileInput").addEventListener("change", function ()
 
 
 //POST REQUEST
-document
-    .getElementById("photoUploadForm")
-    .addEventListener("submit", function (e) {
-        e.preventDefault();
+document.getElementById("photoUploadForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
 
-        const form = e.target;
-        const formData = new FormData(form);
+    const fileInput = document.getElementById("modalFileInput");
+    const nameInput = document.getElementById("photoName");
+    const file = fileInput.files[0];
+    if (!file) return;
 
-        fetch("/upload", {               // your C++ upload route
+    // sanitizes base name from user input or fallbacks to original
+    const rawBase = (nameInput.value || file.name.replace(/\.[^/.]+$/, "")).trim();
+    const safeBase = rawBase.replace(/[^a-zA-Z0-9-_ ]+/g, "").replace(/\s+/g, "-") || "photo";
+
+    // keep original extension
+    const ext = (file.name.match(/\.[^.]+$/) || [""])[0].toLowerCase();
+    const renamed = new File([file], `${safeBase}${ext}`, { type: file.type });
+
+    // build form data and override the file field's filename
+    const form = e.target;
+    const formData = new FormData(form);
+    formData.set("file", renamed);
+
+    try {
+        const res = await fetch("/upload", {
             method: "POST",
-            headers: {
-                "X-Frontend": "1",              // tell server to respond JSON
-                "Accept": "application/json"
-            },
-            body: formData
-        })
-            .then((res) => {
-                if (!res.ok) throw new Error("Post request failed: " + res.status);
-                console.log(res.json);
-                return res.json();              // server returns { ok:true, path:"..." }
-            })
-            .then((data) => {
-                console.log("✅ POST request successful, uploaded the following file: " + data.path)
-                alert("Upload successful: " + data.path);
-                form.reset();
-                document.getElementById("fileReady").classList.add("d-none");
-                bootstrap.Modal.getInstance(
-                    document.getElementById("uploadModal")
-                ).hide();
-                location.reload();              // or append dynamically to gallery
-            })
-            .catch((err) => {
-                console.error("❌ Upload error:", err);
-                alert("Upload failed!");
-            });
-    });
+            headers: { "X-Frontend": "1", "Accept": "application/json" },
+            body: formData,
+        });
+        if (!res.ok) throw new Error("POST failed: " + res.status);
+        const data = await res.json();
+
+        console.log("✅ POST request successful, uploaded the following file: " + data.path)
+        alert("Upload successful: " + data.path);
+        form.reset();
+        document.getElementById("fileReady").classList.add("d-none");
+        bootstrap.Modal.getInstance(document.getElementById("uploadModal")).hide();
+        location.reload(); // or refresh() your gallery
+    } catch (err) {
+        console.error("❌ Upload error:", err);
+        alert("Upload failed");
+    }
+});
+
 
 function isImageFile(name) {
     return /\.(jpe?g|png|gif|webp)$/i.test(name);
