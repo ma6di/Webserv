@@ -20,6 +20,9 @@
 #include "Request.hpp"
 #include "../logger/Logger.hpp"
 #include "WebServer.hpp"
+#include "Connection.hpp"
+
+
 
 
 // The CGIHandler class is responsible for executing CGI scripts like .py or .php files.
@@ -29,12 +32,11 @@ class CGIHandler {
 public:
     // Constructor takes the path to the script, the environment variables, and optional POST data
     //scriptPath: full path to the script to execute (e.g., /www/cgi/test.py)
-	CGIHandler(const std::string& scriptPath,
-				//env: a map of environment variables
-            	const std::map<std::string, std::string>& env,
-				//inputBody: optional request body (for POST methods)
-            	const std::string& inputBody = "",
-			    const std::string& requestedUri = "");
+CGIHandler(const std::string& scriptPath,
+           const std::map<std::string, std::string>& env,
+           Connection* conn,
+           const std::string& inputBody,
+           const std::string& requestedUri);
 
     // Executes the CGI program and returns its output (headers + body)
     std::string execute();
@@ -47,11 +49,11 @@ public:
                                                             const std::string& path_info);
 
     static void parse_cgi_output(const std::string& cgi_output, std::map<std::string, std::string>& cgi_headers, std::string& body);
-
 private:
-    std::string scriptPath;                     // Path to the CGI script (e.g., ./cgi-bin/test.py)
-    std::map<std::string, std::string> environment; // Environment variables for the CGI execution
-    std::string inputBody;   
+	std::string scriptPath;
+	std::map<std::string, std::string> environment;
+	Connection* conn;
+	std::string inputBody;
 	std::string requestedUri;
 
     // Internal method that handles process creation, piping, and reading output

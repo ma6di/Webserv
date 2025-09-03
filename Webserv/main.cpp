@@ -124,6 +124,29 @@ static void buildPollFds(std::vector<struct pollfd> &fds)
             pfd.revents = 0;
             fds.push_back(pfd);
         }
+
+        std::map<int, Connection>& connections = srv->getConnections();
+        for (std::map<int, Connection>::iterator it = connections.begin(); it != connections.end(); ++it) {
+            Connection &conn = it->second;
+            if (conn.cgi_active) {
+                // POLLOUT for writing to CGI stdin (write end)
+                if (conn.cgi_stdin_fd[1] != -1 && !conn.cgi_input_buffer.empty()) {
+                    struct pollfd pfd;
+                    pfd.fd = conn.cgi_stdin_fd[1];
+                    pfd.events = POLLOUT;
+                    pfd.revents = 0;
+                    fds.push_back(pfd);
+                }
+                // POLLIN for reading from CGI stdout (read end)
+                if (conn.cgi_stdout_fd[0] != -1) {
+                    struct pollfd pfd;
+                    pfd.fd = conn.cgi_stdout_fd[0];
+                    pfd.events = POLLIN;
+                    pfd.revents = 0;
+                    fds.push_back(pfd);
+                }
+            }
+        }
     }
 }
 
@@ -195,6 +218,24 @@ static void handlePollEvents(const std::vector<struct pollfd> &fds)
     for (size_t pi = 0; pi < fds.size(); ++pi)
     {
         const struct pollfd &p = fds[pi];
+        bool cgi_event = false;
+        for (size_t si = 0; si < g_servers.size(); ++si) {
+            WebServer *srv = g_servers[si];
+            std::map<int, Connection>& connections = srv->getConnections();
+            for (std::map<int, Connection>::iterator it = connections.begin(); it != connections.end(); ++it) {
+                Connection &conn = it->second;
+                if (conn.cgi_active) {
+                    if (p.fd == conn.cgi_stdin_fd[1] && (p.revents & POLLOUT)) {
+                        std::cout << "[DEBUG] POLLOUT on CGI stdin fd=" << p.fd << " for client fd=" << it->first << std::endl;
+                        cgi_event = true;
+                    }
+                    if (p.fd == conn.cgi_stdout_fd[0] && (p.revents & POLLIN)) {
+                        std::cout << "[DEBUG] POLLIN on CGI stdout fd=" << p.fd << " for client fd=" << it->first << std::endl;
+                        cgi_event = true;
+                    }
+                }
+            }
+        }
         // 1) Incoming connection or data?
         if (p.revents & POLLIN)
         {
@@ -205,6 +246,9 @@ static void handlePollEvents(const std::vector<struct pollfd> &fds)
         if (p.revents & POLLOUT)
         {
             handlePollOut(p.fd);
+        }
+        if (cgi_event) {
+            std::cout << "[DEBUG] CGI event handled for fd=" << p.fd << std::endl;
         }
     }
 }

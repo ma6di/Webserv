@@ -16,11 +16,14 @@
 #include "Response.hpp"
 #include "CGIHandler.hpp"
 #include "utils.hpp"
+#include "Connection.hpp"
+
 
 class Config;
 
 class WebServer {
 public:
+    // ...existing public methods...
     explicit WebServer(const Config& cfg);
     ~WebServer();
     void shutdown();
@@ -53,7 +56,8 @@ public:
 	void send_error_response  (int, int, const std::string&, size_t);
     void markCloseAfterWrite(int fd);
 	// int check_headers(const std::string &headers, long maxBodySize);
-
+	std::map<int, Connection> conns_;
+	std::map<int, Connection>& getConnections() { return conns_; }
 private:
     bool validate_post_request(Request &request, int client_fd, size_t i);
     // Helper functions for handleClientDataOn modularity
@@ -64,30 +68,23 @@ private:
     bool processCompleteRequest(int client_fd, const std::string& frame);
     void processBufferedRequests(int client_fd);
     
-    // Helper functions for process_request modularity
-    void setupConnectionPolicy(Request& request, int client_fd);
-    bool performBasicValidation(Request& request, int client_fd, size_t i);
-    bool handleExpectContinue(Request& request, int client_fd, size_t i);
-    bool handleCGIRequest(Request& request, const LocationConfig* loc, int client_fd, size_t i);
-    bool handleRedirection(Request& request, const LocationConfig* loc, int client_fd, size_t i);
-    void dispatchMethodHandler(Request& request, const LocationConfig* loc, int client_fd, size_t i);
-    void finalizeRequestProcessing(int client_fd);
+        // Helper functions for process_request modularity
+	void setupConnectionPolicy(Request& request, int client_fd);
+	bool performBasicValidation(Request& request, int client_fd, size_t i);
+	bool handleExpectContinue(Request& request, int client_fd, size_t i);
+	bool handleCGIRequest(Request& request, const LocationConfig* loc, int client_fd, size_t i);
+	bool handleRedirection(Request& request, const LocationConfig* loc, int client_fd, size_t i);
+	void dispatchMethodHandler(Request& request, const LocationConfig* loc, int client_fd, size_t i);
+	void finalizeRequestProcessing(int client_fd);
     
-    const Config*                 config_;
+	const Config*                 config_;
 
-    std::vector<int>              listening_sockets;
-    void make_socket_non_blocking(int fd);
-    void cleanup_client(int client_fd, int i);
+	std::vector<int>              listening_sockets;
+	void make_socket_non_blocking(int fd);
+	void cleanup_client(int client_fd, int i);
 
-    struct Connection {
-      std::string readBuf;    // accumulated request bytes
-      std::string writeBuf;   // bytes queued for response
-      bool        shouldCloseAfterWrite;
-      time_t      last_active; // timestamp of last activity
-      Connection() : readBuf(), writeBuf(), shouldCloseAfterWrite(false), last_active(time(NULL)) {}
-    };
-
-    std::map<int, Connection> conns_;
+	// Getter for connections map
+	
     std::string resolve_path(const std::string& raw_path,
                              const std::string& method,
                              const LocationConfig* loc);

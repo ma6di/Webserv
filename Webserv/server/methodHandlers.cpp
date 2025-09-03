@@ -1,4 +1,6 @@
 #include "WebServer.hpp"
+#include "Connection.hpp"
+
 // HTTP method handlers for WebServer. Each function processes a specific HTTP request type.
 
 // --- GET Handler ---
@@ -80,8 +82,9 @@ void WebServer::handle_cgi(const LocationConfig* loc, const Request& request, in
     }
 
     std::map<std::string, std::string> env = CGIHandler::build_cgi_env(request, script_name, path_info);
-    CGIHandler handler(script_path, env, request.getBody(), request.getPath());
-    std::string cgi_output = handler.execute();
+    std::map<int, Connection> connections = this->getConnections();
+	Connection &conn = connections[client_fd];
+	CGIHandler handler(script_path, env, &conn, request.getBody(), request.getPath());    std::string cgi_output = handler.execute();
 
     if (cgi_output == "__CGI_TIMEOUT__") {
         Logger::log(LOG_ERROR, "handle_cgi", "CGI Timeout: " + script_path);

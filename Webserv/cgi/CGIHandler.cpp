@@ -13,11 +13,17 @@
 
 CGIHandler::CGIHandler(const std::string& scriptPath,
                        const std::map<std::string, std::string>& env,
+                       Connection* conn,
                        const std::string& inputBody,
                        const std::string& requestedUri)
-    : scriptPath(scriptPath), environment(env), inputBody(inputBody), requestedUri(requestedUri) {}
+    : scriptPath(scriptPath),
+      environment(env),
+      conn(conn),
+      inputBody(inputBody),
+      requestedUri(requestedUri) {}
 
 std::string CGIHandler::execute() {
+    conn->cgi_active = true;
     std::string absPath = resolve_script_path();
     int input_pipe[2], output_pipe[2], error_pipe[2];
     if (!create_pipes(input_pipe, output_pipe, error_pipe)) {
@@ -25,7 +31,14 @@ std::string CGIHandler::execute() {
         throw std::runtime_error("Pipe creation failed");
     }
 
+    // Set fds only after pipe creation
+    conn->cgi_stdin_fd[0] = input_pipe[0];
+    conn->cgi_stdin_fd[1] = input_pipe[1];
+    conn->cgi_stdout_fd[0] = output_pipe[0];
+    conn->cgi_stdout_fd[1] = output_pipe[1];
+
     pid_t pid = fork();
+    conn->cgi_pid = pid;
     if (pid < 0) {
         Logger::log(LOG_ERROR, "CGIHandler", "Fork failed");
         throw std::runtime_error("Fork failed");
@@ -45,7 +58,7 @@ std::string CGIHandler::execute() {
     int status = 0;
     bool timed_out = false;
     int ret = wait_for_child_with_timeout(pid, status, timed_out);
-    (void)ret; // suppress unused warning
+
     if (timed_out) {
         handle_timeout(pid, status);
         return "__CGI_TIMEOUT__";
@@ -56,7 +69,7 @@ std::string CGIHandler::execute() {
     std::string error_output = read_from_pipe(error_pipe[0]);
     close(error_pipe[0]);
 
-    //log_cgi_debug(status, ret, output, error_output);
+    log_cgi_debug(status, ret, output, error_output);
 
     if (!check_child_status(status, error_output))
         return "__CGI_INTERNAL_ERROR__";
@@ -64,40 +77,19 @@ std::string CGIHandler::execute() {
     if (!validate_cgi_headers(output))
         return "__CGI_MISSING_HEADER__";
 
+    conn->cgi_input_buffer = inputBody;
+    conn->cgi_output_buffer.clear();
+
     return output;
 }
 
-/*std::string CGIHandler::read_pipe_to_string(int fd) const {
+std::string CGIHandler::read_pipe_to_string(int fd) const {
     std::string result;
     char buffer[4096];
     ssize_t n;
     while ((n = read(fd, buffer, sizeof(buffer))) > 0) {
         result.append(buffer, n);
     }
-    return result;
-}*/
-
-std::string CGIHandler::read_pipe_to_string(int fd) const {
-    std::string result;
-    char buffer[4096];
-
-    while (true) {
-        ssize_t n = ::read(fd, buffer, sizeof(buffer));
-
-        if (n > 0) {
-            // Got data → append it
-            result.append(buffer, static_cast<size_t>(n));
-        }
-        else if (n == 0) {
-            // EOF → pipe closed
-            break;
-        }
-        else if (n < 0) {
-            // Error case → just stop (do not check errno)
-            break;
-        }
-    }
-
     return result;
 }
 
@@ -245,26 +237,9 @@ void CGIHandler::setup_child_process(const std::string& absPath, int input_pipe[
 }
 
 void CGIHandler::send_input_to_cgi(int input_fd) const {
-        if (inputBody.empty())
-        return;
-
-    ssize_t n = ::write(input_fd, inputBody.c_str(), inputBody.size());
-
-    if (n > 0) {
-        // Successfully wrote some or all data
-        // (we don’t loop for partial writes here, since simplicity is fine)
-        Logger::log(LOG_INFO, "CGIHandler",
-                    "Wrote " + to_str(n) + " bytes to CGI stdin");
-    }
-    else if (n == 0) {
-        // Pipe closed by peer
-        Logger::log(LOG_INFO, "CGIHandler",
-                    "Pipe closed while writing to CGI stdin");
-    }
-    else if (n < 0) {
-        // Error case (don’t check errno)
-        Logger::log(LOG_ERROR, "CGIHandler",
-                    "Write to CGI stdin failed");
+    if (!inputBody.empty()) {
+        ssize_t written = write(input_fd, inputBody.c_str(), inputBody.size());
+        Logger::log(LOG_DEBUG, "CGIHandler", "Sent " + to_str(written) + " bytes to CGI stdin");
     }
 }
 
@@ -290,7 +265,7 @@ bool CGIHandler::check_child_status(int status, const std::string& error_output)
             Logger::log(LOG_ERROR, "CGIHandler", "CGI script stderr: " + error_output);
         return false;
     }
-    //Logger::log(LOG_DEBUG, "CGIHandler", "WIFEXITED: " + to_str(WIFEXITED(status)) + ", WEXITSTATUS: " + to_str(WEXITSTATUS(status)));
+    Logger::log(LOG_DEBUG, "CGIHandler", "WIFEXITED: " + to_str(WIFEXITED(status)) + ", WEXITSTATUS: " + to_str(WEXITSTATUS(status)));
     if (WEXITSTATUS(status) != 0) {
         Logger::log(LOG_ERROR, "CGIHandler", "CGI script exited with status: " + to_str(WEXITSTATUS(status)));
         if (!error_output.empty())
