@@ -32,9 +32,9 @@ Connection: keep-alive
 Content-Length: 803
 Content-Type: text/html; charset=utf-8
 Keep-Alive: timeout=5, max=100
-Location: www/upload/test_20250903_135623.txt
+Location: www/upload/test_20250903_153125.txt
 
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Upload Successful</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"></head><body class="bg-dark text-light d-flex flex-column justify-content-center align-items-center" style="font-family:sans-serif;min-height:100vh;"><h1 class="mb-3">✅ File uploaded successfully!</h1><p class="mb-4">Saved as: <code>www/upload/test_20250903_135623.txt</code></p><div class="d-flex gap-3"><a href="/" class="btn btn-outline-light">Home</a><a href="/methods.html#demos" class="btn btn-success">Go back</a></div><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script></body></html>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Upload Successful</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"></head><body class="bg-dark text-light d-flex flex-column justify-content-center align-items-center" style="font-family:sans-serif;min-height:100vh;"><h1 class="mb-3">✅ File uploaded successfully!</h1><p class="mb-4">Saved as: <code>www/upload/test_20250903_153125.txt</code></p><div class="d-flex gap-3"><a href="/" class="btn btn-outline-light">Home</a><a href="/methods.html#demos" class="btn btn-success">Go back</a></div><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script></body></html>
 HTTP 201
 
 [OK] POST /upload returned 201 created
@@ -47,9 +47,9 @@ Connection: keep-alive
 Content-Length: 807
 Content-Type: text/html; charset=utf-8
 Keep-Alive: timeout=5, max=100
-Location: server2/upload/test_20250903_135623.txt
+Location: server2/upload/test_20250903_153125.txt
 
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Upload Successful</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"></head><body class="bg-dark text-light d-flex flex-column justify-content-center align-items-center" style="font-family:sans-serif;min-height:100vh;"><h1 class="mb-3">✅ File uploaded successfully!</h1><p class="mb-4">Saved as: <code>server2/upload/test_20250903_135623.txt</code></p><div class="d-flex gap-3"><a href="/" class="btn btn-outline-light">Home</a><a href="/methods.html#demos" class="btn btn-success">Go back</a></div><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script></body></html>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Upload Successful</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"></head><body class="bg-dark text-light d-flex flex-column justify-content-center align-items-center" style="font-family:sans-serif;min-height:100vh;"><h1 class="mb-3">✅ File uploaded successfully!</h1><p class="mb-4">Saved as: <code>server2/upload/test_20250903_153125.txt</code></p><div class="d-flex gap-3"><a href="/" class="btn btn-outline-light">Home</a><a href="/methods.html#demos" class="btn btn-success">Go back</a></div><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script></body></html>
 HTTP 201
 
 [OK] POST /upload returned 201 created
@@ -114,7 +114,7 @@ Connection: close
 Content-Length: 110
 Content-Type: text/html
 
-<h1>File 'test.cpp' uploaded successfully to /home/tkasapog/Desktop/webserv/Webserv/www/upload/test.cpp!</h1>
+<h1>File 'test.cpp' uploaded successfully to /home/mcheragh/Desktop/webserv/Webserv/www/upload/test.cpp!</h1>
 
 [OK] CGI POST (file) returned 200 OK
 ------------------------------------------------------------
@@ -187,23 +187,8 @@ Content-Type: text/html
 == Test 12: 413 Payload Too Large ==
 ------------------------------------------------------------
 >> curl -s -X POST http://localhost:8080/upload -F file=@bigfile.txt
-<!DOCTYPE html>
-<html>
-<head>
-    <title>413 Payload Too Large</title>
-    <style>
-        body { font-family: Arial; background: #fff0f0; color: #a00; text-align: center; margin-top: 5em; }
-        a { color: #3366cc; }
-    </style>
-</head>
-<body>
-    <h1>413 Payload Too Large</h1>
-    <p>The request is too large for the server to handle.</p>
-    <a href="/">Go to Home</a>
-</body>
-</html>
 
-[OK] 413 Payload Too Large error returned.
+[FAIL] 413 Payload Too Large error returned.
 ------------------------------------------------------------
 == Test 13: 400 Bad Request ==
 ------------------------------------------------------------
@@ -274,7 +259,7 @@ Content-Type: text/html
 >> curl http://localhost:8080/cgi-bin/error500.py
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   389  100   389    0     0  35440      0 --:--:-- --:--:-- --:--:-- 38900
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   389  100   389    0     0  36795      0 --:--:-- --:--:-- --:--:-- 38900
 <!DOCTYPE html>
 <html>
 <head>
@@ -298,7 +283,7 @@ Content-Type: text/html
 >> curl http://localhost:8080/cgi-bin/test502.py
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   157  100   157    0     0  14373      0 --:--:-- --:--:-- --:--:-- 15700
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   157  100   157    0     0  14973      0 --:--:-- --:--:-- --:--:-- 15700
 <!DOCTYPE html><html><head><title>502 Bad Gateway</title></head><body><h1>502 Bad Gateway</h1><p>The server could not fulfill your request.</p></body></html>
 [OK] 502 (Bad Gateway)
 ------------------------------------------------------------
@@ -655,9 +640,9 @@ Connection: keep-alive
 Content-Length: 801
 Content-Type: text/html; charset=utf-8
 Keep-Alive: timeout=5, max=100
-Location: www/upload/upload_20250903_135625
+Location: www/upload/upload_20250903_153128
 
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Upload Successful</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"></head><body class="bg-dark text-light d-flex flex-column justify-content-center align-items-center" style="font-family:sans-serif;min-height:100vh;"><h1 class="mb-3">✅ File uploaded successfully!</h1><p class="mb-4">Saved as: <code>www/upload/upload_20250903_135625</code></p><div class="d-flex gap-3"><a href="/" class="btn btn-outline-light">Home</a><a href="/methods.html#demos" class="btn btn-success">Go back</a></div><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script></body></html>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Upload Successful</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"></head><body class="bg-dark text-light d-flex flex-column justify-content-center align-items-center" style="font-family:sans-serif;min-height:100vh;"><h1 class="mb-3">✅ File uploaded successfully!</h1><p class="mb-4">Saved as: <code>www/upload/upload_20250903_153128</code></p><div class="d-flex gap-3"><a href="/" class="btn btn-outline-light">Home</a><a href="/methods.html#demos" class="btn btn-success">Go back</a></div><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script></body></html>
 [OK] Chunked POST to upload endpoint returned 201 Created
 ------------------------------------------------------------
 == Test 47: Chunked with Connection: close ==
@@ -715,7 +700,7 @@ Content-Type: text/html
 >> curl localhost:8080/old
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   126  100   126    0     0   333k      0 --:--:-- --:--:-- --:--:--  123k
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   126  100   126    0     0   421k      0 --:--:-- --:--:-- --:--:--  123k
 <html><head><title>301 Redirect</title></head><body><h1>301 Redirect</h1><p>Redirecting to <a href="/">/</a></p></body></html>
 [OK] Redirect
 ------------------------------------------------------------
@@ -724,13 +709,13 @@ Content-Type: text/html
 >> curl -i localhost:8080/upload
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   822  100   822    0     0  2068k      0 --:--:-- --:--:-- --:--:--  802k
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100  2038  100  2038    0     0  5638k      0 --:--:-- --:--:-- --:--:-- 1990k
 HTTP/1.1 200 OK
 Connection: close
-Content-Length: 822
+Content-Length: 2038
 Content-Type: text/html
 
-<!DOCTYPE html><html><head><title>Index of /upload</title><style>body{font-family:sans-serif;}table{width:60%;margin:auto;}th,td{text-align:left;padding:4px;}tr:nth-child(even){background:#f9f9f9;}a{text-decoration:none;}</style></head><body><h1>Index of /upload</h1><table><tr><th>Name</th></tr><tr><td><a href="/upload/new_myfile_20250903_133709">new_myfile_20250903_133709</a></td></tr><tr><td><a href="/upload/tayfun_20250903_134036.jpeg">tayfun_20250903_134036.jpeg</a></td></tr><tr><td><a href="/upload/test.cpp">test.cpp</a></td></tr><tr><td><a href="/upload/test_20250903_135623.txt">test_20250903_135623.txt</a></td></tr><tr><td><a href="/upload/upload_20250903_133725">upload_20250903_133725</a></td></tr><tr><td><a href="/upload/upload_20250903_135625">upload_20250903_135625</a></td></tr></table></body></html>
+<!DOCTYPE html><html><head><title>Index of /upload</title><style>body{font-family:sans-serif;}table{width:60%;margin:auto;}th,td{text-align:left;padding:4px;}tr:nth-child(even){background:#f9f9f9;}a{text-decoration:none;}</style></head><body><h1>Index of /upload</h1><table><tr><th>Name</th></tr><tr><td><a href="/upload/jessica_20250902_173123.jpeg">jessica_20250902_173123.jpeg</a></td></tr><tr><td><a href="/upload/test.cpp">test.cpp</a></td></tr><tr><td><a href="/upload/test_20250903_124029.txt">test_20250903_124029.txt</a></td></tr><tr><td><a href="/upload/test_20250903_145439.txt">test_20250903_145439.txt</a></td></tr><tr><td><a href="/upload/test_20250903_150345.txt">test_20250903_150345.txt</a></td></tr><tr><td><a href="/upload/test_20250903_150643.txt">test_20250903_150643.txt</a></td></tr><tr><td><a href="/upload/test_20250903_151149.txt">test_20250903_151149.txt</a></td></tr><tr><td><a href="/upload/test_20250903_151642.txt">test_20250903_151642.txt</a></td></tr><tr><td><a href="/upload/test_20250903_152006.txt">test_20250903_152006.txt</a></td></tr><tr><td><a href="/upload/test_20250903_152905.txt">test_20250903_152905.txt</a></td></tr><tr><td><a href="/upload/test_20250903_153125.txt">test_20250903_153125.txt</a></td></tr><tr><td><a href="/upload/upload_20250903_124031">upload_20250903_124031</a></td></tr><tr><td><a href="/upload/upload_20250903_145456">upload_20250903_145456</a></td></tr><tr><td><a href="/upload/upload_20250903_150402">upload_20250903_150402</a></td></tr><tr><td><a href="/upload/upload_20250903_150700">upload_20250903_150700</a></td></tr><tr><td><a href="/upload/upload_20250903_151207">upload_20250903_151207</a></td></tr><tr><td><a href="/upload/upload_20250903_151651">upload_20250903_151651</a></td></tr><tr><td><a href="/upload/upload_20250903_152017">upload_20250903_152017</a></td></tr><tr><td><a href="/upload/upload_20250903_152910">upload_20250903_152910</a></td></tr><tr><td><a href="/upload/upload_20250903_153128">upload_20250903_153128</a></td></tr></table></body></html>
 [OK] Directory Listing
 ------------------------------------------------------------
 == Test 52: 200 File Request ==
@@ -738,7 +723,7 @@ Content-Type: text/html
 >> curl -i -X GET http://localhost:8080/upload/test.cpp
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   216  100   216    0     0   487k      0 --:--:-- --:--:-- --:--:--  210k
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   216  100   216    0     0   645k      0 --:--:-- --:--:-- --:--:--  210k
 HTTP/1.1 200 OK
 Connection: close
 Content-Length: 216
@@ -789,7 +774,7 @@ Content-Type: text/html
 ------------------------------------------------------------
 == Checking Results ==
 ------------------------------------------------------------
-[OK] File uploaded successfully as www/upload/test_20250903_135623.txt.
+[OK] File uploaded successfully as www/upload/test_20250903_124029.txt.
 [OK] File deleted successfully.
 [OK] CGI GET returned Content-Type header.
 [OK] CGI POST returned Content-Type header.
