@@ -10,14 +10,16 @@ void WebServer::handle_get(const Request& req,
                            int client_fd,
                            size_t idx)
 {
-    std::string fs_path = resolve_path(req.getPath(),
+    //JESS: just storing the req.getPath() in uri for cleaner code (instead of passing the fuction 3 times as an arg)
+    std::string uri = req.getPath();
+    std::string fs_path = resolve_path(uri,
                                        req.getMethod(),
                                        loc);
 
-	/*stat is a system call that checks if a file or directory exists and gathers its metadata.
-	If the path does not exist or cannot be accessed, stat returns a value less than 0.
-	If stat succeeds, the st structure is filled with information about the file or directory 
-	(such as its type, permissions, size, etc.)*/
+    /*stat is a system call that checks if a file or directory exists and gathers its metadata.
+    If the path does not exist or cannot be accessed, stat returns a value less than 0.
+    If stat succeeds, the st structure is filled with information about the file or directory
+    (such as its type, permissions, size, etc.)*/
     struct stat st;
     if (stat(fs_path.c_str(), &st) < 0) {
         send_error_response(client_fd, 404, "Not Found", idx);
@@ -25,7 +27,15 @@ void WebServer::handle_get(const Request& req,
     }
 
     if (S_ISDIR(st.st_mode)) {
-        handle_directory_request(fs_path, req.getPath(), loc, client_fd, idx);
+        // JESS: if statement to check if get request comes from client
+        if (wants_json(req))
+        {
+            std::string json = generate_directory_listing_json(fs_path);
+            send_ok_response(client_fd, json, json_headers(), idx);
+            std::cout << "SENT OK RESPONS JSON " << std::endl;
+            return;
+        }
+        handle_directory_request(fs_path, uri, loc, client_fd, idx);
     }
     else {
         handle_file_request(fs_path, client_fd, idx);
@@ -83,7 +93,7 @@ void WebServer::handle_cgi(const LocationConfig* loc, const Request& request, in
 
     std::map<std::string, std::string> env = CGIHandler::build_cgi_env(request, script_name, path_info);
     std::map<int, Connection> connections = this->getConnections();
-	Connection &conn = connections[client_fd];
+    Connection &conn = connections[client_fd];
 	CGIHandler handler(script_path, env, &conn, request.getBody(), request.getPath());    std::string cgi_output = handler.execute();
 
     if (cgi_output == "__CGI_TIMEOUT__") {
@@ -262,7 +272,7 @@ std::string extract_file_from_multipart(const std::string& body, std::string& fi
 }
 
 bool WebServer::handle_upload(const Request& request, const LocationConfig* loc, int client_fd, size_t i) {
-	// Check if the request is a POST and the location config has an upload directory.
+    // Check if the request is a POST and the location config has an upload directory.
     if (!is_valid_upload_request(request, loc)) {
         /*Logger::log(LOG_DEBUG, "is_valid_upload_request",
             "method=" + request.getMethod() +
@@ -317,7 +327,19 @@ bool WebServer::handle_upload(const Request& request, const LocationConfig* loc,
     }
 
     Logger::log(LOG_INFO, "handle_upload", "Upload successful: " + target_path);
-    send_upload_success_response(client_fd, target_path, i);
+    /*
+ JESS: added an if statement for the server to recognise when the post request
+ is coming from the frontend, if that is the case it will send a json as a response.
+ Added this change so the client can use the server directly instead of using the python script
+ */
+    if (wants_json(request))
+    {
+        send_upload_success_json(client_fd, target_path, i); // sends json response if request comes from client
+    }
+    else
+    {
+        send_upload_success_response(client_fd, target_path, i); // sends response when using curl, this was previous code
+    }
     return true;
 }
 

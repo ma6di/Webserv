@@ -4,6 +4,7 @@
 #include "LocationConfig.hpp"
 #include "Config.hpp"
 #include "../logger/Logger.hpp"
+#include <map> // JESS: added for json response
 #include <string>
 #include <fstream>
 #include <sstream>
@@ -21,6 +22,7 @@ bool is_cgi_request(const LocationConfig &loc, const std::string &uri);
 // std::string resolve_script_path(const std::string& uri, const LocationConfig& loc);
 std::string decode_chunked_body(const std::string &body);
 bool is_directory(const std::string &path);
+std::string generate_directory_listing_json(const std::string& fs_dir); // JESS: sends directory listing as json if requested from client
 std::string generate_directory_listing(const std::string &dir_path, const std::string &uri_path);
 std::string sanitize_filename(const std::string& in);
 void split_basename_ext(const std::string& name, std::string& base, std::string& ext);
@@ -28,5 +30,7 @@ std::string get_boundary_from_content_type(const std::string& contentType);
 bool extract_multipart_file_raw(const std::string& body, const std::string& boundary, std::string& outFilename, std::string& outContent);
 bool has_chunked_encoding(const std::string& headers);
 size_t find_chunked_terminator(const std::string& buf, size_t body_start);
+bool wants_json(const Request &req);               // JESS: json response from server helper
+std::map<std::string, std::string> json_headers(); // JESS: json response from server helper
 
 #endif

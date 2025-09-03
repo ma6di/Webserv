@@ -71,6 +71,22 @@ void WebServer::send_created_response(int client_fd,
     std::string raw = resp.toString();
     queueResponse(client_fd, raw);
 }
+/*
+JESS: Sends the json file when request is done from the client
+*/
+void WebServer::send_upload_success_json(int client_fd,
+                                         const std::string &full_filename,
+                                         size_t i)
+{
+    std::ostringstream b;
+    b << "{"
+      << "\"ok\":true,"
+      << "\"message\":\"File uploaded successfully\","
+      << "\"path\":\"" << full_filename << "\""
+      << "}";
+    std::map<std::string, std::string> h = json_headers();
+    send_created_response(client_fd, b.str(), h, i); // 201 Created is fine. Do not set Location to a filesystem path for JSON.
+}
 
 void WebServer::send_upload_success_response(int client_fd, const std::string &full_filename, size_t i)
 {

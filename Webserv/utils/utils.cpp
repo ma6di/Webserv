@@ -7,6 +7,40 @@ bool file_exists(const std::string& path) {
     return exists;
 }
 
+/*
+JESS: json helper functions
+    - wants_json: a bool that returns true or false based on if the server has to give json response or not
+    - json_headers: returns header in json format
+*/
+bool wants_json(const Request &req)
+{
+    // 1) custom header from your frontend
+    std::string xf = req.getHeader("X-Frontend");
+    if (!xf.empty() && (xf == "1" || xf == "true"))
+        return true;
+
+    // 2) Accept header
+    std::string acc = req.getHeader("Accept");
+    if (acc.find("application/json") != std::string::npos)
+        return true;
+
+    // 3) query flag ?json=1
+    const std::string &p = req.getPath();
+    std::string::size_type q = p.find('?');
+    if (q != std::string::npos && p.find("json=1", q) != std::string::npos)
+        return true;
+
+    return false;
+}
+
+std::map<std::string, std::string> json_headers()
+{
+    std::map<std::string, std::string> h;
+    h["Content-Type"] = "application/json; charset=utf-8";
+    return h;
+}
+
+
 std::string get_mime_type(const std::string& path) {
     size_t dot = path.rfind('.');
     if (dot == std::string::npos) {
@@ -178,6 +212,26 @@ bool is_directory(const std::string& path) {
     bool dir = stat(path.c_str(), &statbuf) == 0 && S_ISDIR(statbuf.st_mode);
     //Logger::log(LOG_DEBUG, "is_directory", path + " is_directory=" + (dir ? "true" : "false"));
     return dir;
+}
+
+// JESS: generates JSON response from directory listing if get request comes from client
+std::string generate_directory_listing_json(const std::string& fs_dir) {
+    std::ostringstream out;
+    out << "{\"ok\":true,\"files\":[";
+    DIR* d = opendir(fs_dir.c_str());
+    if (!d) { out << "]}"; return out.str(); }
+    struct dirent* e;
+    bool first = true;
+    while ((e = readdir(d))) {
+        const char* name = e->d_name;
+        if (std::strcmp(name,".")==0 || std::strcmp(name,"..")==0) continue;
+        if (!first) out << ",";
+        out << "\"" << name << "\"";
+        first = false;
+    }
+    closedir(d);
+    out << "]}";
+    return out.str();
 }
 
 std::string generate_directory_listing(const std::string& dir_path, const std::string& uri_path) {
