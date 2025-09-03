@@ -237,26 +237,6 @@ std::string generate_directory_listing_json(const std::string& fs_dir) {
     return out.str();
 }
 
-// JESS: generates JSON response from directory listing if get request comes from client
-std::string generate_directory_listing_json(const std::string& fs_dir) {
-    std::ostringstream out;
-    out << "{\"ok\":true,\"files\":[";
-    DIR* d = opendir(fs_dir.c_str());
-    if (!d) { out << "]}"; return out.str(); }
-    struct dirent* e;
-    bool first = true;
-    while ((e = readdir(d))) {
-        const char* name = e->d_name;
-        if (std::strcmp(name,".")==0 || std::strcmp(name,"..")==0) continue;
-        if (!first) out << ",";
-        out << "\"" << name << "\"";
-        first = false;
-    }
-    closedir(d);
-    out << "]}";
-    return out.str();
-}
-
 std::string generate_directory_listing(const std::string& dir_path, const std::string& uri_path) {
     DIR* dir = opendir(dir_path.c_str());
     if (!dir) {
