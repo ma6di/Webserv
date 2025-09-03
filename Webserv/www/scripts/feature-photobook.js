@@ -1,0 +1,225 @@
+function showModal() {
+    const modal = new bootstrap.Modal(
+        document.getElementById("uploadModal")
+    );
+    modal.show();
+}
+
+document.getElementById("modalFileInput").addEventListener("change", function () {
+    const file = this.files[0];
+    const readyNotice = document.getElementById("fileReady");
+    const nameInput = document.getElementById("photoName");
+
+    if (!file) {
+        readyNotice.classList.add("d-none");
+        nameInput.value = "";
+        return;
+    }
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    if (!allowedTypes.includes(file.type)) {
+        alert("❌ Only JPG, PNG, WEBP, and GIF files are allowed.");
+        this.value = "";
+        readyNotice.classList.add("d-none");
+        nameInput.value = "";
+        return;
+    }
+
+    readyNotice.classList.remove("d-none");
+
+    // sets value to filename without extension
+    var baseName = file.name.replace(/\.[^/.]+$/, "");
+    nameInput.value = baseName || "";
+});
+
+
+//POST REQUEST
+document
+    .getElementById("photoUploadForm")
+    .addEventListener("submit", function (e) {
+        e.preventDefault();
+
+        const form = e.target;
+        const formData = new FormData(form);
+
+        fetch("/upload", {               // your C++ upload route
+            method: "POST",
+            headers: {
+                "X-Frontend": "1",              // tell server to respond JSON
+                "Accept": "application/json"
+            },
+            body: formData
+        })
+            .then((res) => {
+                if (!res.ok) throw new Error("Post request failed: " + res.status);
+                console.log(res.json);
+                return res.json();              // server returns { ok:true, path:"..." }
+            })
+            .then((data) => {
+                console.log("✅ Post request successful, uploaded the following file: " + data.path)
+                alert("✅ Upload successful: " + data.path);
+                form.reset();
+                document.getElementById("fileReady").classList.add("d-none");
+                bootstrap.Modal.getInstance(
+                    document.getElementById("uploadModal")
+                ).hide();
+                location.reload();              // or append dynamically to gallery
+            })
+            .catch((err) => {
+                console.error("❌ Upload error:", err);
+                alert("Upload failed!");
+            });
+    });
+
+function isImageFile(name) {
+    return /\.(jpe?g|png|gif|webp)$/i.test(name);
+}
+
+//GET REQUEST
+console.time("⏰ Completed in");
+fetch("/upload", {
+    headers: { "X-Frontend": "1", "Accept": "application/json" }
+})
+    .then((res) => {
+        if (!res.ok) throw new Error("HTTP error " + res.status);
+        return res.json();// { ok:true, files:[...]}
+    })
+    .then(({ files = [] }) => {
+        // console.log(res.json)
+        // const data = files;
+        const data = files.filter(isImageFile);   // ← client-only filter
+        // makes the "empty photobooth" warning visible or not
+        if (!Array.isArray(data) || data.length === 0) {
+            document
+                .getElementById("emptyMessage")
+                .classList.remove("d-none");
+            return;
+        } else {
+            document
+                .getElementById("emptyMessage")
+                .classList.add("d-none");
+        }
+
+        console.log("✅ Get request handled successfully!");
+        console.log("Retrieved array:", data);
+
+        const grid = document.querySelector(".photo-grid");
+        let fileToDelete = null;
+        let cardToDelete = null;
+        document.getElementById("confirmDeleteBtn").onclick =
+            () => {
+                if (!fileToDelete || !cardToDelete) return;
+
+                fetch(`/upload/${fileToDelete}`, {
+                    method: "DELETE",
+                })
+                    .then((res) => {
+                        if (!res.ok)
+                            throw new Error("Delete failed");
+
+                        cardToDelete.remove();
+
+                        const toast = new bootstrap.Toast(
+                            document.getElementById("deleteToast")
+                        );
+                        toast.show();
+
+                        fileToDelete = null;
+                        cardToDelete = null;
+
+                        bootstrap.Modal.getInstance(
+                            document.getElementById(
+                                "confirmDeleteModal"
+                            )
+                        ).hide();
+
+                        // shows "empty photobook" message
+                        if (
+                            document.querySelectorAll(".photo-card")
+                                .length === 1
+                        ) {
+                            // Only the upload button shows if empty
+                            document
+                                .getElementById("emptyMessage")
+                                .classList.remove("d-none");
+                        }
+                    })
+                    .catch((err) => {
+                        console.error(
+                            "❌ Could not delete image:",
+                            err
+                        );
+                        alert("Error: failed to delete image.");
+                    });
+            };
+
+        data.forEach((filename) => {
+            const card = document.createElement("div");
+            card.className = "photo-card";
+
+            // Creates the spinner
+            const spinner = document.createElement("div");
+            spinner.className = "spinner-border text-secondary";
+            spinner.setAttribute("role", "status");
+            card.appendChild(spinner);
+
+            // Creates the image element
+            const img = document.createElement("img");
+            img.src = `/upload/${filename}`;
+            img.alt = filename;
+            img.style.display = "none"; // Hide until loaded
+            const loadDelay = 800; // ms
+
+            let finished = false;
+
+            function revealImage(success) {
+                if (finished) return;
+                finished = true;
+
+                setTimeout(() => {
+                    spinner.remove();
+
+                    if (success) {
+                        img.style.display = "block";
+                        img.classList.add("visible");
+                    } else {
+                        const errorText =
+                            document.createElement("div");
+                        errorText.textContent = "❌ Failed to load";
+                        errorText.style.fontSize = "0.9rem";
+                        errorText.style.color = "#dc3545";
+                        card.appendChild(errorText);
+                    }
+                }, loadDelay);
+            }
+
+            img.onload = () => revealImage(true);
+            img.onerror = () => revealImage(false);
+            card.appendChild(img);
+            grid.appendChild(card);
+
+            // DELETE BUTTON AND REQUEST
+            const deleteBtn = document.createElement("button");
+            deleteBtn.textContent = "×";
+            deleteBtn.className = "delete-btn";
+            deleteBtn.title = "Delete photo";
+
+            // PHASE 1: When user clicks X button
+            deleteBtn.onclick = () => {
+                fileToDelete = filename;
+                cardToDelete = card;
+
+                const modal = new bootstrap.Modal(
+                    document.getElementById("confirmDeleteModal")
+                );
+                modal.show();
+            };
+
+            card.appendChild(deleteBtn);
+        });
+    })
+    .catch((err) => {
+        console.log("❌ Fetch failed!");
+        console.timeEnd("⏰ Completed in");
+        console.error("Request returned:", err);
+    });
