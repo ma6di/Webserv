@@ -3,6 +3,9 @@
 #include <cstring>
 #include <ctime>
 #include <errno.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <cstdio>
 
 WebServer::WebServer(const Config &cfg)
 	: config_(&cfg)
@@ -28,7 +31,8 @@ WebServer::WebServer(const Config &cfg)
 		make_socket_non_blocking(sock);
 
 		int opt = 1;
-		if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+		if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
+		{
 			perror("setsockopt");
 			// close(sock);
 			continue;
@@ -41,20 +45,24 @@ WebServer::WebServer(const Config &cfg)
 		addr.sin_port = htons(port);
 
 		in_addr resolved;
-		if (!host.empty() && resolve_ipv4(host, &resolved)) {
+		if (!host.empty() && resolve_ipv4(host, &resolved))
+		{
 			addr.sin_addr = resolved;
 		}
-		else {
+		else
+		{
 			addr.sin_addr.s_addr = INADDR_ANY;
 		}
 
-		if (bind(sock, (sockaddr *)&addr, sizeof(addr)) < 0) {
+		if (bind(sock, (sockaddr *)&addr, sizeof(addr)) < 0)
+		{
 			perror("bind");
 			close(sock);
 			continue;
 		}
 
-		if (listen(sock, SOMAXCONN) < 0) {
+		if (listen(sock, SOMAXCONN) < 0)
+		{
 			perror("listen");
 			close(sock);
 			continue;
@@ -71,19 +79,18 @@ WebServer::~WebServer()
 	shutdown();
 }
 
-#include <unistd.h>
-#include <fcntl.h>
-#include <cstdio>
-
 // Closes all open file descriptors except stdin(0), stdout(1), stderr(2)
-void closeAllOpenFDs() {
-    long max_fd = sysconf(_SC_OPEN_MAX);
-    for (int fd = 3; fd < max_fd; ++fd) {
-        // Check if fd is open
-        if (fcntl(fd, F_GETFD) != -1) {
-            close(fd);
-        }
-    }
+void closeAllOpenFDs()
+{
+	long max_fd = sysconf(_SC_OPEN_MAX);
+	for (int fd = 3; fd < max_fd; ++fd)
+	{
+		// Check if fd is open
+		if (fcntl(fd, F_GETFD) != -1)
+		{
+			close(fd);
+		}
+	}
 }
 
 void WebServer::shutdown()
@@ -130,7 +137,7 @@ void WebServer::handleClientDataOn(int client_fd)
 	// Read data from socket
 	char buf[4096];
 	ssize_t bytes_read;
-	
+
 	if (!readClientData(client_fd, buf, sizeof(buf), bytes_read))
 		return;
 
@@ -150,8 +157,8 @@ void WebServer::handleClientDataOn(int client_fd)
 
 	// Append new data to buffer
 	data.append(buf, static_cast<size_t>(bytes_read));
-	//Logger::log(LOG_DEBUG, "WebServer",
-				//"FD=" + to_str(client_fd) + " buffer size after append: " + to_str(data.size()));
+	// Logger::log(LOG_DEBUG, "WebServer",
+	//"FD=" + to_str(client_fd) + " buffer size after append: " + to_str(data.size()));
 
 	// Process all complete requests in buffer
 	processBufferedRequests(client_fd);
@@ -288,7 +295,7 @@ void WebServer::flushPendingWrites(int client_fd)
 				return;
 			}
 			// Drained but keeping open (keep-alive). No POLLOUT next time.
-			//Logger::log(LOG_DEBUG, "flush", "fd=" + to_str(client_fd) + " drained; keeping open");
+			// Logger::log(LOG_DEBUG, "flush", "fd=" + to_str(client_fd) + " drained; keeping open");
 		}
 		return; // one write done this cycle
 	}
@@ -301,7 +308,7 @@ void WebServer::flushPendingWrites(int client_fd)
 	}
 
 	if (n < 0)
-	{	
+	{
 		Logger::log(LOG_INFO, "flush", "fd=" + to_str(client_fd) + " write made no progress; will retry");
 		closeClient(client_fd);
 		return;
