@@ -320,7 +320,7 @@ void WebServer::closeClient(int client_fd)
 	{
 		::close(client_fd);
 		conns_.erase(it);
-		Logger::log(LOG_INFO, "timeout", "Closed client fd=" + to_str(client_fd) + " due to timeout");
+		Logger::log(LOG_INFO, "Webserv", "Closed client fd=" + to_str(client_fd));
 	}
 }
 

@@ -59,6 +59,16 @@ section "Setup: Creating test files and directories"
 mkdir -p www/upload
 touch www/upload/1.txt
 echo "This is a test file." > test.txt
+echo "/*#include "WebServer.hpp"
+#include "config/Config.hpp"
+#include "cgi/CGIHandler.hpp"
+#include "http/Request.hpp"
+#include <iostream>
+#include <map>
+#include <signal.h>
+#include <sys/wait.h>
+#include <unistd.h>
+*/" > test.cpp
 
 
 #!/bin/zsh
@@ -374,7 +384,7 @@ fi
 
 # Cleanup
 section "Cleanup"
-rm -f test.txt result_*.txt
+rm -f test.txt result_*.txt test.cpp bigfile.txt
 
 divider
 echo -e "${YELLOW}==> All tests completed. See $LOGFILE for details.${NC}"
