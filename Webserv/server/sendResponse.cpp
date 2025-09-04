@@ -126,7 +126,6 @@ void WebServer::send_no_content_response(int client_fd, size_t i)
 
     // Empty headers (Content-Length/Content-Type not allowed for 204)
     std::map<std::string, std::string> headers;
-    std::cout << "we are in no conent response" << std::endl;
     // Build response object
     Response resp(204, "No Content", "", headers);
 

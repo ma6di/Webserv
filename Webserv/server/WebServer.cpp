@@ -71,6 +71,21 @@ WebServer::~WebServer()
 	shutdown();
 }
 
+#include <unistd.h>
+#include <fcntl.h>
+#include <cstdio>
+
+// Closes all open file descriptors except stdin(0), stdout(1), stderr(2)
+void closeAllOpenFDs() {
+    long max_fd = sysconf(_SC_OPEN_MAX);
+    for (int fd = 3; fd < max_fd; ++fd) {
+        // Check if fd is open
+        if (fcntl(fd, F_GETFD) != -1) {
+            close(fd);
+        }
+    }
+}
+
 void WebServer::shutdown()
 {
 	for (size_t i = 0; i < listening_sockets.size(); ++i)
@@ -85,7 +100,7 @@ void WebServer::shutdown()
 		::close(it->first);
 	}
 	conns_.clear();
-
+	closeAllOpenFDs();
 	Logger::log(LOG_INFO, "WebServer", "All sockets closed.");
 }
 
