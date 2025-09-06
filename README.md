@@ -1,6 +1,6 @@
 # Webserv
 
-A high-performance, C++98-compliant HTTP/1.1 web server with CGI support, static file serving, and robust error handling. Designed for educational and practical use, it demonstrates low-level network programming, event-driven I/O, and HTTP protocol compliance.
+A high-performance, C++98-compliant [HTTP/1.1](https://datatracker.ietf.org/doc/html/rfc9110#name-200-created) web server with CGI support, static file serving, and robust error handling. Designed for educational and practical use, it demonstrates low-level network programming, event-driven I/O, and HTTP protocol compliance.
 
 ## Features
 
