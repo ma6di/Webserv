@@ -50,6 +50,80 @@ A high-performance, C++98-compliant HTTP/1.1 web server with CGI support, static
 5. **Testing:**
    - Run `./test_all.sh` to execute a full suite of HTTP, CGI, and edge-case tests. Results are logged in `test_results.log`.
 
+## Event-Driven Architecture: Restaurant Analogy
+
+The server operates like a busy restaurant, efficiently handling many guests (clients) at once using non-blocking I/O and the `poll()` system call. Here’s how the flow works:
+
+```
++--------------------------------+
+| socket() -> bind() -> listen() |  <-- Open restaurant & doors
++--------------------------------+
+              |
+              v
+   +-----------------------+
+   |  Add listening socket |
+   |  to pollfd[] array    |
+   +-----------------------+
+              |
+              v
+        +-------------+
+        | poll() waits|  <-- Waiter watching doors & tables
+        +-------------+
+              |
+              v
+    +---------+------------------+
+    |                            |
+Listening socket?           Client socket?
+    |                            |
+  POLLIN?              POLLIN?   |    POLLOUT?
+    |                     |  ----------  |
+    v                     v              v
++----------+        +-----------+   +-----------+
+| accept() |        |   read()  |   |  write()  |
++----------+        |  request  |   | response  |
+    |               +-----------+   +-----------+
+    v                     |               |
+Add new client_fd         |               |
+to pollfd[] array         v               |
+    |               +------------------+  |
+    +-------------->| Process request  |  |
+                    | (parse, route,   |  |
+                    |  generate resp)  |  |
+                    +------------------+  |
+                              |           |
+                              v           |
+                    Queue response in     |
+                    connection buffer     |
+                              |           |
+                              +-----------+
+                                          |
+                              Connection closed? 
+                           (EOF/error/keep-alive timeout)
+                                          |
+                                          v
+                             +----------------------------+
+                             | close(fd), remove from     |
+                             | pollfd[] array (guest left)|
+                             +----------------------------+
+                                           |
+                                           v
+                                      Loop forever
+```
+
+**Explanation:**
+- The server opens its "doors" (`socket()`, `bind()`, `listen()`) and adds the entrance to a list of things to watch (`pollfd[]`).
+- Like a waiter, `poll()` keeps an eye on both the entrance (new guests) and all tables (active clients).
+- When a new guest arrives, the server "seats" them (`accept()`) and starts watching their table (client socket).
+- For each client:
+  - If they want to order (`POLLIN`), the server reads their request.
+  - If their food (response) is ready (`POLLOUT`), the server serves it.
+- Requests are parsed, routed, and responses are generated and queued.
+- When a guest leaves (connection closes), their table is cleared (`close(fd)`), and the server keeps running, ready for more.
+
+This architecture allows the server to handle thousands of connections efficiently, just like a well-run restaurant with a vigilant staff.
+
+---
+
 ## Building & Running
 
 ```
