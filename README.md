@@ -52,22 +52,25 @@ A high-performance, C++98-compliant [HTTP/1.1](https://datatracker.ietf.org/doc/
 6. **Stress Testing:**
    - We performed load testing on `Webserv` running locally on Linux using `siege`.
     ```bash
-     siege -c 1000 -t 30S http://localhost:8080/```
-    
-{
-  "transactions": 140109,
-  "availability": 100.00,
-  "elapsed_time": 29.14,
-  "data_transferred": 3119.03,
-  "response_time": 0.21,
-  "transaction_rate": 4808.13,
-  "throughput": 107.04,
-  "concurrency": 992.92,
-  "successful_transactions": 124264,
-  "failed_transactions": 0,
-  "longest_transaction": 1.16,
-  "shortest_transaction": 0.00
-}
+     siege -c 1000 -t 30S http://localhost:8080/
+  
+  ```bash
+      {
+        "transactions": 140109,
+        "availability": 100.00,
+        "elapsed_time": 29.14,
+        "data_transferred": 3119.03,
+        "response_time": 0.21,
+        "transaction_rate": 4808.13,
+        "throughput": 107.04,
+        "concurrency": 992.92,
+        "successful_transactions": 124264,
+        "failed_transactions": 0,
+        "longest_transaction": 1.16,
+        "shortest_transaction": 0.00
+      }
+```
+
 
 Analysis:
 
