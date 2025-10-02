@@ -82,15 +82,6 @@ Analysis:
 - Longest request: 1.16 ms — server remains highly responsive.
 
 
----
-
-### 1️⃣ `wrk` Test
-
-**Command:**
-```bash
-wrk -t4 -c50 -d30s http://localhost:8080/
-
-
 ## Event-Driven Architecture: Restaurant Analogy
 
 The server operates like a busy restaurant, efficiently handling many guests (clients) at once using non-blocking I/O and the `poll()` system call. Here’s how the flow works:
