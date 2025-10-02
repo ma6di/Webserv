@@ -190,6 +190,9 @@ make
 - `Webserv/cgi/CGIHandler.cpp`: CGI process management and I/O.
 - `Webserv/test_all.sh`: Automated test suite.
 
+## 
+  ![Image](https://github.com/user-attachments/assets/e8a6bb67-13a8-4d60-a044-6247852ec792)
+  
 ## Authors
 - [Mahdi (@ma6di)](https://github.com/ma6di)
 - [Tayfun (tayfunkas)](https://github.com/tayfunkas)
