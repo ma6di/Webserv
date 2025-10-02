@@ -54,7 +54,7 @@ A high-performance, C++98-compliant [HTTP/1.1](https://datatracker.ietf.org/doc/
      ```bash
          siege -c 1000 -t 30S http://localhost:8080/
       
-      ```bash
+    ```bash
           {
             "transactions": 140109,
             "availability": 100.00,
@@ -69,7 +69,7 @@ A high-performance, C++98-compliant [HTTP/1.1](https://datatracker.ietf.org/doc/
             "longest_transaction": 1.16,
             "shortest_transaction": 0.00
           }
-
+    ```
     Analysis:
     
         - Webserv handled ~1,000 concurrent connections with 100% availability.
